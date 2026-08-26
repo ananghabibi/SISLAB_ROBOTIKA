@@ -1,0 +1,36 @@
+# =============================================================================
+# PostgreSQL untuk pengembangan di laptop — BUKAN untuk laboratorium.
+#
+# Berkas terpisah dari docker-compose.yml dengan sengaja. Basis data di
+# laboratorium tidak membuka port ke jaringan sama sekali; hanya kontainer
+# aplikasi yang boleh menghubunginya. Berkas ini membukanya ke localhost supaya
+# `npm run dev` di laptop bisa menyambung.
+#
+# Jalankan:  docker compose -f docker-compose.dev.yml up -d
+# Hentikan:  docker compose -f docker-compose.dev.yml down
+# Hapus data: docker compose -f docker-compose.dev.yml down -v
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: silab-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-silab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-silab-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-silab}
+      TZ: Asia/Jakarta
+    ports:
+      # Hanya ke localhost, tidak ke jaringan sekitar.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-silab} -d ${POSTGRES_DB:-silab}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db-dev-data:

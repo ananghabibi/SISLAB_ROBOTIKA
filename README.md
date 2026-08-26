@@ -11,6 +11,10 @@ Keluarannya adalah bukti sah untuk klaim Kredit Poin Kinerja Mahasiswa
 Spesifikasi lengkap ada di [`SPEC.md`](SPEC.md). Rencana pengerjaan dan status
 tiap milestone ada di [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
+> **Baru pertama kali mencoba di laptop sendiri?** Langsung ke
+> [bagian 3 — Panduan pemula](#3-mencoba-di-laptop-sendiri-panduan-pemula).
+> Di sana tertulis apa saja yang perlu dipasang dan perintahnya satu per satu.
+
 > **Status: Milestone 1 selesai.** Fondasi, autentikasi, dan hak akses sudah
 > berjalan. Modul absensi, kontribusi, inventaris, piket, dan surat menyusul
 > pada milestone berikutnya. Menu yang belum jadi tetap tampil sebagai halaman
@@ -80,31 +84,144 @@ menyebutkan alamat IP yang terbaca supaya mudah diperbaiki.
 
 ---
 
-## 3. Menjalankan untuk pengembangan
+## 3. Mencoba di laptop sendiri (panduan pemula)
 
-```bash
-npm install
-cp .env.example .env         # arahkan DATABASE_URL ke PostgreSQL lokal
-npx prisma migrate deploy
-npx prisma db seed
-npm run dev                  # http://localhost:3000
+Bagian ini untuk yang baru pertama kali membuka proyek ini. Ikuti berurutan;
+tidak ada langkah yang boleh dilewati.
+
+### 3.1 Pasang tiga perkakas ini dulu
+
+| Perkakas | Unduh dari | Cara memastikan sudah terpasang |
+|---|---|---|
+| **Node.js 22 LTS** | <https://nodejs.org> (pilih **LTS**) | `node -v` menampilkan `v22.x` |
+| **Git** | <https://git-scm.com/downloads> | `git --version` |
+| **Docker Desktop** | <https://www.docker.com/products/docker-desktop/> | `docker --version` |
+
+Docker dipakai untuk menjalankan PostgreSQL tanpa perlu memasangnya sendiri.
+Kalau Anda sudah punya PostgreSQL 16 di laptop, Docker boleh dilewati — lihat
+bagian 3.5.
+
+> **Tutup lalu buka lagi Command Prompt** sesudah memasang Node.js dan Git.
+> Jendela yang sudah terbuka belum mengenal perintah baru.
+>
+> Di Windows, **jalankan Docker Desktop** dan tunggu ikonnya berhenti berputar
+> sebelum melanjutkan.
+
+### 3.2 Ambil proyeknya
+
+Jangan bekerja di `C:\Windows\System32`. Pindah dulu ke folder milik Anda:
+
+```cmd
+cd %USERPROFILE%\Documents
+git clone https://github.com/ananghabibi/SISLAB_ROBOTIKA.git silab
+cd silab
 ```
 
-Selama pengembangan di laptop, isi `LAB_NETWORK_BYPASS=true` agar pemeriksaan
-subnet dilewati. **Nilai ini wajib `false` di laboratorium.**
+Di macOS atau Linux, ganti baris pertama menjadi `cd ~/Documents`.
 
-Perintah lain:
+Mulai sekarang **semua perintah dijalankan dari dalam folder `silab` itu**.
+Kalau Command Prompt ditutup, buka lagi dan ketik `cd %USERPROFILE%\Documents\silab`
+sebelum mengetik perintah apa pun.
+
+### 3.3 Pasang dan siapkan
+
+```cmd
+npm install
+node scripts/siapkan-env.mjs
+```
+
+`npm install` mengunduh pustaka yang dibutuhkan — sekali jalan, beberapa menit.
+
+`siapkan-env.mjs` membuat berkas `.env` beserta seluruh kunci rahasianya, lalu
+**menampilkan kata sandi untuk masuk pertama kali**. Catat kata sandi itu.
+Bila terlanjur hilang, buka berkas `.env` dan lihat baris
+`SEED_KEPALA_LAB_PASSWORD`.
+
+### 3.4 Nyalakan basis data dan isi datanya
+
+```cmd
+docker compose -f docker-compose.dev.yml up -d
+npx prisma migrate deploy
+npx prisma db seed
+```
+
+Baris pertama menyalakan PostgreSQL di latar belakang. Baris kedua membuat
+seluruh tabel. Baris ketiga memasukkan 6 squad, 39 anggota, dan 1 periode
+aktif — hasilnya tercetak di layar.
+
+### 3.5 Bila memakai PostgreSQL sendiri, bukan Docker
+
+Lewati `docker compose`, buat basis data kosong bernama `silab`, lalu sesuaikan
+baris `DATABASE_URL` di `.env` dengan nama pengguna dan kata sandi PostgreSQL
+Anda:
+
+```
+DATABASE_URL="postgresql://postgres:katasandianda@localhost:5432/silab?schema=public"
+```
+
+Sesudah itu lanjutkan dengan `npx prisma migrate deploy` dan `npx prisma db seed`.
+
+### 3.6 Jalankan
+
+```cmd
+npm run dev
+```
+
+Buka <http://localhost:3000> di peramban. Masuk lewat formulir **bagian bawah**
+(di bawah tulisan "atau akun dosen"):
+
+- Surel: `anang.habibi@unisma.ac.id`
+- Kata sandi: yang tercetak pada langkah 3.3
+
+Untuk menghentikan aplikasi, tekan `Ctrl + C` di Command Prompt.
+Untuk menghentikan basis data: `docker compose -f docker-compose.dev.yml down`.
+
+### 3.7 Mencoba peran lain
+
+Seeder hanya memberi kata sandi kepada akun dosen; anggota mahasiswa memakai
+Google. Supaya perbedaan menu antarperan bisa dicoba sekarang, pasang kata
+sandi sementara. Buka Command Prompt **kedua** di folder yang sama (biarkan
+`npm run dev` tetap berjalan di jendela pertama):
+
+```cmd
+npm run sandi -- 22301053005@student.unisma.ac.id KataSandiUji2026
+npm run sandi -- 22301053029@student.unisma.ac.id KataSandiUji2026
+npm run sandi -- 22501053005@student.unisma.ac.id KataSandiUji2026
+```
+
+Berturut-turut: Koordinator Operasional, Ketua Squad KRTI VTOL, dan Anggota
+biasa. Masuk bergantian dengan keempat akun itu — menunya akan berbeda. Coba
+juga mengetik langsung alamat `http://localhost:3000/peran` sebagai Anggota:
+hasilnya 403, karena penolakan terjadi di peladen, bukan sekadar menyembunyikan
+menu.
+
+### 3.8 Kalau ada yang gagal
+
+| Pesan | Artinya | Yang harus dilakukan |
+|---|---|---|
+| `'git' is not recognized` / `'npm' is not recognized` | Perkakasnya belum terpasang, atau Command Prompt belum dibuka ulang | Pasang, lalu tutup dan buka lagi Command Prompt |
+| `fatal: not a git repository` | Anda belum berada di dalam folder proyek | `cd %USERPROFILE%\Documents\silab` |
+| `error during connect` / `docker daemon is not running` | Docker Desktop belum menyala | Jalankan Docker Desktop, tunggu sampai siap |
+| `Can't reach database server at localhost:5432` | Basis data belum menyala, atau `DATABASE_URL` salah | `docker compose -f docker-compose.dev.yml up -d` |
+| `port is already allocated` | Ada PostgreSQL lain memakai port 5432 | Hentikan yang lain, atau ikuti bagian 3.5 |
+| `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |
+| `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SEED_KEPALA_LAB_PASSWORD` di `.env`, atau pakai `npm run sandi` |
+| `Konfigurasi autentikasi belum lengkap` | `.env` belum dibuat | `node scripts/siapkan-env.mjs` |
+
+### 3.9 Perintah lain yang berguna
 
 | Perintah | Kegunaan |
 |---|---|
 | `npm run typecheck` | Periksa tipe TypeScript |
 | `npm test` | Jalankan uji Vitest |
 | `npm run build` | Build produksi |
-| `npm run db:studio` | Jelajahi basis data lewat Prisma Studio |
+| `npm run db:studio` | Jelajahi isi basis data lewat peramban |
 | `npm run db:migrate` | Buat dan terapkan migrasi baru |
 | `npm run sandi -- <surel> <sandi>` | Pasang kata sandi seorang anggota |
+| `npm run db:reset` | Kosongkan dan isi ulang basis data dari awal |
 
----
+Selama pengembangan di laptop, `LAB_NETWORK_BYPASS` boleh diisi `true` agar
+pemeriksaan subnet dilewati. **Nilai ini wajib `false` di laboratorium.**
 
 ## 4. Variabel lingkungan
 
