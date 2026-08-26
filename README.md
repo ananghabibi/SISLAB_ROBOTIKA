@@ -253,6 +253,7 @@ menu.
 | `localhost:3000` kosong padahal alamat IP bisa dibuka | Windows menerjemahkan `localhost` ke IPv6 `::1`, sedangkan peladen mendengarkan IPv4 | Pakai `http://127.0.0.1:3000` |
 | Muncul `Next.js 16.x` padahal proyek memakai 15.5.24 | `npm install` menaikkan versi tanpa diminta | `npm ci` — memasang persis versi yang terkunci |
 | HP tidak bisa membuka alamat `172.2x.x.x` atau `172.3x.x.x` | Itu adaptor virtual WSL/Hyper-V, bukan WiFi laptop | Ambil alamat dari blok **Wireless LAN adapter Wi-Fi** pada `ipconfig` |
+| HP memuat terus lalu gagal walau firewall sudah dibuka | Ponsel berada di jaringan lain, atau router mengaktifkan *client isolation* | Pastikan tiga angka pertama alamat IP ponsel sama dengan laptop. Bila sama dan tetap gagal, uji lewat hotspot ponsel — bila lewat hotspot berhasil, berarti routernya yang memisahkan perangkat |
 | HP memuat terus lalu gagal di alamat WiFi yang benar | Windows Firewall menutup port 3000 | Command Prompt sebagai Administrator: `netsh advfirewall firewall add rule name="SILAB dev 3000" dir=in action=allow protocol=TCP localport=3000` |
 | `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
 | `We detected multiple lockfiles` | Ada `package-lock.json` nyasar di folder rumah Anda, biasanya karena `npm install` pernah dijalankan di sana | Sekadar peringatan, boleh diabaikan. Bila ingin bersih: hapus `%USERPROFILE%\package-lock.json` |
@@ -267,6 +268,7 @@ menu.
 | `npm run typecheck` | Periksa tipe TypeScript |
 | `npm test` | Jalankan uji Vitest |
 | `npm run dev:https` | Jalankan dengan https, agar kamera ponsel bisa dipakai |
+| `npm run alamat` | Cari alamat WiFi laptop untuk dibuka dari ponsel |
 | `npm run test:e2e` | Jalankan uji Playwright (perlu peladen berjalan) |
 | `npm run build` | Build produksi |
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
@@ -478,7 +480,23 @@ docker compose logs cron | tail -20     # memastikan penjadwalnya hidup
 `localhost` di ponsel berarti ponsel itu sendiri, bukan laptop Anda. Ada tiga
 hal yang harus beres, dan ketiganya wajib — bukan pilihan.
 
-**a. Pakai alamat WiFi laptop, bukan localhost.** Baris `Network:` yang
+**a. Pakai alamat WiFi laptop, bukan localhost.** Cara tercepat menemukannya:
+
+```cmd
+npm run alamat
+```
+
+Perintah itu memisahkan alamat WiFi yang nyata dari adaptor virtual, dan
+mencetak perintah untuk mengikat peladen ke alamat tersebut, misalnya:
+
+```cmd
+npm run dev -- -H 192.168.1.138
+```
+
+Mengikat secara tegas menghilangkan keraguan: bila ponsel tetap tidak bisa
+membuka alamat itu, sebabnya sudah pasti jaringan, bukan pemilihan antarmuka.
+
+Cara panjangnya: Baris `Network:` yang
 tercetak Next.js **belum tentu benar**: bila laptop punya WSL, Docker, atau
 Hyper-V, yang tercetak sering justru alamat adaptor virtualnya — biasanya
 `172.2x.x.x` atau `172.3x.x.x` — dan alamat itu tidak dapat dihubungi ponsel.
