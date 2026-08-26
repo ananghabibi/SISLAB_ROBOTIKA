@@ -131,8 +131,18 @@ node scripts/siapkan-env.mjs
 
 `siapkan-env.mjs` membuat berkas `.env` beserta seluruh kunci rahasianya, lalu
 **menampilkan kata sandi untuk masuk pertama kali**. Catat kata sandi itu.
-Bila terlanjur hilang, buka berkas `.env` dan lihat baris
-`SEED_KEPALA_LAB_PASSWORD`.
+
+Perintah ini aman dijalankan berulang kali: nilai yang sudah ada tidak pernah
+ditimpa, hanya baris yang masih kosong yang diisi. Jalankan lagi kapan pun Anda
+lupa kata sandi masuk — ia akan mencetaknya lagi.
+
+> **Berkas `.env` tidak terlihat di File Explorer** karena namanya diawali
+> titik. Itu normal; berkasnya ada. Untuk memastikan dan membukanya:
+>
+> ```cmd
+> dir /a
+> notepad .env
+> ```
 
 ### 3.4 Nyalakan basis data
 
@@ -156,20 +166,18 @@ Jangan dilawan — langsung pakai Pilihan B.
 
 1. Unduh pemasang PostgreSQL 16 untuk Windows dari
    <https://www.enterprisedb.com/downloads/postgres-postgresql-downloads>.
-2. Jalankan pemasangnya. Tekan **Next** terus, dengan tiga catatan:
-   - **Password** untuk pengguna `postgres` — catat baik-baik. Pakai huruf dan
-     angka saja; tanda `@ : / #` di dalam kata sandi menyulitkan penulisan
-     `DATABASE_URL` nanti.
-   - **Port** biarkan `5432`.
-   - **Stack Builder** di akhir boleh dilewati.
-3. Buka berkas `.env` di folder `silab` dengan Notepad, cari baris
-   `DATABASE_URL=`, ganti seluruh barisnya menjadi:
+2. Jalankan pemasangnya. Tekan **Next** terus, dengan dua catatan:
+   - **Password** untuk pengguna `postgres` — catat baik-baik.
+   - **Port** biarkan `5432`. **Stack Builder** di akhir boleh dilewati.
+3. Beri tahu aplikasi kata sandi itu:
 
-   ```
-   DATABASE_URL="postgresql://postgres:KATASANDIANDA@localhost:5432/silab?schema=public"
+   ```cmd
+   node scripts/siapkan-env.mjs --sandi-db KATASANDIANDA
    ```
 
-   Ganti `KATASANDIANDA` dengan kata sandi langkah 2. Simpan berkasnya.
+   Ganti `KATASANDIANDA` dengan kata sandi langkah 2. Perintah ini menulis
+   ulang baris `DATABASE_URL` di `.env` untuk Anda, jadi berkasnya tidak perlu
+   dibuka sendiri. Tanda baca di dalam kata sandi ditangani otomatis.
 
 Basis data bernama `silab` tidak perlu dibuat sendiri — langkah berikutnya
 membuatnya otomatis.
@@ -236,7 +244,8 @@ menu.
 | `port is already allocated` | Ada PostgreSQL lain memakai port 5432 | Hentikan yang lain, atau ikuti bagian 3.5 |
 | `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |
 | `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SEED_KEPALA_LAB_PASSWORD` di `.env`, atau pakai `npm run sandi` |
-| `Konfigurasi autentikasi belum lengkap` | `.env` belum dibuat | `node scripts/siapkan-env.mjs` |
+| `Konfigurasi autentikasi belum lengkap` | `.env` belum dibuat, atau `AUTH_SECRET` masih kosong | `node scripts/siapkan-env.mjs` |
+| `.env` tidak kelihatan di File Explorer | Wajar — namanya diawali titik | `dir /a` untuk memastikan, `notepad .env` untuk membuka |
 
 ### 3.9 Perintah lain yang berguna
 
@@ -248,6 +257,7 @@ menu.
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
 | `npm run db:migrate` | Buat dan terapkan migrasi baru |
 | `npm run sandi -- <surel> <sandi>` | Pasang kata sandi seorang anggota |
+| `node scripts/siapkan-env.mjs` | Lengkapi `.env`, cetak ulang kata sandi masuk |
 | `npm run db:reset` | Kosongkan dan isi ulang basis data dari awal |
 
 Selama pengembangan di laptop, `LAB_NETWORK_BYPASS` boleh diisi `true` agar
