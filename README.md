@@ -253,6 +253,7 @@ menu.
 | `localhost:3000` kosong padahal alamat IP bisa dibuka | Windows menerjemahkan `localhost` ke IPv6 `::1`, sedangkan peladen mendengarkan IPv4 | Pakai `http://127.0.0.1:3000` |
 | Muncul `Next.js 16.x` padahal proyek memakai 15.5.24 | `npm install` menaikkan versi tanpa diminta | `npm ci` — memasang persis versi yang terkunci |
 | HP tidak bisa membuka alamat `172.2x.x.x` atau `172.3x.x.x` | Itu adaptor virtual WSL/Hyper-V, bukan WiFi laptop | Ambil alamat dari blok **Wireless LAN adapter Wi-Fi** pada `ipconfig` |
+| `netsh` menerima aturan firewall tetapi tidak ada bedanya | Baris `LocalFirewallRules N/A (GPO-store only)` — laptop dikelola Group Policy, aturan buatan sendiri diabaikan | Pakai jalan memutar pada bagian 6.5: uji dengan kamera laptop, atau lewat terowongan Cloudflare |
 | HP memuat terus lalu gagal walau firewall sudah dibuka | Ponsel berada di jaringan lain, atau router mengaktifkan *client isolation* | Pastikan tiga angka pertama alamat IP ponsel sama dengan laptop. Bila sama dan tetap gagal, uji lewat hotspot ponsel — bila lewat hotspot berhasil, berarti routernya yang memisahkan perangkat |
 | HP memuat terus lalu gagal di alamat WiFi yang benar | Windows Firewall menutup port 3000 | Command Prompt sebagai Administrator: `netsh advfirewall firewall add rule name="SILAB dev 3000" dir=in action=allow protocol=TCP localport=3000` |
 | `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
@@ -534,6 +535,61 @@ dikenal — pilih **Advanced → Proceed**. Setelah itu kamera berfungsi.
 > sehari-hari** — 38 anggota tidak boleh dibiasakan menekan "Proceed" pada
 > peringatan keamanan. Untuk di laboratorium, pakai Pilihan B pada `Caddyfile`;
 > lihat bagian berikutnya.
+
+### Bila ponsel tetap tidak bisa menjangkau laptop
+
+Sebelum menyerah, pisahkan dulu penyebabnya. **Dari ponsel**, buka halaman
+pengaturan router, biasanya `http://192.168.1.1`:
+
+- **Terbuka** → ponsel punya akses ke jaringan lokal, berarti yang menahan ada
+  di sisi Windows.
+- **Tidak terbuka** → routernya yang memisahkan perangkat (*client isolation*),
+  dan tidak ada yang bisa diperbaiki dari sisi laptop.
+
+#### Laptop yang dikelola terpusat
+
+Jalankan:
+
+```cmd
+netsh advfirewall show currentprofile
+```
+
+Bila muncul baris `LocalFirewallRules  N/A (GPO-store only)`, laptop itu
+dikendalikan Group Policy dan **aturan firewall yang Anda buat sendiri
+diabaikan** — perintah `netsh ... add rule` diterima tanpa galat tetapi tidak
+pernah berlaku. Lazim pada laptop inventaris kampus atau kantor. Tidak ada
+perintah yang dapat menembusnya tanpa hak administrator domain.
+
+#### Dua jalan memutar
+
+**a. Uji pemindai QR di laptop sendiri.** Kamera bawaan laptop berfungsi penuh
+pada `localhost`, dan itu sudah cukup membuktikan seluruh alur absensi:
+
+```cmd
+npm run dev:https
+```
+
+Buka `https://localhost:3000/display` di satu jendela dan
+`https://localhost:3000/absensi` di jendela lain, lalu arahkan kamera laptop ke
+QR di layar. Tidak perlu ponsel sama sekali.
+
+**b. Terowongan keluar, untuk benar-benar mencoba dari ponsel.** Unduh
+`cloudflared` dari <https://github.com/cloudflare/cloudflared/releases>
+(`cloudflared-windows-amd64.exe`), lalu sementara `npm run dev` berjalan:
+
+```cmd
+cloudflared tunnel --url http://localhost:3000
+```
+
+Perintah itu mencetak alamat `https://sesuatu.trycloudflare.com` yang dapat
+dibuka dari ponsel mana pun — sekaligus menyelesaikan syarat https untuk kamera,
+karena terowongannya sudah bersertifikat.
+
+> **Hentikan terowongan begitu selesai menguji** (Ctrl + C). Selama menyala,
+> aplikasi Anda dapat dijangkau siapa saja yang tahu alamatnya, lengkap dengan
+> akun uji berkata sandi yang sudah diketahui. Cara ini hanya untuk mencoba di
+> laptop pengembangan, **tidak pernah** untuk laboratorium — di sana justru
+> sifat lokal peladen yang menjadi pengamanannya.
 
 **Catatan tentang WiFi kampus.** Banyak jaringan kampus mengaktifkan *client
 isolation*, yang memblokir perangkat saling menghubungi walau berada di WiFi
