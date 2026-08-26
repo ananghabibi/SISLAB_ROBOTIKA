@@ -262,6 +262,7 @@ menu.
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
 | `npm run db:migrate` | Buat dan terapkan migrasi baru |
 | `npm run sandi -- <surel> <sandi>` | Pasang kata sandi seorang anggota |
+| `npm run sandi:uji -- <sandi>` | Siapkan akun uji untuk tiap peran (hanya pengembangan) |
 | `node scripts/siapkan-env.mjs` | Lengkapi `.env`, cetak ulang kata sandi masuk |
 | `npm run db:reset` | Kosongkan dan isi ulang basis data dari awal |
 
@@ -327,6 +328,35 @@ http://<alamat-mini-pc>/api/auth/callback/google    # laboratorium
 
 Surel di luar `ALLOWED_EMAIL_DOMAINS` ditolak, begitu pula surel kampus yang
 belum terdaftar sebagai anggota. Pesan galatnya menjelaskan yang mana.
+
+### Akun uji untuk semua peran sekaligus
+
+Seeder hanya memberi kata sandi kepada akun dosen; anggota mahasiswa memakai
+Google. Untuk mencoba perbedaan menu dan penolakan hak akses antarperan tanpa
+menyiapkan kredensial Google lebih dulu:
+
+```cmd
+npm run sandi:uji -- KataSandiUji2026
+```
+
+Satu wakil tiap peran akan memakai kata sandi yang Anda ketik itu:
+
+| Peran | Surel | Nama |
+|---|---|---|
+| Kepala Laboratorium | `anang.habibi@unisma.ac.id` | Anang Habibi, S.ST., M.T. |
+| Koordinator Operasional | `22301053005@student.unisma.ac.id` | Zaenal Abidin |
+| Koordinator Riset | `22301053006@student.unisma.ac.id` | Ahmad Khoirudin |
+| Koordinator Pengembangan | `22301053023@student.unisma.ac.id` | A Viki Adi S |
+| Ketua Squad (KRTI VTOL) | `22301053029@student.unisma.ac.id` | M. Syiham Lazuardi Samson |
+| Anggota | `22501053005@student.unisma.ac.id` | M. Arzak Alif Mubarok |
+
+Tidak ada akun Pengawas pada data awal. Bila ingin mencobanya, ubah peran salah
+satu anggota lewat halaman **Anggota**, lalu jalankan ulang perintah di atas.
+
+> Perintah ini **menolak berjalan bila `NODE_ENV=production`**, dan kata
+> sandinya wajib Anda ketik sendiri — tidak ada nilai bawaan. Satu kata sandi
+> yang sama untuk enam peran hanya boleh ada di komputer pengembangan. Di
+> laboratorium, pasang satu per satu dengan `npm run sandi`.
 
 ### Memasang kata sandi anggota lain
 
