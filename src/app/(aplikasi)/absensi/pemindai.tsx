@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
+// Diimpor dari modul yang tidak menyentuh Prisma, supaya tidak ikut menyeret
+// klien basis data ke dalam berkas yang berjalan di peramban.
+import { PANJANG_KENDALA_MINIMAL, PANJANG_URAIAN_MINIMAL } from "@/lib/catatan-pulang";
 
 type Tahap = "diam" | "memindai" | "konfirmasi" | "mengirim" | "selesai";
 
@@ -26,7 +29,10 @@ export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
   const [token, setToken] = useState("");
   const [kode, setKode] = useState("");
   const [jenisKegiatan, setJenisKegiatan] = useState("RISET");
-  const [catatan, setCatatan] = useState("");
+  const [rencana, setRencana] = useState("");
+  const [uraian, setUraian] = useState("");
+  const [kendala, setKendala] = useState("");
+  const [tanpaKendala, setTanpaKendala] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
   const [pesan, setPesan] = useState<string | null>(null);
 
@@ -92,7 +98,7 @@ export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
           token,
           kode,
           jenisKegiatan,
-          ...(aksi === "masuk" ? { rencana: catatan } : { uraian: catatan }),
+          ...(aksi === "masuk" ? { rencana } : { uraian, kendala, tanpaKendala }),
         }),
       });
       const isi = (await jawaban.json()) as { ok: boolean; pesan: string };
@@ -184,23 +190,80 @@ export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
             </Field>
           ) : null}
 
-          <Field
-            label={aksi === "masuk" ? "Rencana hari ini (opsional)" : "Yang dikerjakan (opsional)"}
-            htmlFor="catatan"
-          >
-            <Input
-              id="catatan"
-              value={catatan}
-              onChange={(e) => setCatatan(e.target.value)}
-              placeholder={aksi === "masuk" ? "Kalibrasi sensor IMU" : "Kalibrasi selesai, data tersimpan"}
-            />
-          </Field>
+          {aksi === "masuk" ? (
+            <Field label="Rencana hari ini (opsional)" htmlFor="rencana">
+              <Input
+                id="rencana"
+                value={rencana}
+                onChange={(e) => setRencana(e.target.value)}
+                placeholder="Kalibrasi sensor IMU"
+              />
+            </Field>
+          ) : (
+            <>
+              {/* Wajib. Sesi tanpa keterangan tidak bisa dipertanggungjawabkan
+                  saat rekap kontribusi diaudit Program Studi. */}
+              <Field
+                label="Apa yang Anda kerjakan hari ini?"
+                htmlFor="uraian"
+                petunjuk={`Wajib diisi, sedikitnya ${PANJANG_URAIAN_MINIMAL} karakter. Inilah yang dibaca Kepala Laboratorium saat menilai kontribusi Anda.`}
+              >
+                <textarea
+                  id="uraian"
+                  value={uraian}
+                  onChange={(e) => setUraian(e.target.value)}
+                  rows={3}
+                  required
+                  minLength={PANJANG_URAIAN_MINIMAL}
+                  className="w-full rounded-lg border border-garis bg-permukaan px-3 py-2 text-base"
+                  placeholder="Kalibrasi ulang sensor IMU dan menyimpan datanya ke logbook squad."
+                />
+              </Field>
+
+              <Field
+                label="Kendala hari ini"
+                htmlFor="kendala"
+                petunjuk="Wajib dijawab. Bila memang tidak ada, centang kotak di bawah."
+              >
+                <textarea
+                  id="kendala"
+                  value={kendala}
+                  onChange={(e) => setKendala(e.target.value)}
+                  rows={2}
+                  disabled={tanpaKendala}
+                  required={!tanpaKendala}
+                  minLength={PANJANG_KENDALA_MINIMAL}
+                  className="w-full rounded-lg border border-garis bg-permukaan px-3 py-2 text-base disabled:bg-dasar disabled:text-teks-redup"
+                  placeholder="Baterai drone rusak, pengujian terbang ditunda."
+                />
+              </Field>
+
+              <label className="flex items-center gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={tanpaKendala}
+                  onChange={(e) => {
+                    setTanpaKendala(e.target.checked);
+                    if (e.target.checked) setKendala("");
+                  }}
+                  className="h-5 min-h-0 w-5 shrink-0"
+                />
+                Tidak ada kendala hari ini
+              </label>
+            </>
+          )}
 
           <Button
             size="besar"
             className="w-full"
             onClick={kirim}
-            disabled={tahap === "mengirim" || kode.length !== 6}
+            disabled={
+              tahap === "mengirim" ||
+              kode.length !== 6 ||
+              (aksi === "pulang" &&
+                (uraian.trim().length < PANJANG_URAIAN_MINIMAL ||
+                  (!tanpaKendala && kendala.trim().length < PANJANG_KENDALA_MINIMAL)))
+            }
           >
             {tahap === "mengirim"
               ? "Mengirim…"

@@ -423,7 +423,18 @@ dalam laboratorium.
 4. Ketik kode harian yang tampil di layar, tekan **Catat absen masuk**.
 
 Saat pulang, ulangi langkah yang sama; tombolnya berganti sendiri menjadi
-**Absen pulang**.
+**Absen pulang**. Sebelum sesi ditutup, dua pertanyaan **wajib** dijawab:
+
+- **Apa yang Anda kerjakan hari ini?** Sedikitnya 15 karakter dalam kalimat
+  yang bisa dibaca orang lain. Isian asal seperti `----------------` ditolak.
+- **Kendala hari ini.** Wajib dijawab, tetapi jawabannya boleh nihil — centang
+  **Tidak ada kendala**. Kolomnya lalu disimpan kosong, bukan diisi tanda
+  hubung, supaya masih berarti saat direkap.
+
+Keduanya diperiksa di peladen, bukan sekadar oleh formulir. Alasannya: sesi
+tanpa keterangan tidak bisa dipertanggungjawabkan saat rekap kontribusi diaudit
+Program Studi — yang tercatat hanya "hadir sekian jam", tanpa satu pun bukti
+apa yang dikerjakan.
 
 Satu sesi per orang per hari. Sesi yang lupa diakhiri tetap dihitung hadir,
 tetapi durasinya nol — sistem tidak pernah mengarang jam pulang.

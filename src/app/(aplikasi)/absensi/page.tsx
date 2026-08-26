@@ -82,7 +82,7 @@ export default async function HalamanAbsensi() {
                   <th className="px-4 py-2 font-semibold">Pulang</th>
                   <th className="hidden px-4 py-2 font-semibold sm:table-cell">Durasi</th>
                   <th className="hidden px-4 py-2 font-semibold md:table-cell">Kegiatan</th>
-                  <th className="px-4 py-2 font-semibold">Catatan</th>
+                  <th className="px-4 py-2 font-semibold">Catatan pekerjaan</th>
                 </tr>
               </thead>
               <tbody>
@@ -102,11 +102,24 @@ export default async function HalamanAbsensi() {
                     </td>
                     <td className="hidden px-4 py-2 md:table-cell">{a.jenisKegiatan}</td>
                     <td className="px-4 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {a.manual ? <Badge variant="peringatan">Manual</Badge> : null}
-                        {a.dibatalkan ? <Badge variant="bahaya">Dibatalkan</Badge> : null}
-                        {!a.manual && !a.dibatalkan ? (
-                          <span className="text-teks-redup">—</span>
+                      <div className="min-w-56 space-y-1">
+                        {(a.manual || a.dibatalkan) ? (
+                          <div className="flex flex-wrap gap-1">
+                            {a.manual ? <Badge variant="peringatan">Manual</Badge> : null}
+                            {a.dibatalkan ? <Badge variant="bahaya">Dibatalkan</Badge> : null}
+                          </div>
+                        ) : null}
+                        {a.uraian ? (
+                          <p>{a.uraian}</p>
+                        ) : a.jamKeluar ? (
+                          <p className="text-teks-redup">Tanpa uraian</p>
+                        ) : (
+                          <p className="text-teks-redup">Sesi belum diakhiri</p>
+                        )}
+                        {a.kendala ? (
+                          <p className="text-peringatan">
+                            <span className="font-semibold">Kendala:</span> {a.kendala}
+                          </p>
                         ) : null}
                       </div>
                     </td>

@@ -98,6 +98,15 @@ kode yang benar.
 - **QR dibuat di peladen sebagai PNG.** Token tidak pernah singgah di JavaScript
   halaman `/display`, sehingga tidak bisa dibaca lewat konsol peramban, dan
   tidak ada pustaka QR yang perlu dikirim ke layar.
+- **Absen pulang mewajibkan catatan pekerjaan.** Uraian pekerjaan wajib diisi
+  (minimal 15 karakter dan sedikitnya dua kata, supaya `----------------` tidak
+  lolos). Kendala wajib DIJAWAB, tetapi boleh dijawab nihil lewat penanda
+  tersendiri — memaksa teks bebas pada hari yang lancar hanya menghasilkan "-"
+  dan "aman", yang justru merusak nilai kolom itu pada hari yang benar-benar
+  bermasalah. Aturannya tinggal di `src/lib/catatan-pulang.ts`, terpisah dari
+  Prisma, supaya formulir di peramban dan pemeriksaan di peladen memakai angka
+  yang sama persis.
+
 - **Sesi yang tidak diakhiri tidak dikarang jam pulangnya.** Ia tetap dihitung
   hadir dengan durasi nol. Angka karangan tidak boleh masuk dokumen yang diaudit.
 - **Jalur manual tidak diperiksa lapis jaringan.** Salah satu keadaan daruratnya

@@ -19,7 +19,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { absenMasuk, absenPulang } from "@/lib/absensi";
+import { absenMasuk, absenPulang, validasiCatatanPulang } from "@/lib/absensi";
 import { catatAudit } from "@/lib/audit";
 import { periksaJaringan } from "@/lib/jaringan";
 import { kodeHarianCocok, PANJANG_KODE } from "@/lib/kode-harian";
@@ -42,6 +42,8 @@ const skema = z.object({
   rencana: z.string().max(500).optional(),
   uraian: z.string().max(2000).optional(),
   kendala: z.string().max(2000).optional(),
+  /** Pernyataan tegas bahwa hari itu tidak ada kendala. */
+  tanpaKendala: z.boolean().optional(),
 });
 
 function tolak(pesan: string, status: number, tambahan?: Record<string, unknown>) {
@@ -128,6 +130,18 @@ export async function POST(permintaan: Request) {
     return tolak("Kode harian salah. Baca ulang kode yang tampil di layar laboratorium.", 400);
   }
 
+  // ---- Catatan wajib saat pulang ------------------------------------------
+  // Diperiksa di peladen, bukan hanya lewat atribut `required` di formulir:
+  // yang menentukan isi basis data adalah pemeriksaan ini.
+  if (data.aksi === "pulang") {
+    const galatCatatan = validasiCatatanPulang({
+      uraian: data.uraian,
+      kendala: data.kendala,
+      tanpaKendala: data.tanpaKendala,
+    });
+    if (galatCatatan) return tolak(galatCatatan, 400);
+  }
+
   // ---- Ketiga lapis lolos: catat ------------------------------------------
   const hasil =
     data.aksi === "masuk"
@@ -141,7 +155,9 @@ export async function POST(permintaan: Request) {
           userId: pengguna.id,
           ip,
           uraian: data.uraian,
-          kendala: data.kendala,
+          // "Tidak ada kendala" disimpan sebagai kosong, bukan sebagai teks
+          // basa-basi, supaya kolom ini tetap berarti saat direkap.
+          kendala: data.tanpaKendala ? null : data.kendala,
         });
 
   if (!hasil.ok) {

@@ -11,6 +11,13 @@
 
 import type { Attendance, JenisKegiatan } from "@prisma/client";
 
+// Diteruskan supaya pemanggil sisi peladen cukup mengimpor satu modul.
+export {
+  PANJANG_KENDALA_MINIMAL,
+  PANJANG_URAIAN_MINIMAL,
+  validasiCatatanPulang,
+  type CatatanPulang,
+} from "./catatan-pulang";
 import { prisma } from "./prisma";
 import { tanggalKalenderWib } from "./waktu";
 
