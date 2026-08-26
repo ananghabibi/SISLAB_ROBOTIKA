@@ -67,6 +67,20 @@ services:
       - caddy-data:/data
       - caddy-config:/config
 
+  # Penjadwal internal: menerbitkan kode harian pukul 00:01 WIB.
+  cron:
+    image: alpine:3.20
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      CRON_SECRET: ${CRON_SECRET}
+      ALAMAT_APLIKASI: http://app:3000
+      TZ: Asia/Jakarta
+    volumes:
+      - ./scripts/cron.sh:/usr/local/bin/cron.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/cron.sh"]
+
   # Dump PostgreSQL harian, disimpan 30 hari terakhir (bagian 8 SPEC).
   backup:
     image: postgres:16-alpine

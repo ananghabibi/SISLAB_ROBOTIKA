@@ -52,29 +52,66 @@ langkah dan statusnya.
 
 ---
 
-## ⬜ Milestone 2 — Absensi
+## ✅ Milestone 2 — Absensi
 
-1. Cron internal pembuat kode harian pukul 00:01 WIB → tabel `daily_codes`.
-   Kode 6 karakter alfanumerik tanpa `0 O 1 I l`.
-2. Lapis 1 — validasi subnet `LAB_SUBNETS` pada `POST /api/attendance`, IP asal
-   disimpan pada setiap catatan.
-3. Lapis 3 — token QR HMAC-SHA256 berputar 60 detik; tolak token > 90 detik dan
-   nonce yang sudah dipakai (simpan 5 menit).
-4. Halaman `/display` layar penuh: jam besar, kode harian, QR berputar, daftar
-   nama yang sedang di lab. Tanpa login, hanya dari jaringan lab. Tetap
-   menampilkan jam dan pesan jelas bila basis data mati.
-5. Alur absen masuk dan pulang dari ponsel dengan pemindai QR di browser.
-6. Jalur darurat absensi manual oleh Koordinator Operasional — wajib beralasan,
-   ditandai `manual = true`, masuk audit log, tampil dengan penanda di rekap.
-7. Halaman riwayat absensi pribadi.
-8. Rate limit pada endpoint absensi.
+**Selesai.**
 
-**Kriteria diterima:** absensi dari luar jaringan lab selalu ditolak; token >
-90 detik ditolak; token yang sama tidak bisa dipakai dua kali; absen masuk
-kedua pada hari yang sama ditolak; absensi manual bertanda dan tercatat.
+| Langkah | Hasil |
+|---|---|
+| M2.1 | `src/lib/jaringan.ts` — pencocokan CIDR, pembacaan IP asli di belakang Caddy, gagal-tertutup |
+| M2.2 | `src/lib/kode-harian.ts` — kode 6 karakter tanpa `0 O 1 I l`, satu per tanggal WIB |
+| M2.3 | `src/lib/token-qr.ts` — HMAC-SHA256, umur maksimal 90 detik, tabel `qr_nonces` |
+| M2.4 | `POST /api/attendance` — tiga lapis berurutan, pembatas laju per pengguna dan per IP |
+| M2.5 | `/display` — jam besar, kode harian, QR berputar, daftar orang di lab, tahan basis data mati |
+| M2.6 | Pemindai QR di ponsel, konfirmasi kode harian, riwayat absensi pribadi |
+| M2.7 | Jalur darurat manual: alasan minimal 25 karakter, pernyataan, penanda, audit log |
+| M2.8 | 34 uji Vitest baru (total 77) + 3 uji Playwright + verifikasi HTTP |
 
-> Sudah siap dari Milestone 1: `UNIQUE (userId, tanggal)` dan `CHECK jamKeluar
-> >= jamMasuk` sudah tegak di basis data dan sudah diverifikasi menolak.
+### Kriteria diterima — hasil verifikasi
+
+| Kriteria SPEC | Hasil |
+|---|---|
+| Absensi dari luar jaringan lab **selalu** ditolak | ✅ 403, dan percobaannya masuk audit log dengan IP asalnya |
+| Token QR lebih tua dari 90 detik ditolak | ✅ 89 detik lolos, 91 detik ditolak; diuji juga lewat HTTP dengan token berumur 120 detik |
+| Token yang sama tidak bisa dipakai dua kali | ✅ 409 pada pemakaian kedua |
+| Absen masuk kedua pada hari yang sama ditolak | ✅ 409, ditegakkan pula oleh `UNIQUE (userId, tanggal)` di basis data |
+| Absensi manual bertanda dan tercatat di audit log | ✅ Diuji lewat peramban: penanda "Manual" tampil, `ABSENSI_MANUAL` tercatat lengkap dengan pelaku, alasan, dan IP |
+
+Tambahan yang ikut diverifikasi: kode harian tidak muncul pada `/api/display/status`
+maupun `/api/display/qr`; `/display` menolak akses dari luar jaringan lab; absen
+pulang tanpa absen masuk ditolak; kode harian salah ditolak tanpa membocorkan
+kode yang benar.
+
+### Catatan keputusan
+
+- **Nonce dipakai-sekali per pengguna, bukan per laboratorium.** SPEC menulis
+  "menolak token yang sudah dipakai". Bila itu ditegakkan secara global, orang
+  pertama yang memindai akan mengunci semua orang lain sampai QR berganti — 38
+  anggota berarti antre 38 menit pada jam datang. Yang perlu dicegah adalah satu
+  orang memakai ulang token yang sama, dan itulah yang ditegakkan indeks unik
+  `(nonce, userId)`. **Bila maksud SPEC memang global, ini titik yang perlu
+  dibicarakan.**
+- **Absen pulang tetap meminta ketiga lapis.** Kode harian sebenarnya bisa
+  dilewati saat pulang tanpa banyak kehilangan, tetapi aturan rumah menyebut
+  ketiga lapis berlaku bersamaan. Konsistensi dipilih daripada menghemat lima
+  detik.
+- **QR dibuat di peladen sebagai PNG.** Token tidak pernah singgah di JavaScript
+  halaman `/display`, sehingga tidak bisa dibaca lewat konsol peramban, dan
+  tidak ada pustaka QR yang perlu dikirim ke layar.
+- **Sesi yang tidak diakhiri tidak dikarang jam pulangnya.** Ia tetap dihitung
+  hadir dengan durasi nol. Angka karangan tidak boleh masuk dokumen yang diaudit.
+- **Jalur manual tidak diperiksa lapis jaringan.** Salah satu keadaan daruratnya
+  justru konfigurasi subnet yang keliru; kalau jalur ini ikut tersandera lapis
+  itu, tidak ada yang bisa mencatat apa pun saat dibutuhkan. Penggantinya:
+  pembatasan peran, alasan tertulis, jejak audit, dan penanda yang selalu tampak.
+- **Pembatas laju disimpan di memori proses.** Sistem berjalan sebagai satu
+  kontainer di satu mini PC, jadi memori proses sudah mewakili seluruh sistem.
+  Hitungannya hilang saat aplikasi dimuat ulang — memadai untuk mencegah
+  penebakan kode harian secara beruntun.
+- **Koreksi ulang atas Milestone 1.** Uji peramban menemukan bahwa verifikasi
+  403 pada Milestone 1 hanya memeriksa teks di HTML mentah. Kini penolakan rute
+  diuji sungguhan di peramban: statusnya 403, halamannya benar-benar terlihat,
+  dan URL yang dicoba tetap tampil di bilah alamat.
 
 ---
 

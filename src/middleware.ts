@@ -25,16 +25,31 @@ export default auth((permintaan) => {
 
   const sesi = permintaan.auth;
   if (!sesi?.user?.id) {
+    // Permintaan API dijawab 401 dalam bentuk JSON. Mengalihkannya ke halaman
+    // masuk akan membuat pemanggilnya menerima 307 berisi HTML dan mengira
+    // permintaannya berhasil.
+    if (jalur.startsWith("/api/")) {
+      return NextResponse.json(
+        { ok: false, pesan: "Anda belum masuk. Masuk dulu dengan akun kampus." },
+        { status: 401 },
+      );
+    }
     const tujuan = new URL("/masuk", nextUrl);
     tujuan.searchParams.set("lanjut", jalur);
     return NextResponse.redirect(tujuan);
   }
 
   if (!peranBolehMembuka(sesi.user.role, jalur)) {
-    // Ditulis ulang ke /403, BUKAN dialihkan: URL yang dicoba tetap terlihat di
-    // bilah alamat, dan halaman itu memanggil forbidden() sehingga jawabannya
-    // benar-benar berstatus 403. (NextResponse.rewrite mengabaikan opsi status,
-    // jadi statusnya harus datang dari halaman tujuan.)
+    if (jalur.startsWith("/api/")) {
+      return NextResponse.json(
+        { ok: false, pesan: "Peran Anda tidak berhak atas sumber daya ini." },
+        { status: 403 },
+      );
+    }
+    // Ditulis ulang ke /403, BUKAN dialihkan: pengalihan akan menyamarkan
+    // penolakan sebagai keberhasilan, sedangkan penulisan ulang membuat URL
+    // yang dicoba tetap terlihat di bilah alamat. Status 403 yang sebenarnya
+    // datang dari halaman tujuan, yang memanggil forbidden().
     return NextResponse.rewrite(new URL("/403", nextUrl));
   }
 

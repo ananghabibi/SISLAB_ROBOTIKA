@@ -41,7 +41,7 @@ export const ATURAN_RUTE: AturanRute[] = [
 ];
 
 /** Rute yang boleh dibuka tanpa login sama sekali. */
-export const RUTE_PUBLIK = ["/masuk", "/display", "/403", "/api/auth"];
+export const RUTE_PUBLIK = ["/masuk", "/display", "/403", "/api/auth", "/api/display", "/api/cron"];
 
 export function aturanUntukJalur(jalur: string): AturanRute | undefined {
   return ATURAN_RUTE.find(

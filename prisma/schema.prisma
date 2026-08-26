@@ -228,6 +228,26 @@ model Attendance {
   @@map("attendances")
 }
 
+model QrNonce {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  nonce  String
+  userId String
+
+  // Nonce dipakai-sekali PER PENGGUNA, bukan per laboratorium.
+  //
+  // QR di layar berputar tiap 60 detik dan dibaca banyak orang sekaligus saat
+  // jam datang. Kalau satu nonce hanya boleh dipakai satu kali secara global,
+  // orang pertama yang memindai akan mengunci semua orang lain sampai QR
+  // berganti — 38 anggota berarti 38 menit antre. Yang perlu dicegah adalah
+  // satu token yang sama dipakai ulang oleh orang yang sama, dan itulah yang
+  // ditegakkan pasangan unik di bawah.
+  @@unique([nonce, userId])
+  @@index([createdAt])
+  @@map("qr_nonces")
+}
+
 // ---------------------------------------------------------------------------
 // Inventaris dan peminjaman
 // ---------------------------------------------------------------------------

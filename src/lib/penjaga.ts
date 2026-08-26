@@ -7,7 +7,7 @@
 // pengamanan; yang mengamankan adalah pemeriksaan yang berjalan di peladen.
 // -----------------------------------------------------------------------------
 
-import { forbidden, unauthorized } from "next/navigation";
+import { forbidden, redirect } from "next/navigation";
 import type { Session } from "next-auth";
 
 import { auth } from "@/auth";
@@ -19,17 +19,21 @@ export async function sesiSekarang(): Promise<Session | null> {
   return auth();
 }
 
-/** Memastikan ada sesi yang sah. Menghasilkan 401 bila tidak. */
+/** Memastikan ada sesi yang sah, atau mengantar pengguna ke halaman masuk. */
 export async function wajibMasuk(): Promise<Pengguna> {
   const sesi = await auth();
-  if (!sesi?.user?.id) unauthorized();
+  if (!sesi?.user?.id) redirect("/masuk");
   return sesi.user;
 }
 
 /**
- * Memastikan pengguna berhak atas sebuah modul. Menghasilkan 403 bila tidak.
- * Kembaliannya adalah pengguna beserta izinnya, supaya halaman tidak perlu
- * memanggil matriks untuk kedua kalinya.
+ * Memastikan pengguna berhak atas sebuah modul.
+ *
+ * Penolakan pada tingkat RUTE sudah dihentikan middleware dengan status 403
+ * yang sebenarnya, jadi penjagaan ini adalah lapis kedua: ia menangkap halaman
+ * yang lupa didaftarkan di `src/lib/rute.ts`, dan penolakan yang hanya bisa
+ * diputuskan setelah data dibaca. Kembaliannya adalah pengguna beserta izinnya,
+ * supaya halaman tidak perlu memanggil matriks untuk kedua kalinya.
  */
 export async function wajibIzin(modul: Modul, aksi: "baca" | "tulis" | "hapus" = "baca") {
   const pengguna = await wajibMasuk();
@@ -42,15 +46,27 @@ export async function wajibIzin(modul: Modul, aksi: "baca" | "tulis" | "hapus" =
         ? bolehTulis(pengguna.role, modul)
         : bolehHapus(pengguna.role, modul);
 
-  if (!berhak) forbidden();
+  if (!berhak) tolakAkses();
   return { pengguna, izin };
 }
 
 /** Menjaga rute yang hanya boleh dibuka satu peran tertentu. */
 export async function wajibPeran(...peran: Pengguna["role"][]): Promise<Pengguna> {
   const pengguna = await wajibMasuk();
-  if (!peran.includes(pengguna.role)) forbidden();
+  if (!peran.includes(pengguna.role)) tolakAkses();
   return pengguna;
+}
+
+/**
+ * Menghentikan render dengan jawaban 403 yang sebenarnya.
+ *
+ * Memakai `forbidden()` dari next/navigation, yang merender
+ * `src/app/forbidden.tsx`. Pengalihan tidak dipakai di sini karena ia akan
+ * menjawab 307 lalu 200 — dari luar, penolakan jadi tampak seperti
+ * keberhasilan.
+ */
+export function tolakAkses(): never {
+  forbidden();
 }
 
 /**

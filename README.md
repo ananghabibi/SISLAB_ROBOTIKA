@@ -15,10 +15,11 @@ tiap milestone ada di [`docs/ROADMAP.md`](docs/ROADMAP.md).
 > [bagian 3 — Panduan pemula](#3-mencoba-di-laptop-sendiri-panduan-pemula).
 > Di sana tertulis apa saja yang perlu dipasang dan perintahnya satu per satu.
 
-> **Status: Milestone 1 selesai.** Fondasi, autentikasi, dan hak akses sudah
-> berjalan. Modul absensi, kontribusi, inventaris, piket, dan surat menyusul
-> pada milestone berikutnya. Menu yang belum jadi tetap tampil sebagai halaman
-> rintisan agar penjagaan hak aksesnya bisa diuji sejak sekarang.
+> **Status: Milestone 2 selesai.** Fondasi, autentikasi, hak akses, dan
+> **absensi tiga lapis** sudah berjalan. Modul kontribusi, inventaris, piket,
+> dan surat menyusul pada milestone berikutnya. Menu yang belum jadi tetap
+> tampil sebagai halaman rintisan agar penjagaan hak aksesnya bisa diuji sejak
+> sekarang.
 
 ---
 
@@ -255,6 +256,7 @@ menu.
 |---|---|
 | `npm run typecheck` | Periksa tipe TypeScript |
 | `npm test` | Jalankan uji Vitest |
+| `npm run test:e2e` | Jalankan uji Playwright (perlu peladen berjalan) |
 | `npm run build` | Build produksi |
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
 | `npm run db:migrate` | Buat dan terapkan migrasi baru |
@@ -361,7 +363,77 @@ Anggota berstatus `NONAKTIF` atau `LULUS` tidak dapat masuk. Untuk menutup
 akses seseorang, ubah statusnya — jangan hapus akunnya, karena riwayat
 absensinya harus tetap utuh.
 
-## 6. Menambah anggota pada awal periode
+## 6. Menjalankan absensi harian
+
+### 6.1 Layar laboratorium
+
+Pasang satu monitor di dalam ruangan, buka <code>http://&lt;alamat-mini-pc&gt;/display</code>
+dalam mode layar penuh (F11), dan biarkan menyala. Halaman itu menampilkan:
+
+- jam besar WIB,
+- **kode harian** enam karakter,
+- **QR yang berganti tiap 60 detik**,
+- daftar nama yang sedang berada di laboratorium.
+
+Halaman ini tidak memerlukan login — tidak ada yang perlu masuk untuk melihat
+jam di dinding. Yang menjaganya adalah lapis jaringan: ia hanya terbuka dari
+dalam laboratorium.
+
+> **Kode harian tidak boleh keluar dari ruangan itu.** Ia tidak pernah dikirim
+> lewat API mana pun, tidak muncul di dasbor, dan tidak bisa dilihat anggota
+> dari ponselnya. Kalau suatu saat ada permintaan "tolong kirim kodenya lewat
+> WhatsApp", jawabannya tidak — permintaan itu persis yang dicegah sistem ini.
+
+### 6.2 Cara anggota absen
+
+1. Sambung ke WiFi laboratorium.
+2. Buka **Absensi Saya**, tekan **Pindai QR**.
+3. Arahkan kamera ke QR di layar.
+4. Ketik kode harian yang tampil di layar, tekan **Catat absen masuk**.
+
+Saat pulang, ulangi langkah yang sama; tombolnya berganti sendiri menjadi
+**Absen pulang**.
+
+Satu sesi per orang per hari. Sesi yang lupa diakhiri tetap dihitung hadir,
+tetapi durasinya nol — sistem tidak pernah mengarang jam pulang.
+
+### 6.3 Ketiga lapis, dan apa yang terjadi bila salah satunya gagal
+
+| Lapis | Yang diperiksa | Bila gagal |
+|---|---|---|
+| 1 — Jaringan | IP pemohon ada di dalam `LAB_SUBNETS` | Ditolak 403, percobaannya masuk audit log |
+| 3 — Token QR | Tanda tangan sah, umur ≤ 90 detik, belum dipakai | Ditolak, diminta memindai ulang |
+| 2 — Kode harian | Cocok dengan kode hari itu | Ditolak, tanpa membocorkan kode yang benar |
+
+Ketiganya harus lolos bersamaan. **Jangan menonaktifkan salah satunya untuk
+menyederhanakan keadaan** — lapis 2 sendirian bisa dikalahkan dengan memfoto
+papan, lapis 3 hanya mempersempit jendela relai menjadi satu menit, dan lapis 1
+yang menutupnya sama sekali.
+
+### 6.4 Kode harian terbit sendiri
+
+Kontainer `cron` memanggil aplikasi setiap pukul **00:01 WIB** untuk
+menerbitkan kode hari itu. Bila mini PC mati semalaman dan panggilan itu
+terlewat, laboratorium tetap aman: halaman `/display` menerbitkan kode begitu
+layar dinyalakan.
+
+```bash
+docker compose logs cron | tail -20     # memastikan penjadwalnya hidup
+```
+
+### 6.5 Bila jaringan atau layar bermasalah
+
+Koordinator Operasional membuka **Absensi Manual**, memilih anggota, mengisi
+jam, dan **menulis alasan sedikitnya 25 karakter**. Setiap catatan diberi
+penanda "Manual" yang selalu terlihat di rekap dan tercatat di audit log atas
+nama pencatatnya.
+
+Jalur ini sengaja dibuat merepotkan. Kalau ia mulai sering dipakai, yang perlu
+diperbaiki adalah jaringan atau layarnya — bukan menambah kenyamanan di sana.
+
+---
+
+## 7. Menambah anggota pada awal periode
 
 ### Cara yang dianjurkan: berkas CSV
 
@@ -405,7 +477,7 @@ menolaknya bila jejaknya sudah ada.
 
 ---
 
-## 7. Cadangan dan pemulihan
+## 8. Cadangan dan pemulihan
 
 ### Cadangan otomatis
 
@@ -449,7 +521,7 @@ Sesudah pulih, periksa jumlah anggota dan periode aktif di halaman dasbor.
 
 ---
 
-## 8. Peta kode
+## 9. Peta kode
 
 ```
 prisma/schema.prisma      Model data lengkap (SPEC bagian 5)
@@ -461,6 +533,12 @@ src/auth.ts               Autentikasi: Google kampus + Credentials dosen
 src/auth.config.ts        Bagian konfigurasi yang aman untuk runtime Edge
 src/middleware.ts         Penjaga rute lapis pertama
 src/lib/rbac.ts           MATRIKS HAK AKSES — terjemahan langsung SPEC 4.2
+src/lib/jaringan.ts       Lapis 1 — penjagaan subnet laboratorium
+src/lib/kode-harian.ts    Lapis 2 — kode harian, tidak pernah lewat API
+src/lib/token-qr.ts       Lapis 3 — token QR bertanda tangan, berputar 60 detik
+src/lib/absensi.ts        Aturan absensi (SPEC 6.4)
+src/app/api/attendance/   Satu-satunya pintu pencatatan kehadiran
+src/app/display/          Layar laboratorium
 src/lib/rute.ts           Peta rute ke modul; dipakai middleware dan menu
 src/lib/penjaga.ts        Penjagaan per halaman dan per baris data
 src/lib/audit.ts          Penulisan audit log
@@ -468,7 +546,8 @@ src/lib/npm.ts            Turunan prodi, angkatan, dan jenjang dari NPM
 src/lib/waktu.ts          Semua konversi UTC ke WIB terjadi di sini
 
 scripts/set-sandi.ts      Utilitas memasang kata sandi dari peladen
-tests/                    Uji Vitest untuk kebijakan akses dan data awal
+tests/                    Uji Vitest untuk kebijakan akses, jaringan, dan token
+tests/e2e/                Uji Playwright untuk alur absensi di peramban
 ```
 
 ### Cara mengubah hak akses
@@ -481,7 +560,7 @@ Lab yang menerbitkan surat, tidak ada yang boleh menghapus absensi).
 
 ---
 
-## 9. Batas yang disengaja
+## 10. Batas yang disengaja
 
 Berikut **tidak** dibangun, dan sebaiknya tetap begitu:
 

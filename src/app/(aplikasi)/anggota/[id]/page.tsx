@@ -3,10 +3,9 @@ import { notFound } from "next/navigation";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { bolehLihatDataOrang, wajibIzin } from "@/lib/penjaga";
+import { bolehLihatDataOrang, tolakAkses, wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
 import { bolehTulis, LABEL_PERAN } from "@/lib/rbac";
-import { forbidden } from "next/navigation";
 import { FormulirAnggota } from "../formulir-anggota";
 import { simpanAnggota } from "../aksi";
 
@@ -25,7 +24,7 @@ export default async function DetailAnggota({ params }: { params: Promise<{ id: 
   // Lingkup baca diperiksa per baris, bukan hanya per rute: tanpa ini seseorang
   // bisa menebak id anggota lain dan membuka datanya lewat URL.
   if (!bolehLihatDataOrang(pengguna, "master_anggota", anggota) && anggota.squadId !== pengguna.squadId) {
-    forbidden();
+    tolakAkses();
   }
 
   const bolehSunting = bolehTulis(pengguna.role, "master_anggota");
