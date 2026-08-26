@@ -17,7 +17,6 @@ const nextConfig: NextConfig = {
     "/api/ekspor/rekap-pdf": ["./node_modules/pdfkit/js/**/*"],
   },
   poweredByHeader: false,
-  eslint: { ignoreDuringBuilds: true },
   serverExternalPackages: ["bcryptjs", "@react-pdf/renderer"],
   experimental: { authInterrupts: true },
 };

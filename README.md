@@ -124,11 +124,17 @@ sebelum mengetik perintah apa pun.
 ### 3.3 Pasang dan siapkan
 
 ```cmd
-npm install
+npm ci
 node scripts/siapkan-env.mjs
 ```
 
-`npm install` mengunduh pustaka yang dibutuhkan — sekali jalan, beberapa menit.
+`npm ci` mengunduh pustaka yang dibutuhkan — sekali jalan, beberapa menit.
+
+> **Pakai `npm ci`, bukan `npm install`.** Keduanya sama-sama memasang pustaka,
+> tetapi `npm ci` memasang **persis** versi yang tercatat di
+> `package-lock.json`, sedangkan `npm install` boleh meresolusi ulang dan bisa
+> menaikkan versi tanpa diminta. Proyek ini diuji pada Next.js 15.5.24; melompat
+> ke versi mayor berikutnya mengubah perilaku yang belum pernah diuji di sini.
 
 `siapkan-env.mjs` membuat berkas `.env` beserta seluruh kunci rahasianya, lalu
 **menampilkan kata sandi untuk masuk pertama kali**. Catat kata sandi itu.
@@ -244,6 +250,10 @@ menu.
 | `Can't reach database server at localhost:5432` | Basis data belum menyala, atau `DATABASE_URL` salah | `docker compose -f docker-compose.dev.yml up -d` |
 | `port is already allocated` | Ada PostgreSQL lain memakai port 5432 | Hentikan yang lain, atau ikuti bagian 3.5 |
 | `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |
+| `localhost:3000` kosong padahal alamat IP bisa dibuka | Windows menerjemahkan `localhost` ke IPv6 `::1`, sedangkan peladen mendengarkan IPv4 | Pakai `http://127.0.0.1:3000` |
+| Muncul `Next.js 16.x` padahal proyek memakai 15.5.24 | `npm install` menaikkan versi tanpa diminta | `npm ci` — memasang persis versi yang terkunci |
+| HP tidak bisa membuka alamat `172.2x.x.x` atau `172.3x.x.x` | Itu adaptor virtual WSL/Hyper-V, bukan WiFi laptop | Ambil alamat dari blok **Wireless LAN adapter Wi-Fi** pada `ipconfig` |
+| HP memuat terus lalu gagal di alamat WiFi yang benar | Windows Firewall menutup port 3000 | Command Prompt sebagai Administrator: `netsh advfirewall firewall add rule name="SILAB dev 3000" dir=in action=allow protocol=TCP localport=3000` |
 | `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
 | `We detected multiple lockfiles` | Ada `package-lock.json` nyasar di folder rumah Anda, biasanya karena `npm install` pernah dijalankan di sana | Sekadar peringatan, boleh diabaikan. Bila ingin bersih: hapus `%USERPROFILE%\package-lock.json` |
 | `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SEED_KEPALA_LAB_PASSWORD` di `.env`, atau pakai `npm run sandi` |
