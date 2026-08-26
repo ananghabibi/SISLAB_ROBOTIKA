@@ -5,6 +5,7 @@
   "description": "SILAB — Sistem Informasi Laboratorium Robotika FT UNISMA",
   "scripts": {
     "dev": "next dev",
+    "postinstall": "prisma generate",
     "siapkan": "node scripts/siapkan-env.mjs",
     "build": "prisma generate && next build",
     "start": "next start",

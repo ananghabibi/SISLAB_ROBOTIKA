@@ -243,6 +243,8 @@ menu.
 | `Can't reach database server at localhost:5432` | Basis data belum menyala, atau `DATABASE_URL` salah | `docker compose -f docker-compose.dev.yml up -d` |
 | `port is already allocated` | Ada PostgreSQL lain memakai port 5432 | Hentikan yang lain, atau ikuti bagian 3.5 |
 | `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |
+| `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
+| `We detected multiple lockfiles` | Ada `package-lock.json` nyasar di folder rumah Anda, biasanya karena `npm install` pernah dijalankan di sana | Sekadar peringatan, boleh diabaikan. Bila ingin bersih: hapus `%USERPROFILE%\package-lock.json` |
 | `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SEED_KEPALA_LAB_PASSWORD` di `.env`, atau pakai `npm run sandi` |
 | `Konfigurasi autentikasi belum lengkap` | `.env` belum dibuat, atau `AUTH_SECRET` masih kosong | `node scripts/siapkan-env.mjs` |
 | `.env` tidak kelihatan di File Explorer | Wajar — namanya diawali titik | `dir /a` untuk memastikan, `notepad .env` untuk membuka |

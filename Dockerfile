@@ -7,6 +7,9 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
 COPY package.json package-lock.json* ./
+# Skema disalin sebelum `npm ci` karena skrip postinstall menjalankan
+# `prisma generate`, dan generate membutuhkan berkas skema itu.
+COPY prisma ./prisma
 RUN npm ci
 
 FROM node:22-alpine AS builder
