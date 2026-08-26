@@ -134,18 +134,53 @@ kode yang benar.
 
 ---
 
-## ⬜ Milestone 3 — Rekap Kontribusi dan Dasbor
+## ✅ Milestone 3 — Rekap Kontribusi dan Dasbor
 
-1. Mesin skor beserta uji Vitest-nya (SPEC 6.1), termasuk kasus: skor sempurna,
-   skor nol, pengurangan alat belum kembali yang membuat hasil negatif, dan
-   target bernilai nol.
-2. Dasbor per peran: anggota melihat skor dan kekurangannya sendiri; ketua
-   squad melihat squadnya; koordinator dan Kepala Lab melihat semua.
-3. Halaman pengaturan periode dan target.
-4. Ekspor CSV dan PDF rekap bulanan.
+**Selesai.**
 
-**Kriteria diterima:** angka cocok dengan hitungan manual; anggota tidak bisa
-melihat skor anggota lain lewat API mana pun (pakai `bolehLihatDataOrang`).
+| Langkah | Hasil |
+|---|---|
+| M3.1 | `src/lib/skor.ts` — rumus SPEC 6.1, murni tanpa basis data, 18 uji |
+| M3.2 | `src/lib/kontribusi.ts` — pengumpul angka, satu kueri untuk seluruh anggota |
+| M3.3 | Dasbor per peran dengan kartu skor dan daftar kekurangan |
+| M3.4 | `/absensi/rekap` — tabel rekap yang dilingkupi hak akses |
+| M3.5 | `/periode` — pengaturan periode, target, dan ambang lulus, teraudit |
+| M3.6 | Ekspor CSV dan PDF siap cetak per periode |
+| M3.7 | 119 uji Vitest (42 baru) + verifikasi HTTP |
+
+### Kriteria diterima — hasil verifikasi
+
+| Kriteria SPEC | Hasil |
+|---|---|
+| Angka skor cocok dengan hitungan manual pada data uji | ✅ 25 hari hadir (1 di antaranya PELATIHAN) pada target 48 hadir dan 2 sesi berbagi → 40×25/48 + 20×1/2 = **30,83**; CSV peladen mengeluarkan angka yang sama persis, beserta 50 jam |
+| Anggota tidak bisa melihat skor anggota lain lewat API mana pun | ✅ `/api/ekspor/rekap` dan `/api/ekspor/rekap-pdf` membalas 403 untuk ANGGOTA; halaman rekap hanya memuat kartu skornya sendiri tanpa satu pun nama anggota lain; Ketua Squad melihat tepat 7 anggota squadnya dan nol dari squad lain; Kepala Lab melihat 39 |
+
+### Catatan keputusan
+
+- **Sesi berbagi diambil dari absensi berjenis PELATIHAN.** SPEC menyebut
+  komponen ini tanpa memberinya tabel tersendiri, jadi dipakailah sinyal yang
+  memang sudah ada. **Perlu dipastikan ke Kepala Lab**: bila di laboratorium
+  sesi berbagi dicatat dengan cara lain, sumber angkanya tinggal diganti di
+  `src/lib/kontribusi.ts`.
+- **Target nol berarti "tidak disyaratkan", bukan "nol".** Komponen dengan
+  target nol dianggap terpenuhi penuh. Menghukum anggota karena pengurus lupa
+  mengisi target jelas keliru, dan membiarkan pembagian nol merambat sebagai
+  NaN ke Surat Keterangan Kontribusi jauh lebih buruk.
+- **Logbook dihitung per squad, bukan per orang.** Logbook memang kegiatan
+  squad, sehingga angkanya sama untuk seluruh anggota squad itu.
+- **Alat "belum kembali" hanya yang sudah lewat tenggat**, ditandai terlambat,
+  atau dinyatakan hilang. Pinjaman yang masih dalam tenggat bukan pelanggaran
+  dan tidak dipotong.
+- **Rekap diurutkan menurut nama, bukan menurut skor.** Papan peringkat
+  antaranggota sengaja tidak dibuat (SPEC bagian 10); mengurutkan tabel menurut
+  skor akan menghasilkan papan peringkat lewat pintu belakang.
+- **Kebijakan pelingkupan dipindah ke `src/lib/lingkup.ts`.** Sebelumnya ia
+  menumpang di `penjaga.ts` yang menarik Auth.js, sehingga tidak bisa diuji
+  tanpa menyalakan peladen. Kini murni dan punya ujinya sendiri.
+- **Berkas huruf pdfkit disertakan secara tegas** lewat `outputFileTracingIncludes`.
+  pdfkit memuatnya dengan require dinamis, sehingga penelusuran berkas Next.js
+  tidak melihatnya dan keluaran standalone terbit tanpa berkas itu — perenderan
+  PDF gagal hanya di produksi, tidak saat `npm run dev`.
 
 ---
 

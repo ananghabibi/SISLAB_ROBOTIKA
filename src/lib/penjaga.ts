@@ -13,6 +13,16 @@ import type { Session } from "next-auth";
 import { auth } from "@/auth";
 import { bolehBaca, bolehHapus, bolehTulis, izinUntuk, type Modul } from "./rbac";
 
+// Kebijakan pelingkupan tinggal di modul tersendiri yang tidak menyentuh
+// Auth.js, supaya dapat diuji tanpa menyalakan peladen. Diteruskan dari sini
+// agar halaman cukup mengimpor satu modul penjagaan.
+export {
+  bolehLihatDataOrang,
+  saringanDaftarAnggota,
+  saringanRekapKontribusi,
+  type PenggunaLingkup,
+} from "./lingkup";
+
 export type Pengguna = Session["user"];
 
 export async function sesiSekarang(): Promise<Session | null> {
@@ -67,43 +77,4 @@ export async function wajibPeran(...peran: Pengguna["role"][]): Promise<Pengguna
  */
 export function tolakAkses(): never {
   forbidden();
-}
-
-/**
- * Menentukan apakah `pengguna` boleh melihat data milik `pemilik`.
- *
- * Dipakai untuk memenuhi kriteria "anggota tidak bisa melihat data anggota lain
- * lewat API mana pun": setiap kueri per-orang harus melewati fungsi ini, bukan
- * mengandalkan penyaringan di antarmuka.
- */
-export function bolehLihatDataOrang(
-  pengguna: Pengguna,
-  modul: Modul,
-  pemilik: { id: string; squadId: string | null },
-): boolean {
-  const izin = izinUntuk(pengguna.role, modul);
-  if (izin.baca === "SEMUA") return true;
-  if (izin.baca === "TIDAK") return false;
-
-  if (pemilik.id === pengguna.id) return true;
-  // Ketua squad melihat squadnya; anggota biasa hanya dirinya sendiri.
-  if (pengguna.role === "KETUA_SQUAD" && pengguna.squadId) {
-    return pemilik.squadId === pengguna.squadId;
-  }
-  return false;
-}
-
-/**
- * Penyaring daftar anggota sesuai lingkup peran (modul `master_anggota`).
- *
- * Legenda SPEC menulis "Bs = baca miliknya/squadnya saja". Untuk daftar nama,
- * lingkup itu diambil sebagai squadnya: mengetahui siapa saja teman satu squad
- * memang bagian dari bekerja di squad. Angka per-orang yang sensitif — skor
- * kontribusi — tetap memakai `bolehLihatDataOrang` yang lebih ketat.
- */
-export function saringanDaftarAnggota(pengguna: Pengguna) {
-  const izin = izinUntuk(pengguna.role, "master_anggota");
-  if (izin.baca === "SEMUA") return {};
-  if (izin.baca === "TIDAK") return { id: "__tidak-ada__" };
-  return pengguna.squadId ? { squadId: pengguna.squadId } : { id: pengguna.id };
 }

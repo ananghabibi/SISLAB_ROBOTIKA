@@ -9,9 +9,16 @@ const nextConfig: NextConfig = {
   // pernah tidak sengaja menjalankan `npm install` di folder rumahnya, tebakan
   // itu meleset ke sana dan penelusuran berkas ikut salah. Tetapkan saja.
   outputFileTracingRoot: path.resolve(),
+  // pdfkit — yang dipakai @react-pdf/renderer — memuat berkas huruf bawaannya
+  // lewat require dinamis, sehingga penelusuran berkas Next.js tidak melihatnya
+  // dan keluaran standalone terbit tanpa berkas itu. Akibatnya perenderan PDF
+  // gagal hanya di produksi, bukan saat `npm run dev`. Disertakan secara tegas.
+  outputFileTracingIncludes: {
+    "/api/ekspor/rekap-pdf": ["./node_modules/pdfkit/js/**/*"],
+  },
   poweredByHeader: false,
   eslint: { ignoreDuringBuilds: true },
-  serverExternalPackages: ["bcryptjs"],
+  serverExternalPackages: ["bcryptjs", "@react-pdf/renderer"],
   experimental: { authInterrupts: true },
 };
 

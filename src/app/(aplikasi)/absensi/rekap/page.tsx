@@ -1,9 +1,144 @@
-import { Rintisan } from "@/components/rintisan";
-import { wajibIzin } from "@/lib/penjaga";
+import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 
-export const metadata = { title: "Rekap Absensi" };
+import { KartuSkor } from "@/components/kartu-skor";
+import { KepalaHalaman } from "@/components/kepala-halaman";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { periodeAktif, rekapKontribusi } from "@/lib/kontribusi";
+import { saringanRekapKontribusi, wajibIzin } from "@/lib/penjaga";
+import { bolehBacaSemua } from "@/lib/rbac";
+import { tanggalPendekWib } from "@/lib/waktu";
 
-export default async function Halaman() {
-  await wajibIzin("rekap_absensi", "baca");
-  return <Rintisan judul="Rekap Absensi" milestone={3} isi="Rekap kehadiran dan skor kontribusi per anggota dan per squad." />;
+export const dynamic = "force-dynamic";
+export const metadata = { title: "Rekap Kontribusi" };
+
+export default async function HalamanRekap() {
+  const { pengguna } = await wajibIzin("rekap_absensi", "baca");
+  const periode = await periodeAktif();
+
+  if (!periode) {
+    return (
+      <>
+        <KepalaHalaman judul="Rekap Kontribusi" />
+        <Card>
+          <CardContent>
+            <p className="text-sm text-teks-redup">
+              Belum ada periode aktif, sehingga tidak ada yang bisa direkap. Kepala Laboratorium
+              dapat membuatnya di menu Periode &amp; Target.
+            </p>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
+
+  // Lingkup ditegakkan di dalam kueri, bukan dengan menyaring hasil di memori:
+  // anggota biasa tidak akan pernah menerima baris milik orang lain.
+  const lingkup = saringanRekapKontribusi(pengguna) as Prisma.UserWhereInput;
+  const rekap = await rekapKontribusi(periode, lingkup);
+  const lihatSemua = bolehBacaSemua(pengguna.role, "rekap_absensi");
+
+  const milikSendiri = rekap.find((r) => r.user.id === pengguna.id);
+  const lulus = rekap.filter((r) => r.rincian.lulus).length;
+
+  return (
+    <>
+      <KepalaHalaman
+        judul="Rekap Kontribusi"
+        keterangan={`${periode.nama} · ${tanggalPendekWib(periode.tanggalMulai)} – ${tanggalPendekWib(periode.tanggalSelesai)}`}
+        aksi={
+          <Link href="/ekspor" className="text-sm text-utama underline underline-offset-4">
+            Ekspor data →
+          </Link>
+        }
+      />
+
+      {milikSendiri ? (
+        <div className="mb-4">
+          <KartuSkor rekap={milikSendiri} ambangLulus={periode.ambangLulus} />
+        </div>
+      ) : null}
+
+      {rekap.length > 1 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {lihatSemua ? "Seluruh anggota laboratorium" : "Anggota squad Anda"}
+            </CardTitle>
+            <CardDescription>
+              {lulus} dari {rekap.length} anggota sudah memenuhi ambang {periode.ambangLulus}.
+              Diurutkan menurut nama, bukan menurut skor — papan peringkat antaranggota sengaja
+              tidak dibuat.
+            </CardDescription>
+          </CardHeader>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-garis bg-dasar text-left">
+                <tr>
+                  <th className="px-4 py-2 font-semibold">Nama</th>
+                  <th className="px-3 py-2 text-right font-semibold">Hadir</th>
+                  <th className="hidden px-3 py-2 text-right font-semibold sm:table-cell">Jam</th>
+                  <th className="hidden px-3 py-2 text-right font-semibold md:table-cell">Berbagi</th>
+                  <th className="hidden px-3 py-2 text-right font-semibold md:table-cell">Piket</th>
+                  <th className="hidden px-3 py-2 text-right font-semibold lg:table-cell">Logbook</th>
+                  <th className="hidden px-3 py-2 text-right font-semibold lg:table-cell">Alat</th>
+                  <th className="px-3 py-2 text-right font-semibold">Skor</th>
+                  <th className="px-3 py-2 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rekap.map((r) => (
+                  <tr key={r.user.id} className="border-b border-garis last:border-0">
+                    <td className="px-4 py-2">
+                      <p className="font-medium">{r.user.nama}</p>
+                      <p className="text-xs text-teks-redup">
+                        {r.user.squad?.kode ?? "Tanpa squad"}
+                        {r.user.fakultas !== "Teknik" ? ` · ${r.user.fakultas}` : ""}
+                      </p>
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{r.komponen.hariHadir}</td>
+                    <td className="hidden px-3 py-2 text-right tabular-nums sm:table-cell">
+                      {r.totalJam}
+                    </td>
+                    <td className="hidden px-3 py-2 text-right tabular-nums md:table-cell">
+                      {r.komponen.sesiBerbagi}
+                    </td>
+                    <td className="hidden px-3 py-2 text-right tabular-nums md:table-cell">
+                      {r.komponen.piket}
+                    </td>
+                    <td className="hidden px-3 py-2 text-right tabular-nums lg:table-cell">
+                      {r.komponen.entriLogbook}
+                    </td>
+                    <td className="hidden px-3 py-2 text-right tabular-nums lg:table-cell">
+                      {r.komponen.alatBelumKembali > 0 ? (
+                        <span className="text-bahaya">{r.komponen.alatBelumKembali}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                      {r.rincian.skor}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge variant={r.rincian.lulus ? "berhasil" : "peringatan"}>
+                        {r.rincian.lulus ? "Lulus" : "Belum"}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <CardContent>
+            <p className="text-xs text-teks-redup">
+              Sesi berbagi dihitung dari absensi berjenis PELATIHAN. Piket dan logbook baru terisi
+              setelah modulnya dibangun pada Milestone 5, dan alat belum kembali setelah Milestone 4
+              — sampai saat itu angkanya nol, bukan dikarang.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+    </>
+  );
 }

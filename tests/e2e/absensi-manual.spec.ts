@@ -10,8 +10,10 @@
 
 import { expect, test } from "@playwright/test";
 
-const KOORD = "22301053005@student.unisma.ac.id";
-const SANDI = "UjiCobaLab2026";
+import { AKUN_UJI, SANDI_UJI } from "./persiapan";
+
+const KOORD = AKUN_UJI.koordOperasional;
+const SANDI = SANDI_UJI;
 
 /** Anggota yang dicatatkan manual; dipilih lewat variabel agar mudah diganti. */
 const ANGGOTA = process.env.ANGGOTA_UJI_MANUAL ?? "M. Farrel Fatahillah";
@@ -84,7 +86,7 @@ test.describe("jalur darurat absensi manual", () => {
 });
 
 test("anggota biasa tidak dapat membuka jalur darurat", async ({ page }) => {
-  await masuk(page, "22501053005@student.unisma.ac.id");
+  await masuk(page, AKUN_UJI.anggota);
   const jawaban = await page.goto("/absensi/manual");
   expect(jawaban?.status()).toBe(403);
   await expect(page.getByText("bukan hak akses Anda")).toBeVisible();

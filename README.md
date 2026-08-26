@@ -15,11 +15,11 @@ tiap milestone ada di [`docs/ROADMAP.md`](docs/ROADMAP.md).
 > [bagian 3 — Panduan pemula](#3-mencoba-di-laptop-sendiri-panduan-pemula).
 > Di sana tertulis apa saja yang perlu dipasang dan perintahnya satu per satu.
 
-> **Status: Milestone 2 selesai.** Fondasi, autentikasi, hak akses, dan
-> **absensi tiga lapis** sudah berjalan. Modul kontribusi, inventaris, piket,
-> dan surat menyusul pada milestone berikutnya. Menu yang belum jadi tetap
-> tampil sebagai halaman rintisan agar penjagaan hak aksesnya bisa diuji sejak
-> sekarang.
+> **Status: Milestone 3 selesai.** Fondasi, autentikasi, hak akses, **absensi
+> tiga lapis**, serta **rekap kontribusi dan ekspor** sudah berjalan. Modul
+> inventaris, piket, logbook, dan surat menyusul pada milestone berikutnya.
+> Menu yang belum jadi tetap tampil sebagai halaman rintisan agar penjagaan hak
+> aksesnya bisa diuji sejak sekarang.
 
 ---
 
@@ -569,7 +569,82 @@ diperbaiki adalah jaringan atau layarnya — bukan menambah kenyamanan di sana.
 
 ---
 
-## 7. Menambah anggota pada awal periode
+## 7. Skor kontribusi
+
+### 7.1 Cara skor dihitung
+
+```
+skor = 40 × min(hariHadir / targetHadir, 1)
+     + 20 × min(sesiBerbagi / targetSesiBerbagi, 1)
+     + 20 × min(piket / targetPiket, 1)
+     + 20 × min(entriLogbook / targetLogbook, 1)
+     − 5  × alatBelumKembali
+
+hasil akhir dibatasi pada rentang 0–100
+```
+
+Ambang kelulusan bawaan **70**, dan semuanya dapat diubah per periode oleh
+Kepala Laboratorium di menu **Periode &amp; Target**.
+
+Dua perilaku yang mudah disalahpahami:
+
+- **Target bernilai nol berarti komponen itu tidak disyaratkan**, dan dianggap
+  terpenuhi penuh — bukan dihitung nol. Menghukum anggota karena pengurus lupa
+  mengisi target jelas keliru.
+- **Skor tidak pernah negatif.** Potongan alat belum kembali dapat membuat
+  hitungan mentahnya minus, tetapi hasil akhirnya dibatasi pada nol.
+
+Rumus ini punya uji otomatisnya sendiri (`tests/skor.test.ts`), termasuk untuk
+skor sempurna, skor nol, potongan yang membuat hasil negatif, dan target nol.
+Jalankan `npm test` setiap kali rumusnya disentuh.
+
+### 7.2 Siapa melihat skor siapa
+
+| Peran | Yang terlihat |
+|---|---|
+| Kepala Lab, Koordinator, Pengawas | Seluruh anggota laboratorium |
+| Ketua Squad | Anggota squadnya saja |
+| Anggota | Dirinya sendiri saja |
+
+Pembatasan ini terjadi di dalam kueri basis data (`src/lib/lingkup.ts`), bukan
+dengan menyembunyikan baris di antarmuka. Anggota biasa juga tidak dapat
+mengunduh ekspor sama sekali — endpoint-nya membalas 403.
+
+### 7.3 Sumber tiap angka
+
+| Komponen | Diambil dari | Sejak |
+|---|---|---|
+| Hari hadir, total jam | Catatan absensi | Milestone 2 |
+| Sesi berbagi | Absensi berjenis **PELATIHAN** | Milestone 2 |
+| Piket | Pengisian checklist piket | Milestone 5 |
+| Entri logbook | Logbook squad yang bersangkutan | Milestone 5 |
+| Alat belum kembali | Peminjaman lewat tenggat, terlambat, atau hilang | Milestone 4 |
+
+Komponen yang modulnya belum dibangun bernilai nol — bukan dikarang. Kuerinya
+sudah benar dan akan langsung berisi begitu modulnya ada.
+
+> **Sesi berbagi perlu Anda pastikan.** SPEC menyebut komponen ini tanpa
+> memberinya tabel tersendiri, jadi sistem memakai sinyal yang sudah ada:
+> absensi yang ditandai PELATIHAN. Bila di laboratorium sesi berbagi dicatat
+> dengan cara lain, sumber angkanya tinggal diganti di `src/lib/kontribusi.ts`.
+
+### 7.4 Ekspor untuk audit Program Studi
+
+Menu **Ekspor Data** menyediakan dua bentuk untuk tiap periode:
+
+- **CSV** — satu baris per anggota, berawalan BOM UTF-8 sehingga langsung rapi
+  di Excel maupun LibreOffice. Sel yang diawali `=`, `+`, `-`, atau `@` dilumpuhkan
+  supaya Excel tidak memperlakukannya sebagai rumus.
+- **PDF siap cetak** — bentang mendatar berkop laboratorium, memuat rumus skor
+  di kakinya.
+
+Angkanya dihitung ulang saat berkas diunduh. Angka pada Surat Keterangan
+Kontribusi yang sudah terbit tidak ikut berubah — surat menyimpan snapshot-nya
+sendiri.
+
+---
+
+## 8. Menambah anggota pada awal periode
 
 ### Cara yang dianjurkan: berkas CSV
 
@@ -613,7 +688,7 @@ menolaknya bila jejaknya sudah ada.
 
 ---
 
-## 8. Cadangan dan pemulihan
+## 9. Cadangan dan pemulihan
 
 ### Cadangan otomatis
 
@@ -657,7 +732,7 @@ Sesudah pulih, periksa jumlah anggota dan periode aktif di halaman dasbor.
 
 ---
 
-## 9. Peta kode
+## 10. Peta kode
 
 ```
 prisma/schema.prisma      Model data lengkap (SPEC bagian 5)
@@ -673,6 +748,9 @@ src/lib/jaringan.ts       Lapis 1 — penjagaan subnet laboratorium
 src/lib/kode-harian.ts    Lapis 2 — kode harian, tidak pernah lewat API
 src/lib/token-qr.ts       Lapis 3 — token QR bertanda tangan, berputar 60 detik
 src/lib/absensi.ts        Aturan absensi (SPEC 6.4)
+src/lib/skor.ts           Mesin skor kontribusi (SPEC 6.1), murni dan teruji
+src/lib/kontribusi.ts     Pengumpul angka kontribusi dari basis data
+src/lib/lingkup.ts        Siapa boleh melihat data siapa
 src/app/api/attendance/   Satu-satunya pintu pencatatan kehadiran
 src/app/display/          Layar laboratorium
 src/lib/rute.ts           Peta rute ke modul; dipakai middleware dan menu
@@ -696,7 +774,7 @@ Lab yang menerbitkan surat, tidak ada yang boleh menghapus absensi).
 
 ---
 
-## 10. Batas yang disengaja
+## 11. Batas yang disengaja
 
 Berikut **tidak** dibangun, dan sebaiknya tetap begitu:
 

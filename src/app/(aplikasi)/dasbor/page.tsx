@@ -1,14 +1,18 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 
+import { KartuSkor } from "@/components/kartu-skor";
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { periodeAktif, rekapKontribusi } from "@/lib/kontribusi";
 import { menuUntukPeran } from "@/lib/menu";
-import { wajibMasuk } from "@/lib/penjaga";
+import { saringanRekapKontribusi, wajibMasuk } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
-import { bolehBacaSemua, LABEL_PERAN } from "@/lib/rbac";
+import { bolehBaca, bolehBacaSemua, LABEL_PERAN } from "@/lib/rbac";
 import { tanggalPendekWib } from "@/lib/waktu";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Dasbor" };
 
 export default async function Dasbor() {
@@ -16,13 +20,24 @@ export default async function Dasbor() {
   const lihatSemuaAnggota = bolehBacaSemua(pengguna.role, "master_anggota");
 
   const [periode, jumlahAnggota, jumlahSquad, temanSquad] = await Promise.all([
-    prisma.period.findFirst({ where: { aktif: true } }),
+    periodeAktif(),
     lihatSemuaAnggota ? prisma.user.count({ where: { status: "AKTIF" } }) : Promise.resolve(null),
     lihatSemuaAnggota ? prisma.squad.count() : Promise.resolve(null),
     pengguna.squadId
       ? prisma.user.count({ where: { squadId: pengguna.squadId, status: "AKTIF" } })
       : Promise.resolve(null),
   ]);
+
+  // Skor kontribusi hanya dihitung untuk yang berhak melihatnya, dan hanya
+  // dalam lingkupnya sendiri. Pengawas bukan anggota laboratorium sehingga
+  // tidak punya skor pribadi.
+  const bolehLihatSkor = bolehBaca(pengguna.role, "rekap_absensi") && pengguna.role !== "PENGAWAS";
+  const rekap =
+    periode && bolehLihatSkor
+      ? await rekapKontribusi(periode, saringanRekapKontribusi(pengguna) as Prisma.UserWhereInput)
+      : [];
+  const skorSendiri = rekap.find((r) => r.user.id === pengguna.id);
+  const lulusDalamLingkup = rekap.filter((r) => r.rincian.lulus).length;
 
   const menu = menuUntukPeran(pengguna.role);
 
@@ -102,6 +117,40 @@ export default async function Dasbor() {
         </Card>
       </div>
 
+      {skorSendiri && periode ? (
+        <div className="mt-4">
+          <KartuSkor rekap={skorSendiri} ambangLulus={periode.ambangLulus} />
+        </div>
+      ) : null}
+
+      {periode && rekap.length > 1 ? (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>
+              {bolehBacaSemua(pengguna.role, "rekap_absensi")
+                ? "Kontribusi seluruh laboratorium"
+                : "Kontribusi squad Anda"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>
+              <span className="font-semibold">{lulusDalamLingkup}</span> dari{" "}
+              <span className="font-semibold">{rekap.length}</span> anggota sudah memenuhi ambang{" "}
+              {periode.ambangLulus}.
+            </p>
+            {rekap.length - lulusDalamLingkup > 0 ? (
+              <p className="text-teks-redup">
+                {rekap.length - lulusDalamLingkup} anggota masih di bawah ambang. Rinciannya ada di{" "}
+                <Link href="/absensi/rekap" className="text-utama underline underline-offset-4">
+                  Rekap Kontribusi
+                </Link>
+                .
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card className="mt-4">
         <CardHeader>
           <CardTitle>Menu yang tersedia untuk peran Anda</CardTitle>
@@ -111,9 +160,9 @@ export default async function Dasbor() {
             {menu.map((butir) => (
               <li key={butir.href}>
                 <Link href={butir.href}>
-                  <Badge variant={butir.milestone === 1 ? "berhasil" : "netral"}>
+                  <Badge variant={butir.selesai ? "berhasil" : "netral"}>
                     {butir.label}
-                    {butir.milestone > 1 ? ` · M${butir.milestone}` : ""}
+                    {butir.selesai ? "" : ` · M${butir.milestone}`}
                   </Badge>
                 </Link>
               </li>
