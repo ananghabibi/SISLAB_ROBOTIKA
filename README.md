@@ -421,7 +421,49 @@ layar dinyalakan.
 docker compose logs cron | tail -20     # memastikan penjadwalnya hidup
 ```
 
-### 6.5 Bila jaringan atau layar bermasalah
+### 6.5 Dua syarat jaringan yang menentukan sistem ini berhasil
+
+Keduanya sering baru ketahuan setelah sistem dipasang. Selesaikan sebelum hari
+pertama pemakaian.
+
+#### a. Kamera ponsel memerlukan HTTPS
+
+Peramban hanya mengizinkan akses kamera pada *secure context*: `https`, atau
+`localhost`. Lewat `http://192.168.1.50` biasa, **pemindai QR tidak akan
+terbuka di ponsel mana pun** — dan tidak selalu memberi pesan galat yang jelas.
+
+Karena itu `Caddyfile` menyediakan dua pilihan, dan **Pilihan A (http polos)
+hanya memadai untuk mencoba dari komputer laboratorium sendiri**. Untuk
+pemakaian sehari-hari, pindah ke Pilihan B dengan nama host laboratorium.
+
+Cara yang paling tidak merepotkan: sertifikat Let&rsquo;s Encrypt lewat tantangan
+**DNS-01**. Cara ini tidak memerlukan peladen dapat dihubungi dari internet,
+sehingga nama host boleh mengarah ke alamat lokal seperti `192.168.1.50`, dan
+ponsel tetap memercayai sertifikatnya tanpa perlu memasang apa pun.
+
+`tls internal` bawaan Caddy juga bisa, tetapi mengharuskan setiap ponsel
+memasang sertifikat akar Caddy lebih dulu — merepotkan untuk 38 orang, dan
+terulang setiap ada anggota baru.
+
+#### b. Subnet lab harus benar-benar milik laboratorium
+
+Lapis 1 hanya sekuat batas jaringannya. Kalau `LAB_SUBNETS` diisi subnet WiFi
+kampus yang menjangkau seluruh fakultas, maka yang dijamin sistem bukan lagi
+"orangnya ada di dalam laboratorium", melainkan "orangnya ada di suatu tempat
+di kampus" — dan titip absen dari kantin menjadi mungkin lagi.
+
+Yang dianjurkan: satu **router atau access point khusus laboratorium** dengan
+subnetnya sendiri, misalnya `192.168.50.0/24`, dipasang di dalam ruangan
+sehingga jangkauannya berhenti di dinding. Mini PC tersambung ke situ, dan
+`LAB_SUBNETS` diisi subnet itu saja.
+
+Bila untuk sementara terpaksa memakai WiFi kampus, sistemnya tetap berjalan —
+tetapi lapis 1 melemah, dan lapis 2 serta 3 yang menanggung sisanya. Catat
+keadaan itu, dan perbaiki begitu perangkatnya tersedia.
+
+---
+
+### 6.6 Bila jaringan atau layar bermasalah
 
 Koordinator Operasional membuka **Absensi Manual**, memilih anggota, mengisi
 jam, dan **menulis alasan sedikitnya 25 karakter**. Setiap catatan diberi

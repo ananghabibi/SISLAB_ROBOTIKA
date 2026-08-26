@@ -1,17 +1,29 @@
 # =============================================================================
 # Caddy — pintu masuk tunggal SILAB.
 #
-# Penting: Caddy WAJIB meneruskan alamat IP asli pengunjung. Lapis 1 anti titip
-# absen memeriksa IP itu terhadap LAB_SUBNETS; kalau yang sampai ke aplikasi
-# hanya IP kontainer Caddy, seluruh pemeriksaan jaringan menjadi tidak berarti.
+# Dua hal yang menentukan sistem ini berfungsi atau tidak:
+#
+# 1. Caddy WAJIB meneruskan alamat IP asli pengunjung. Lapis 1 anti titip absen
+#    memeriksa IP itu terhadap LAB_SUBNETS; kalau yang sampai ke aplikasi hanya
+#    IP kontainer Caddy, seluruh pemeriksaan jaringan menjadi tidak berarti.
+#
+# 2. Pemindai QR di ponsel MEMERLUKAN HTTPS. Peramban hanya mengizinkan akses
+#    kamera pada "secure context": https, atau localhost. Lewat http biasa,
+#    kamera ditolak diam-diam dan anggota tidak akan bisa memindai apa pun dari
+#    ponselnya. Pilih salah satu blok di bawah sesuai keadaan laboratorium.
 # =============================================================================
 
 {
-	# Sertifikat tidak diminta ke Let's Encrypt: server ini hidup di jaringan lab.
-	auto_https off
 	admin off
 }
 
+# -----------------------------------------------------------------------------
+# PILIHAN A — http polos di port 80.
+#
+# Cukup untuk memasang dan mencoba dari komputer laboratorium sendiri, TETAPI
+# pemindai QR di ponsel TIDAK akan berfungsi. Jangan berhenti di pilihan ini
+# kalau anggota harus absen dari ponsel.
+# -----------------------------------------------------------------------------
 :80 {
 	encode gzip
 
@@ -28,3 +40,49 @@
 		header_up X-Forwarded-Proto {scheme}
 	}
 }
+
+# -----------------------------------------------------------------------------
+# PILIHAN B — https dengan nama host laboratorium (dianjurkan).
+#
+# Hapus tanda pagar pada blok ini, matikan PILIHAN A di atas, lalu ganti
+# silab.unisma.ac.id dengan nama host yang benar-benar dipakai.
+#
+# Agar sertifikatnya dipercaya ponsel tanpa perlu memasang apa pun di tiap
+# ponsel, pakai salah satu dari:
+#
+#   - Sertifikat Let's Encrypt lewat tantangan DNS-01. Cara ini tidak
+#     memerlukan peladen ini dapat dihubungi dari internet, sehingga nama host
+#     boleh mengarah ke alamat lokal seperti 192.168.1.50. Butuh kredensial API
+#     penyedia DNS kampus dan image Caddy yang memuat modul DNS tersebut.
+#
+#   - Sertifikat resmi kampus yang sudah ada, ditaruh sebagai berkas.
+#
+# `tls internal` (sertifikat buatan Caddy sendiri) juga bisa, tetapi setiap
+# ponsel harus memasang sertifikat akar Caddy lebih dulu — merepotkan untuk 38
+# orang dan akan terulang tiap kali ada anggota baru.
+# -----------------------------------------------------------------------------
+# silab.unisma.ac.id {
+# 	encode gzip
+#
+# 	header {
+# 		X-Content-Type-Options nosniff
+# 		X-Frame-Options DENY
+# 		Referrer-Policy strict-origin-when-cross-origin
+# 		Strict-Transport-Security "max-age=31536000"
+# 		-Server
+# 	}
+#
+# 	# Sertifikat lewat DNS-01; sesuaikan penyedianya.
+# 	# tls {
+# 	# 	dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+# 	# }
+#
+# 	# Atau berkas sertifikat resmi kampus:
+# 	# tls /etc/caddy/silab.crt /etc/caddy/silab.key
+#
+# 	reverse_proxy app:3000 {
+# 		header_up X-Real-IP {remote_host}
+# 		header_up X-Forwarded-For {remote_host}
+# 		header_up X-Forwarded-Proto {scheme}
+# 	}
+# }
