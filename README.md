@@ -95,17 +95,14 @@ tidak ada langkah yang boleh dilewati.
 |---|---|---|
 | **Node.js 22 LTS** | <https://nodejs.org> (pilih **LTS**) | `node -v` menampilkan `v22.x` |
 | **Git** | <https://git-scm.com/downloads> | `git --version` |
-| **Docker Desktop** | <https://www.docker.com/products/docker-desktop/> | `docker --version` |
+| **PostgreSQL 16** | lihat bagian 3.4 — ada dua cara | `psql --version` |
 
-Docker dipakai untuk menjalankan PostgreSQL tanpa perlu memasangnya sendiri.
-Kalau Anda sudah punya PostgreSQL 16 di laptop, Docker boleh dilewati — lihat
-bagian 3.5.
+Dua yang pertama wajib. Untuk basis data ada dua jalan: lewat Docker Desktop,
+atau memasang PostgreSQL langsung. Bagian 3.4 menjelaskan keduanya — pilih satu
+saja, jangan dua-duanya, karena keduanya memperebutkan port 5432.
 
-> **Tutup lalu buka lagi Command Prompt** sesudah memasang Node.js dan Git.
+> **Tutup lalu buka lagi Command Prompt** sesudah memasang perkakas apa pun.
 > Jendela yang sudah terbuka belum mengenal perintah baru.
->
-> Di Windows, **jalankan Docker Desktop** dan tunggu ikonnya berhenti berputar
-> sebelum melanjutkan.
 
 ### 3.2 Ambil proyeknya
 
@@ -137,29 +134,56 @@ node scripts/siapkan-env.mjs
 Bila terlanjur hilang, buka berkas `.env` dan lihat baris
 `SEED_KEPALA_LAB_PASSWORD`.
 
-### 3.4 Nyalakan basis data dan isi datanya
+### 3.4 Nyalakan basis data
+
+Ada dua pilihan. **Pilihan A** lebih ringkas, tetapi butuh akses ke Docker Hub —
+jaringan kampus dan kantor sering memblokirnya. Kalau Pilihan A gagal, pindah ke
+**Pilihan B**; hasilnya sama saja.
+
+#### Pilihan A — lewat Docker
 
 ```cmd
 docker compose -f docker-compose.dev.yml up -d
+```
+
+Berhasil bila muncul `Container silab-db-dev  Started`.
+
+Kalau yang muncul `failed to resolve reference "docker.io/library/postgres"`
+atau `dialing auth.docker.io:443`, berarti jaringan Anda memblokir Docker Hub.
+Jangan dilawan — langsung pakai Pilihan B.
+
+#### Pilihan B — PostgreSQL dipasang langsung
+
+1. Unduh pemasang PostgreSQL 16 untuk Windows dari
+   <https://www.enterprisedb.com/downloads/postgres-postgresql-downloads>.
+2. Jalankan pemasangnya. Tekan **Next** terus, dengan tiga catatan:
+   - **Password** untuk pengguna `postgres` — catat baik-baik. Pakai huruf dan
+     angka saja; tanda `@ : / #` di dalam kata sandi menyulitkan penulisan
+     `DATABASE_URL` nanti.
+   - **Port** biarkan `5432`.
+   - **Stack Builder** di akhir boleh dilewati.
+3. Buka berkas `.env` di folder `silab` dengan Notepad, cari baris
+   `DATABASE_URL=`, ganti seluruh barisnya menjadi:
+
+   ```
+   DATABASE_URL="postgresql://postgres:KATASANDIANDA@localhost:5432/silab?schema=public"
+   ```
+
+   Ganti `KATASANDIANDA` dengan kata sandi langkah 2. Simpan berkasnya.
+
+Basis data bernama `silab` tidak perlu dibuat sendiri — langkah berikutnya
+membuatnya otomatis.
+
+### 3.5 Buat tabel dan isi datanya
+
+```cmd
 npx prisma migrate deploy
 npx prisma db seed
 ```
 
-Baris pertama menyalakan PostgreSQL di latar belakang. Baris kedua membuat
-seluruh tabel. Baris ketiga memasukkan 6 squad, 39 anggota, dan 1 periode
-aktif — hasilnya tercetak di layar.
-
-### 3.5 Bila memakai PostgreSQL sendiri, bukan Docker
-
-Lewati `docker compose`, buat basis data kosong bernama `silab`, lalu sesuaikan
-baris `DATABASE_URL` di `.env` dengan nama pengguna dan kata sandi PostgreSQL
-Anda:
-
-```
-DATABASE_URL="postgresql://postgres:katasandianda@localhost:5432/silab?schema=public"
-```
-
-Sesudah itu lanjutkan dengan `npx prisma migrate deploy` dan `npx prisma db seed`.
+Baris pertama membuat basis data beserta seluruh tabelnya. Baris kedua
+memasukkan 6 squad, 39 anggota, dan 1 periode aktif — hasilnya tercetak di
+layar dan diakhiri `Selesai.`
 
 ### 3.6 Jalankan
 
@@ -174,7 +198,11 @@ Buka <http://localhost:3000> di peramban. Masuk lewat formulir **bagian bawah**
 - Kata sandi: yang tercetak pada langkah 3.3
 
 Untuk menghentikan aplikasi, tekan `Ctrl + C` di Command Prompt.
-Untuk menghentikan basis data: `docker compose -f docker-compose.dev.yml down`.
+
+Basis data boleh dibiarkan menyala. Bila memakai Docker dan ingin
+menghentikannya: `docker compose -f docker-compose.dev.yml down`. Bila memasang
+PostgreSQL langsung, ia berjalan sebagai layanan Windows dan menyala sendiri
+setiap laptop dihidupkan.
 
 ### 3.7 Mencoba peran lain
 
@@ -202,6 +230,8 @@ menu.
 | `'git' is not recognized` / `'npm' is not recognized` | Perkakasnya belum terpasang, atau Command Prompt belum dibuka ulang | Pasang, lalu tutup dan buka lagi Command Prompt |
 | `fatal: not a git repository` | Anda belum berada di dalam folder proyek | `cd %USERPROFILE%\Documents\silab` |
 | `error during connect` / `docker daemon is not running` | Docker Desktop belum menyala | Jalankan Docker Desktop, tunggu sampai siap |
+| `failed to resolve reference "docker.io/..."` / `dialing auth.docker.io:443` | Jaringan Anda memblokir Docker Hub | Pakai Pilihan B pada bagian 3.4 — pasang PostgreSQL langsung |
+| `password authentication failed for user "postgres"` | Kata sandi pada `DATABASE_URL` keliru | Perbaiki baris `DATABASE_URL` di `.env` |
 | `Can't reach database server at localhost:5432` | Basis data belum menyala, atau `DATABASE_URL` salah | `docker compose -f docker-compose.dev.yml up -d` |
 | `port is already allocated` | Ada PostgreSQL lain memakai port 5432 | Hentikan yang lain, atau ikuti bagian 3.5 |
 | `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |
