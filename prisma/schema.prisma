@@ -1,0 +1,456 @@
+// SILAB — Sistem Informasi Laboratorium Robotika FT UNISMA
+// Semua waktu disimpan dalam UTC; tampilan diubah ke WIB (Asia/Jakarta) di lapis antarmuka.
+// Medan bertanggal murni memakai @db.Date agar "satu sesi per hari" tidak terpengaruh jam.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enumerasi
+// ---------------------------------------------------------------------------
+
+enum Role {
+  KEPALA_LAB
+  KOORD_OPERASIONAL
+  KOORD_RISET
+  KOORD_PENGEMBANGAN
+  KETUA_SQUAD
+  ANGGOTA
+  PENGAWAS
+}
+
+enum Jenjang {
+  MUDA
+  MADYA
+  UTAMA
+  KOORDINATOR
+  KEPALA_LAB
+}
+
+enum StatusAnggota {
+  AKTIF
+  CUTI
+  NONAKTIF
+  LULUS
+}
+
+enum JenisKegiatan {
+  RISET
+  PIKET
+  RAPAT
+  PELATIHAN
+  PENGABDIAN
+  ADMINISTRASI
+  LAINNYA
+}
+
+enum KondisiAset {
+  BAIK
+  PERLU_DICEK
+  RUSAK_RINGAN
+  RUSAK
+  DALAM_PERBAIKAN
+  DALAM_PENGEMBANGAN
+  TERPAKAI
+  HILANG
+}
+
+enum StatusPinjam {
+  DIPINJAM
+  KEMBALI
+  TERLAMBAT
+  HILANG
+}
+
+enum JenisInsiden {
+  CEDERA
+  KEBAKARAN
+  KERUSAKAN_ALAT
+  NYARIS_CELAKA
+  LAINNYA
+}
+
+enum StatusTindakLanjut {
+  BARU
+  DITINJAU
+  DITANGANI
+  SELESAI
+}
+
+enum StatusKontribusi {
+  LULUS
+  BELUM_LULUS
+}
+
+// ---------------------------------------------------------------------------
+// Pengguna, squad, periode
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nama      String
+  // NPM disimpan sebagai teks, bukan angka: ada nol di depan dan tidak pernah dihitung.
+  npm       String?       @unique
+  email     String        @unique
+  prodi     String
+  fakultas  String        @default("Teknik")
+  angkatan  Int?
+  semester  Int?
+  squadId   String?
+  role      Role          @default(ANGGOTA)
+  jenjang   Jenjang       @default(MUDA)
+  status    StatusAnggota @default(AKTIF)
+  avatarUrl String?
+
+  // Hanya dipakai akun dosen (Credentials). Anggota mahasiswa memakai Google kampus.
+  passwordHash String?
+
+  squad Squad? @relation("AnggotaSquad", fields: [squadId], references: [id], onDelete: SetNull)
+
+  memimpinSquad                 Squad[]                @relation("KetuaSquad")
+  attendances                   Attendance[]           @relation("AbsensiPemilik")
+  pembatalanAbsensi             Attendance[]           @relation("AbsensiPembatal")
+  asetTanggungJawab             Asset[]                @relation("PenanggungJawabAset")
+  pinjamanSebagaiPeminjam       Loan[]                 @relation("Peminjam")
+  pinjamanSebagaiPetugasPinjam  Loan[]                 @relation("PetugasPinjam")
+  pinjamanSebagaiPetugasKembali Loan[]                 @relation("PetugasKembali")
+  piketLogs                     PiketLog[]
+  logbooks                      Logbook[]
+  insidenDilaporkan             Incident[]
+  snapshots                     ContributionSnapshot[]
+  skkDimiliki                   Skk[]                  @relation("PemilikSkk")
+  skkDiterbitkan                Skk[]                  @relation("PenerbitSkk")
+  tamuDidampingi                Guest[]
+  auditLogs                     AuditLog[]
+
+  @@index([squadId])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Squad {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nama      String
+  kode      String  @unique
+  ketuaId   String?
+  deskripsi String?
+
+  ketua     User?      @relation("KetuaSquad", fields: [ketuaId], references: [id], onDelete: SetNull)
+  anggota   User[]     @relation("AnggotaSquad")
+  piketLogs PiketLog[]
+  logbooks  Logbook[]
+
+  @@map("squads")
+}
+
+model Period {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nama              String
+  tanggalMulai      DateTime @db.Date
+  tanggalSelesai    DateTime @db.Date
+  targetHadir       Int
+  targetSesiBerbagi Int
+  targetPiket       Int
+  targetLogbook     Int
+  ambangLulus       Int      @default(70)
+  aktif             Boolean  @default(false)
+
+  snapshots ContributionSnapshot[]
+  skk       Skk[]
+
+  @@index([aktif])
+  @@map("periods")
+}
+
+// ---------------------------------------------------------------------------
+// Absensi
+// ---------------------------------------------------------------------------
+
+model DailyCode {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tanggal        DateTime @unique @db.Date
+  kode           String
+  dibuatOtomatis Boolean  @default(true)
+
+  @@map("daily_codes")
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId        String
+  tanggal       DateTime      @db.Date
+  jamMasuk      DateTime
+  jamKeluar     DateTime?
+  jenisKegiatan JenisKegiatan @default(RISET)
+
+  rencana String?
+  uraian  String?
+  kendala String?
+
+  ipMasuk      String
+  ipKeluar     String?
+  manual       Boolean @default(false)
+  alasanManual String?
+
+  // Koreksi tidak pernah menghapus: catatan asli tetap ada dan ditandai dibatalkan.
+  dibatalkan        Boolean @default(false)
+  dibatalkanOlehId  String?
+  catatanPembatalan String?
+
+  user           User  @relation("AbsensiPemilik", fields: [userId], references: [id], onDelete: Cascade)
+  dibatalkanOleh User? @relation("AbsensiPembatal", fields: [dibatalkanOlehId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, tanggal])
+  @@index([tanggal])
+  @@index([userId])
+  @@map("attendances")
+}
+
+// ---------------------------------------------------------------------------
+// Inventaris dan peminjaman
+// ---------------------------------------------------------------------------
+
+model Asset {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  kodeAset          String      @unique
+  nama              String
+  kategori          String
+  merk              String?
+  jumlah            Int         @default(1)
+  satuan            String      @default("unit")
+  kondisi           KondisiAset @default(BAIK)
+  lokasi            String
+  tahunPerolehan    Int?
+  penanggungJawabId String?
+  bolehDipinjam     Boolean     @default(true)
+  keterangan        String?
+
+  penanggungJawab User?  @relation("PenanggungJawabAset", fields: [penanggungJawabId], references: [id], onDelete: SetNull)
+  loans           Loan[]
+
+  @@index([kategori])
+  @@map("assets")
+}
+
+model Loan {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assetId         String
+  peminjamId      String
+  petugasPinjamId String
+  tglPinjam       DateTime @default(now())
+  jumlah          Int      @default(1)
+  keperluan       String
+  rencanaKembali  DateTime
+  fotoPinjamUrl   String
+
+  tglKembali       DateTime?
+  petugasKembaliId String?
+  kondisiKembali   KondisiAset?
+  fotoKembaliUrl   String?
+  catatan          String?
+
+  status StatusPinjam @default(DIPINJAM)
+
+  asset          Asset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  peminjam       User  @relation("Peminjam", fields: [peminjamId], references: [id], onDelete: Restrict)
+  petugasPinjam  User  @relation("PetugasPinjam", fields: [petugasPinjamId], references: [id], onDelete: Restrict)
+  petugasKembali User? @relation("PetugasKembali", fields: [petugasKembaliId], references: [id], onDelete: SetNull)
+
+  // Catatan: satu aset hanya boleh punya SATU pinjaman berstatus DIPINJAM.
+  // Ditegakkan sebagai partial unique index di migrasi SQL, bukan hanya di aplikasi.
+  @@index([assetId])
+  @@index([peminjamId])
+  @@index([status])
+  @@map("loans")
+}
+
+// ---------------------------------------------------------------------------
+// Piket, logbook, insiden, tamu
+// ---------------------------------------------------------------------------
+
+model PiketLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tanggal          DateTime @db.Date
+  squadId          String
+  pengisiId        String
+  checklist        Json
+  alatBelumKembali Int      @default(0)
+  fotoSebelumUrl   String
+  fotoSesudahUrl   String
+
+  squad   Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  pengisi User  @relation(fields: [pengisiId], references: [id], onDelete: Restrict)
+
+  @@index([tanggal])
+  @@index([squadId])
+  @@map("piket_logs")
+}
+
+model Logbook {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  squadId           String
+  mingguKe          Int
+  tanggal           DateTime @db.Date
+  dibuatOlehId      String
+  anggotaTerlibat   Json
+  target            String
+  dikerjakan        String
+  hasil             String
+  kendala           String?
+  rencanaBerikutnya String
+  buktiUrl          String?
+
+  squad      Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  dibuatOleh User  @relation(fields: [dibuatOlehId], references: [id], onDelete: Restrict)
+
+  @@unique([squadId, mingguKe])
+  @@index([squadId])
+  @@map("logbooks")
+}
+
+model Incident {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tanggal            DateTime           @db.Date
+  pelaporId          String
+  lokasi             String
+  jenis              JenisInsiden
+  kronologi          String
+  tindakan           String
+  saran              String?
+  fotoUrl            String?
+  statusTindakLanjut StatusTindakLanjut @default(BARU)
+
+  pelapor User @relation(fields: [pelaporId], references: [id], onDelete: Restrict)
+
+  @@index([tanggal])
+  @@index([statusTindakLanjut])
+  @@map("incidents")
+}
+
+model Guest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tanggal      DateTime  @db.Date
+  nama         String
+  instansi     String
+  keperluan    String
+  pendampingId String
+  jamMasuk     DateTime
+  jamKeluar    DateTime?
+
+  pendamping User @relation(fields: [pendampingId], references: [id], onDelete: Restrict)
+
+  @@index([tanggal])
+  @@map("guests")
+}
+
+// ---------------------------------------------------------------------------
+// Kontribusi, surat, audit
+// ---------------------------------------------------------------------------
+
+model ContributionSnapshot {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  periodId         String
+  userId           String
+  hariHadir        Int              @default(0)
+  persenHadir      Float            @default(0)
+  totalJam         Float            @default(0)
+  sesiBerbagi      Int              @default(0)
+  piket            Int              @default(0)
+  entriLogbook     Int              @default(0)
+  alatBelumKembali Int              @default(0)
+  skor             Float            @default(0)
+  status           StatusKontribusi @default(BELUM_LULUS)
+  dihitungPada     DateTime         @default(now())
+
+  period Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([periodId, userId])
+  @@index([periodId])
+  @@map("contribution_snapshots")
+}
+
+model Skk {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId            String
+  periodId          String
+  nomor             String   @unique
+  tanggalTerbit     DateTime @default(now())
+  // Angka pada surat dibekukan di sini. Koreksi data setelahnya tidak boleh mengubahnya.
+  snapshotJson      Json
+  pdfUrl            String?
+  diterbitkanOlehId String
+
+  user            User   @relation("PemilikSkk", fields: [userId], references: [id], onDelete: Restrict)
+  period          Period @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  diterbitkanOleh User   @relation("PenerbitSkk", fields: [diterbitkanOlehId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, periodId])
+  @@map("skk")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId    String?
+  aksi      String
+  entitas   String
+  entitasId String?
+  dataLama  Json?
+  dataBaru  Json?
+  ip        String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entitas, entitasId])
+  @@index([userId])
+  @@map("audit_logs")
+}

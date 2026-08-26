@@ -1,0 +1,60 @@
+# =============================================================================
+# Data awal anggota Laboratorium Robotika FT UNISMA.
+# Sumber: Lampiran SK Keanggotaan Laboratorium Robotika TA 2026/2027.
+#
+# PERINGATAN. Ejaan sejumlah nama di berkas ini berbeda dengan SK Himpunan
+# Mahasiswa untuk NPM yang sama. Sebelum seeder dijalankan di lingkungan
+# produksi, SELURUH nama dan surel wajib dicocokkan ke SIAKAD. Berkas ini
+# sengaja dipisahkan dari kode supaya koreksi tidak perlu menyentuh program.
+#
+# Surel di bawah masih pola sementara ({npm}@student.unisma.ac.id). Ganti
+# dengan surel kampus yang sebenarnya; login Google mencocokkan tepat kolom ini.
+#
+# Kolom prodi, fakultas, angkatan, semester, dan jenjang boleh DIKOSONGKAN.
+# Bila kosong, nilainya diturunkan dari NPM (lihat src/lib/npm.ts). Isi hanya
+# bila ada NPM yang menyimpang dari pola.
+#
+# role: KEPALA_LAB | KOORD_OPERASIONAL | KOORD_RISET | KOORD_PENGEMBANGAN |
+#       KETUA_SQUAD | ANGGOTA | PENGAWAS
+# status: AKTIF | CUTI | NONAKTIF | LULUS
+# =============================================================================
+nama,npm,email,squad_kode,role,prodi,fakultas,angkatan,semester,jenjang,status
+"Anang Habibi, S.ST., M.T.",,anang.habibi@unisma.ac.id,,KEPALA_LAB,Dosen,Teknik,,,KEPALA_LAB,AKTIF
+Zaenal Abidin,22301053005,22301053005@student.unisma.ac.id,,KOORD_OPERASIONAL,,,,,KOORDINATOR,AKTIF
+Ahmad Khoirudin,22301053006,22301053006@student.unisma.ac.id,,KOORD_RISET,,,,,KOORDINATOR,AKTIF
+A Viki Adi S,22301053023,22301053023@student.unisma.ac.id,,KOORD_PENGEMBANGAN,,,,,KOORDINATOR,AKTIF
+M. Syiham Lazuardi Samson,22301053029,22301053029@student.unisma.ac.id,VTOL,KETUA_SQUAD,,,,,,AKTIF
+M. Tegar Dzaki Rayndra,22401053021,22401053021@student.unisma.ac.id,VTOL,ANGGOTA,,,,,,AKTIF
+Muhammad Sultan Mughdhor,22401053006,22401053006@student.unisma.ac.id,VTOL,ANGGOTA,,,,,,AKTIF
+Moc Reyfan Wijanarko,22401053033,22401053033@student.unisma.ac.id,VTOL,ANGGOTA,,,,,,AKTIF
+M. Arzak Alif Mubarok,22501053005,22501053005@student.unisma.ac.id,VTOL,ANGGOTA,,,,,,AKTIF
+M. Farrel Fatahillah,22501053013,22501053013@student.unisma.ac.id,VTOL,ANGGOTA,,,,,,AKTIF
+Irfan At'dya Fahregi,22501053026,22501053026@student.unisma.ac.id,VTOL,ANGGOTA,,,,,,AKTIF
+Dimas Cahyono,22201053012,22201053012@student.unisma.ac.id,KKI,KETUA_SQUAD,,,,,,AKTIF
+Qutbi Alif Nuruz Zurqi,22401053030,22401053030@student.unisma.ac.id,KKI,ANGGOTA,,,,,,AKTIF
+Firlie Rizawaliyudi,22401053029,22401053029@student.unisma.ac.id,KKI,ANGGOTA,,,,,,AKTIF
+Mochamad Reno Fadillah,22501053012,22501053012@student.unisma.ac.id,KKI,ANGGOTA,,,,,,AKTIF
+Mohammad Badrus Syarrof,22501053020,22501053020@student.unisma.ac.id,KKI,ANGGOTA,,,,,,AKTIF
+Muchamad Reno Wahyudi,22501054045,22501054045@student.unisma.ac.id,KKI,ANGGOTA,,,,,,AKTIF
+Vemas Ahmad Refaldi,22501054027,22501054027@student.unisma.ac.id,KKI,ANGGOTA,,,,,,AKTIF
+Deva Alifian Nugraha,22401053016,22401053016@student.unisma.ac.id,GROUND,KETUA_SQUAD,,,,,,AKTIF
+Arimbi Reka Anasa,22401053012,22401053012@student.unisma.ac.id,GROUND,ANGGOTA,,,,,,AKTIF
+Yudha Fauza Adzina,22501053006,22501053006@student.unisma.ac.id,GROUND,ANGGOTA,,,,,,AKTIF
+Aurelia Anandhyta Putri M,22501053008,22501053008@student.unisma.ac.id,GROUND,ANGGOTA,,,,,,AKTIF
+Nuzula Fina Salsabila,22501054001,22501054001@student.unisma.ac.id,GROUND,ANGGOTA,,,,,,AKTIF
+Muhammad Hasan Hanif,22501054030,22501054030@student.unisma.ac.id,GROUND,ANGGOTA,,,,,,AKTIF
+Bobby Rifki Maulana,22101053012,22101053012@student.unisma.ac.id,ILMIAH,KETUA_SQUAD,,,,,,AKTIF
+Yuriza Aurora Bunga Azzahra,22501054009,22501054009@student.unisma.ac.id,ILMIAH,ANGGOTA,,,,,,AKTIF
+Alfin Fadlilatus Mufidah,22501054041,22501054041@student.unisma.ac.id,ILMIAH,ANGGOTA,,,,,,AKTIF
+Asfina Andini,22501054028,22501054028@student.unisma.ac.id,ILMIAH,ANGGOTA,,,,,,AKTIF
+Nabiilah Rifda Harmono,22301061012,22301061012@student.unisma.ac.id,ILMIAH,ANGGOTA,,,,,,AKTIF
+Riski Ramadhani,22301053027,22301053027@student.unisma.ac.id,PRODUK,KETUA_SQUAD,,,,,,AKTIF
+Novita Zahra Maulida,22401053025,22401053025@student.unisma.ac.id,PRODUK,ANGGOTA,,,,,,AKTIF
+Muhammad Afandi,22501053029,22501053029@student.unisma.ac.id,PRODUK,ANGGOTA,,,,,,AKTIF
+Mauilidya Dzakira Khalda,22501054012,22501054012@student.unisma.ac.id,PRODUK,ANGGOTA,,,,,,AKTIF
+Nessa Ayu Stifvania,22501054049,22501054049@student.unisma.ac.id,PRODUK,ANGGOTA,,,,,,AKTIF
+Iytaaul Masarroh,22501054014,22501054014@student.unisma.ac.id,ABDIMAS,KETUA_SQUAD,,,,,,AKTIF
+Sufriyanti,22501054059,22501054059@student.unisma.ac.id,ABDIMAS,ANGGOTA,,,,,,AKTIF
+Nabrisatul Fuadah,22501054040,22501054040@student.unisma.ac.id,ABDIMAS,ANGGOTA,,,,,,AKTIF
+Nazaretha Dimitri,22401043028,22401043028@student.unisma.ac.id,ABDIMAS,ANGGOTA,,,,,,AKTIF
+Difa Cantika Mayzahra,22201041053,22201041053@student.unisma.ac.id,ABDIMAS,ANGGOTA,,,,,,AKTIF

@@ -1,0 +1,30 @@
+# =============================================================================
+# Caddy — pintu masuk tunggal SILAB.
+#
+# Penting: Caddy WAJIB meneruskan alamat IP asli pengunjung. Lapis 1 anti titip
+# absen memeriksa IP itu terhadap LAB_SUBNETS; kalau yang sampai ke aplikasi
+# hanya IP kontainer Caddy, seluruh pemeriksaan jaringan menjadi tidak berarti.
+# =============================================================================
+
+{
+	# Sertifikat tidak diminta ke Let's Encrypt: server ini hidup di jaringan lab.
+	auto_https off
+	admin off
+}
+
+:80 {
+	encode gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	reverse_proxy app:3000 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}

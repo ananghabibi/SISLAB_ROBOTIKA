@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Palet SILAB.
+
+   Dipilih dengan kontras teks-terhadap-latar minimal 4.5:1 (SPEC bagian 8).
+   Warna aksen adalah biru tua kampus; merah hanya dipakai untuk hal yang benar-
+   benar perlu dihentikan, supaya peringatan tidak kehilangan artinya.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-dasar: #f6f7f9;
+  --color-permukaan: #ffffff;
+  --color-garis: #dfe3e8;
+  --color-teks: #14181f;
+  --color-teks-redup: #59616e;
+
+  --color-utama: #14416b;
+  --color-utama-terang: #1d5b95;
+  --color-utama-lembut: #e7eef6;
+
+  --color-berhasil: #14603a;
+  --color-berhasil-lembut: #e3f3ea;
+  --color-peringatan: #7a4a05;
+  --color-peringatan-lembut: #fdf0dc;
+  --color-bahaya: #96201d;
+  --color-bahaya-lembut: #fbe6e5;
+
+  --radius-kartu: 0.75rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-dasar);
+    color: var(--color-teks);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Absensi dilakukan sambil berdiri di pintu: teks jangan terlalu kecil. */
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  /* Sasaran sentuh minimal 44 piksel di seluruh kendali interaktif. */
+  button,
+  a[role="button"],
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-utama-terang);
+    outline-offset: 2px;
+  }
+}
