@@ -255,6 +255,8 @@ menu.
 | HP tidak bisa membuka alamat `172.2x.x.x` atau `172.3x.x.x` | Itu adaptor virtual WSL/Hyper-V, bukan WiFi laptop | Ambil alamat dari blok **Wireless LAN adapter Wi-Fi** pada `ipconfig` |
 | `netsh` menerima aturan firewall tetapi tidak ada bedanya | Baris `LocalFirewallRules N/A (GPO-store only)` — laptop dikelola Group Policy, aturan buatan sendiri diabaikan | Pakai jalan memutar pada bagian 6.5: uji dengan kamera laptop, atau lewat terowongan Cloudflare |
 | HP memuat terus lalu gagal walau firewall sudah dibuka | Ponsel berada di jaringan lain, atau router mengaktifkan *client isolation* | Pastikan tiga angka pertama alamat IP ponsel sama dengan laptop. Bila sama dan tetap gagal, uji lewat hotspot ponsel — bila lewat hotspot berhasil, berarti routernya yang memisahkan perangkat |
+| Alamat WiFi yang kemarin bisa, hari ini tidak | Windows menggolongkan ulang jaringan menjadi Public, yang memblokir sambungan masuk | `netsh advfirewall show currentprofile`; bila Public, ubah tipe jaringan menjadi Private |
+| HP memuat terus padahal peladen berjalan | Skema tidak cocok — peladen `http` tetapi ponsel mencoba `https` (atau sebaliknya) karena mengingat kunjungan sebelumnya | Buka tab penyamaran dan ketik alamat lengkap dengan `http://` atau `https://` sesuai perintah yang sedang dijalankan |
 | HP memuat terus lalu gagal di alamat WiFi yang benar | Windows Firewall menutup port 3000 | Command Prompt sebagai Administrator: `netsh advfirewall firewall add rule name="SILAB dev 3000" dir=in action=allow protocol=TCP localport=3000` |
 | `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
 | `We detected multiple lockfiles` | Ada `package-lock.json` nyasar di folder rumah Anda, biasanya karena `npm install` pernah dijalankan di sana | Sekadar peringatan, boleh diabaikan. Bila ingin bersih: hapus `%USERPROFILE%\package-lock.json` |
@@ -512,12 +514,29 @@ Cari blok **Wireless LAN adapter Wi-Fi** dan ambil baris `IPv4 Address`
 (misalnya `172.16.2.231`). Abaikan blok bernama `vEthernet`, `WSL`, atau
 `Default Switch`.
 
-**b. Izinkan lewat Windows Firewall.** Saat pertama kali dijalankan, Windows
+**b. Pastikan jaringan WiFi bertipe Private, bukan Public.** Ini penyebab yang
+paling sering membuat alamat yang kemarin bisa dibuka mendadak tidak bisa:
+Windows kadang menggolongkan ulang jaringan yang sama menjadi Public, dan profil
+Public memblokir seluruh sambungan masuk. Periksa:
+
+```cmd
+netsh advfirewall show currentprofile
+```
+
+Bila judulnya `Public Profile Settings`, ubah lewat **Pengaturan → Network &
+Internet → Wi-Fi → (nama jaringan) → Network profile type → Private**. Atau
+lewat PowerShell sebagai Administrator:
+
+```powershell
+Set-NetConnectionProfile -InterfaceAlias "Wi-Fi" -NetworkCategory Private
+```
+
+**c. Izinkan lewat Windows Firewall.** Saat pertama kali dijalankan, Windows
 biasanya menanyakan izin — pilih **Allow**. Bila pertanyaannya sudah terlanjur
 ditolak, buka *Windows Defender Firewall* → *Allow an app* dan izinkan Node.js
 pada jaringan **Private**.
 
-**c. Kamera memerlukan https.** Ini yang paling sering menghentikan orang.
+**d. Kamera memerlukan https.** Ini yang paling sering menghentikan orang.
 Lewat `http://172.16.x.x:3000`, halamannya terbuka tetapi tombol
 &ldquo;Pindai QR&rdquo; **tidak akan membuka kamera** — peramban hanya
 mengizinkannya pada `https` atau `localhost`. Untuk mencoba dari ponsel,
