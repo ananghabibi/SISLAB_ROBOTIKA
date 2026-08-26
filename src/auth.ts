@@ -17,6 +17,7 @@
 // berkala dari basis data.
 // -----------------------------------------------------------------------------
 
+import { headers } from "next/headers";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
@@ -24,6 +25,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { authConfig } from "./auth.config";
+import { asalPermintaan } from "./lib/permintaan";
 import { prisma } from "./lib/prisma";
 
 /** Anggota berstatus NONAKTIF atau LULUS tidak boleh masuk lagi. */
@@ -117,6 +119,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // `session` diwarisi dari authConfig agar middleware Edge memakai pemetaan
     // yang sama persis dengan peladen.
     ...authConfig.callbacks,
+
+    /**
+     * Menentukan alamat tujuan setelah masuk dan keluar.
+     *
+     * Auth.js membangun alamat ini dari asal yang ditebaknya sendiri, dan
+     * tebakan itu meleset: teramati selalu `http://localhost:3000`, berapa pun
+     * porta dan skema yang sebenarnya dipakai. Akibatnya pengguna yang masuk
+     * lewat https atau lewat nama host laboratorium terlempar ke alamat yang
+     * tidak melayani apa-apa.
+     *
+     * Karena itu hanya jalur dan kuerinya yang diambil, lalu dipasang kembali
+     * pada asal permintaan yang sebenarnya. Sebagai efek sampingnya, pengalihan
+     * ke luar host ini menjadi mustahil.
+     */
+    async redirect({ url }) {
+      const asal = asalPermintaan(await headers(), "localhost:3000");
+      const diminta = new URL(url, asal);
+      return `${asal}${diminta.pathname}${diminta.search}`;
+    },
 
     async signIn({ user, account }) {
       const email = user.email?.toLowerCase();

@@ -17,3 +17,5 @@ next-env.d.ts
 /playwright-report/
 tsconfig.tsbuildinfo
 /.tmp-uji/
+
+certificates

@@ -275,7 +275,7 @@ pemeriksaan subnet dilewati. **Nilai ini wajib `false` di laboratorium.**
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | ya | Kredensial PostgreSQL |
 | `DATABASE_URL` | ya | Dipakai Prisma. Di Compose host-nya `db` |
 | `AUTH_SECRET` | ya | `openssl rand -base64 32` |
-| `AUTH_URL` | ya | Alamat aplikasi yang terlihat pengguna |
+| `AUTH_URL` | tidak | Diisi hanya bila ingin memaksa satu alamat tertentu. Bila dikosongkan, pengalihan mengikuti alamat yang benar-benar dipakai pengunjung |
 | `AUTH_TRUST_HOST` | ya | `true` di belakang Caddy / Cloudflare Tunnel |
 | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | ya | OAuth client dari Google Cloud Console |
 | `ALLOWED_EMAIL_DOMAINS` | ya | Domain surel kampus, dipisah koma. **Kosong = semua login Google ditolak** |
@@ -427,9 +427,20 @@ docker compose logs cron | tail -20     # memastikan penjadwalnya hidup
 `localhost` di ponsel berarti ponsel itu sendiri, bukan laptop Anda. Ada tiga
 hal yang harus beres, dan ketiganya wajib — bukan pilihan.
 
-**a. Pakai alamat jaringan laptop, bukan localhost.** Saat `npm run dev`
-dijalankan, perhatikan baris `Network:` yang tercetak, misalnya
-`http://172.16.2.231:3000`. Alamat itulah yang diketik di ponsel.
+**a. Pakai alamat WiFi laptop, bukan localhost.** Baris `Network:` yang
+tercetak Next.js **belum tentu benar**: bila laptop punya WSL, Docker, atau
+Hyper-V, yang tercetak sering justru alamat adaptor virtualnya — biasanya
+`172.2x.x.x` atau `172.3x.x.x` — dan alamat itu tidak dapat dihubungi ponsel.
+
+Cari alamat WiFi yang sebenarnya:
+
+```cmd
+ipconfig
+```
+
+Cari blok **Wireless LAN adapter Wi-Fi** dan ambil baris `IPv4 Address`
+(misalnya `172.16.2.231`). Abaikan blok bernama `vEthernet`, `WSL`, atau
+`Default Switch`.
 
 **b. Izinkan lewat Windows Firewall.** Saat pertama kali dijalankan, Windows
 biasanya menanyakan izin — pilih **Allow**. Bila pertanyaannya sudah terlanjur

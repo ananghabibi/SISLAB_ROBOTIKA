@@ -108,6 +108,16 @@ kode yang benar.
   kontainer di satu mini PC, jadi memori proses sudah mewakili seluruh sistem.
   Hitungannya hilang saat aplikasi dimuat ulang — memadai untuk mencegah
   penebakan kode harian secara beruntun.
+- **Pengalihan tidak lagi memakai `nextUrl` maupun asal tebakan Auth.js.**
+  Keduanya terbukti keliru: pada middleware Edge, `request.nextUrl` berisi asal
+  bawaan internal Next (teramati `http://localhost:3000` walau peladen melayani
+  `https://localhost:4444`), dan `baseUrl` yang dihitung Auth.js juga meleset
+  host serta skemanya. Akibatnya, di belakang Caddy berskema https setiap
+  pengalihan akan melempar pengguna ke alamat yang tidak melayani apa-apa.
+  Kini asal dibangun dari header permintaan (`src/lib/permintaan.ts`), dipakai
+  oleh middleware dan oleh callback `redirect` Auth.js. `AUTH_URL` menjadi
+  tidak wajib.
+
 - **Koreksi ulang atas Milestone 1.** Uji peramban menemukan bahwa verifikasi
   403 pada Milestone 1 hanya memeriksa teks di HTML mentah. Kini penolakan rute
   diuji sungguhan di peramban: statusnya 403, halamannya benar-benar terlihat,

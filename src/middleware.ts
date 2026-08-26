@@ -11,6 +11,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 
 import { authConfig } from "@/auth.config";
+import { asalPermintaan } from "@/lib/permintaan";
 import { peranBolehMembuka, RUTE_PUBLIK } from "@/lib/rute";
 
 const { auth } = NextAuth(authConfig);
@@ -18,6 +19,8 @@ const { auth } = NextAuth(authConfig);
 export default auth((permintaan) => {
   const { nextUrl } = permintaan;
   const jalur = nextUrl.pathname;
+  // Dibangun dari header, bukan dari nextUrl — lihat src/lib/permintaan.ts.
+  const asal = asalPermintaan(permintaan.headers, nextUrl.host);
 
   if (RUTE_PUBLIK.some((r) => jalur === r || jalur.startsWith(`${r}/`))) {
     return NextResponse.next();
@@ -34,7 +37,7 @@ export default auth((permintaan) => {
         { status: 401 },
       );
     }
-    const tujuan = new URL("/masuk", nextUrl);
+    const tujuan = new URL("/masuk", asal);
     tujuan.searchParams.set("lanjut", jalur);
     return NextResponse.redirect(tujuan);
   }
@@ -50,7 +53,7 @@ export default auth((permintaan) => {
     // penolakan sebagai keberhasilan, sedangkan penulisan ulang membuat URL
     // yang dicoba tetap terlihat di bilah alamat. Status 403 yang sebenarnya
     // datang dari halaman tujuan, yang memanggil forbidden().
-    return NextResponse.rewrite(new URL("/403", nextUrl));
+    return NextResponse.rewrite(new URL("/403", asal));
   }
 
   return NextResponse.next();
