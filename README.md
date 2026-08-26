@@ -102,6 +102,7 @@ Perintah lain:
 | `npm run build` | Build produksi |
 | `npm run db:studio` | Jelajahi basis data lewat Prisma Studio |
 | `npm run db:migrate` | Buat dan terapkan migrasi baru |
+| `npm run sandi -- <surel> <sandi>` | Pasang kata sandi seorang anggota |
 
 ---
 
@@ -132,19 +133,74 @@ Ada dua jalur, dan keduanya tunduk pada aturan yang sama: **surel harus sudah
 terdaftar sebagai anggota.** Sistem tidak pernah membuat akun dari hasil login —
 daftar anggota berasal dari SK Keanggotaan.
 
-1. **Google kampus** — untuk anggota mahasiswa. Surel di luar
-   `ALLOWED_EMAIL_DOMAINS` ditolak.
-2. **Surel + kata sandi** — untuk akun dosen yang tidak memakai Google kampus.
-   Seeder memasang kata sandi dari `SEED_KEPALA_LAB_PASSWORD`.
+### Jalur 1 — surel + kata sandi (akun dosen)
 
-**Segera setelah pemasangan:** masuk sebagai Kepala Laboratorium, buka
-**Profil → Keamanan akun**, dan ganti kata sandi bawaan.
+Jalur ini tidak memerlukan kredensial Google, jadi inilah cara tercepat untuk
+masuk pertama kali dan untuk menguji sistem.
 
-Anggota berstatus `NONAKTIF` atau `LULUS` tidak dapat masuk. Untuk menutup akses
-seseorang, ubah statusnya — jangan hapus akunnya, karena riwayat absensinya
-harus tetap utuh.
+Seeder memasang kata sandi bagi akun berperan `KEPALA_LAB` dan `PENGAWAS`,
+diambil dari `SEED_KEPALA_LAB_PASSWORD` di `.env` (bawaan:
+`ubah-setelah-login-pertama`).
 
----
+| Kolom | Nilai bawaan hasil seeder |
+|---|---|
+| Surel | `anang.habibi@unisma.ac.id` — kolom `email` baris pertama `data/seed-data.csv` |
+| Kata sandi | isi `SEED_KEPALA_LAB_PASSWORD` |
+
+Kalau surel di CSV sudah diganti ke surel yang sebenarnya, pakai yang itu —
+sistem mencocokkannya **persis**.
+
+**Segera setelah berhasil masuk:** buka **Profil → Keamanan akun** dan ganti
+kata sandi bawaan.
+
+### Jalur 2 — Google kampus (anggota mahasiswa)
+
+Perlu `AUTH_GOOGLE_ID` dan `AUTH_GOOGLE_SECRET` dari Google Cloud Console
+(OAuth client ID bertipe Web), dengan Authorized redirect URI:
+
+```
+http://localhost:3000/api/auth/callback/google      # pengembangan
+http://<alamat-mini-pc>/api/auth/callback/google    # laboratorium
+```
+
+Surel di luar `ALLOWED_EMAIL_DOMAINS` ditolak, begitu pula surel kampus yang
+belum terdaftar sebagai anggota. Pesan galatnya menjelaskan yang mana.
+
+### Memasang kata sandi anggota lain
+
+Peran selain dosen tidak diberi kata sandi oleh seeder — mereka memakai Google.
+Untuk memulihkan kata sandi dosen yang lupa, atau untuk **menguji perbedaan
+menu antarperan sebelum Google OAuth disiapkan**, pakai utilitas berikut:
+
+```bash
+# pengembangan
+npm run sandi -- 22301053005@student.unisma.ac.id KataSandiUji2026
+
+# di laboratorium
+docker compose exec app npx tsx scripts/set-sandi.ts <surel> <kata-sandi>
+```
+
+Kata sandi minimal 10 karakter. Setiap pemasangan tercatat di audit log; isi
+kata sandinya sendiri tidak pernah ikut tercatat.
+
+Surel tiap peran dapat dilihat di `data/seed-data.csv`, atau lewat:
+
+```bash
+npm run db:studio     # buka tabel users, saring kolom role
+```
+
+### Kalau gagal masuk
+
+| Pesan | Sebabnya |
+|---|---|
+| Surel atau kata sandi salah, atau akun ini tidak aktif | Kata sandi keliru, akun belum punya kata sandi, atau statusnya `NONAKTIF`/`LULUS` |
+| Surel ini belum terdaftar sebagai anggota | Surel Google tidak ada di tabel `users` — perbaiki `data/seed-data.csv` lalu jalankan ulang seeder |
+| Gunakan surel kampus | Domainnya di luar `ALLOWED_EMAIL_DOMAINS` |
+| Konfigurasi autentikasi belum lengkap | `AUTH_SECRET` atau kredensial Google kosong di `.env` |
+
+Anggota berstatus `NONAKTIF` atau `LULUS` tidak dapat masuk. Untuk menutup
+akses seseorang, ubah statusnya — jangan hapus akunnya, karena riwayat
+absensinya harus tetap utuh.
 
 ## 6. Menambah anggota pada awal periode
 
@@ -252,6 +308,7 @@ src/lib/audit.ts          Penulisan audit log
 src/lib/npm.ts            Turunan prodi, angkatan, dan jenjang dari NPM
 src/lib/waktu.ts          Semua konversi UTC ke WIB terjadi di sini
 
+scripts/set-sandi.ts      Utilitas memasang kata sandi dari peladen
 tests/                    Uji Vitest untuk kebijakan akses dan data awal
 ```
 

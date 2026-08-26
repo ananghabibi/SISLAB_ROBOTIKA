@@ -16,7 +16,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "sandi": "tsx scripts/set-sandi.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
