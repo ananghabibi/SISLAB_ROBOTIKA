@@ -256,6 +256,7 @@ menu.
 |---|---|
 | `npm run typecheck` | Periksa tipe TypeScript |
 | `npm test` | Jalankan uji Vitest |
+| `npm run dev:https` | Jalankan dengan https, agar kamera ponsel bisa dipakai |
 | `npm run test:e2e` | Jalankan uji Playwright (perlu peladen berjalan) |
 | `npm run build` | Build produksi |
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
@@ -421,7 +422,48 @@ layar dinyalakan.
 docker compose logs cron | tail -20     # memastikan penjadwalnya hidup
 ```
 
-### 6.5 Dua syarat jaringan yang menentukan sistem ini berhasil
+### 6.5 Mencoba dari ponsel saat pengembangan
+
+`localhost` di ponsel berarti ponsel itu sendiri, bukan laptop Anda. Ada tiga
+hal yang harus beres, dan ketiganya wajib — bukan pilihan.
+
+**a. Pakai alamat jaringan laptop, bukan localhost.** Saat `npm run dev`
+dijalankan, perhatikan baris `Network:` yang tercetak, misalnya
+`http://172.16.2.231:3000`. Alamat itulah yang diketik di ponsel.
+
+**b. Izinkan lewat Windows Firewall.** Saat pertama kali dijalankan, Windows
+biasanya menanyakan izin — pilih **Allow**. Bila pertanyaannya sudah terlanjur
+ditolak, buka *Windows Defender Firewall* → *Allow an app* dan izinkan Node.js
+pada jaringan **Private**.
+
+**c. Kamera memerlukan https.** Ini yang paling sering menghentikan orang.
+Lewat `http://172.16.x.x:3000`, halamannya terbuka tetapi tombol
+&ldquo;Pindai QR&rdquo; **tidak akan membuka kamera** — peramban hanya
+mengizinkannya pada `https` atau `localhost`. Untuk mencoba dari ponsel,
+jalankan:
+
+```cmd
+npm run dev:https
+```
+
+Next.js akan membuat sertifikat sendiri, dan alamatnya berubah menjadi
+`https://172.16.x.x:3000`. Ponsel akan memperingatkan bahwa sertifikatnya tidak
+dikenal — pilih **Advanced → Proceed**. Setelah itu kamera berfungsi.
+
+> Peringatan sertifikat itu wajar untuk pengujian, tetapi **tidak layak dipakai
+> sehari-hari** — 38 anggota tidak boleh dibiasakan menekan "Proceed" pada
+> peringatan keamanan. Untuk di laboratorium, pakai Pilihan B pada `Caddyfile`;
+> lihat bagian berikutnya.
+
+**Catatan tentang WiFi kampus.** Banyak jaringan kampus mengaktifkan *client
+isolation*, yang memblokir perangkat saling menghubungi walau berada di WiFi
+yang sama. Bila ponsel tetap tidak dapat membuka alamat laptop padahal ketiga
+langkah di atas sudah benar, kemungkinan besar itu sebabnya — dan itu satu
+alasan lagi mengapa laboratorium sebaiknya punya access point sendiri.
+
+---
+
+### 6.6 Dua syarat jaringan yang menentukan sistem ini berhasil
 
 Keduanya sering baru ketahuan setelah sistem dipasang. Selesaikan sebelum hari
 pertama pemakaian.
@@ -463,7 +505,7 @@ keadaan itu, dan perbaiki begitu perangkatnya tersedia.
 
 ---
 
-### 6.6 Bila jaringan atau layar bermasalah
+### 6.7 Bila jaringan atau layar bermasalah
 
 Koordinator Operasional membuka **Absensi Manual**, memilih anggota, mengisi
 jam, dan **menulis alasan sedikitnya 25 karakter**. Setiap catatan diberi
