@@ -190,12 +190,24 @@ function periksaPendengar() {
   }
 
   // Terikat ke localhost saja berarti hanya laptop yang bisa membukanya.
-  const hanyaLokal = baris.every((b) => /127\.0\.0\.1|\[::1\]/.test(b));
-  if (hanyaLokal) {
-    console.log("  TERIKAT KE LAPTOP SAJA (127.0.0.1) — ponsel tidak akan pernah bisa.");
-    console.log(`  Jalankan ulang dengan: npm run dev -- -H ${nyata[0]?.ip ?? "0.0.0.0"}`);
+  // Alamat ikatannya disebutkan apa adanya. Vonis "OK" saja menyembunyikan
+  // keadaan yang menyesatkan: peladen yang terikat HANYA ke adaptor virtual
+  // (mis. 172.29.x milik WSL) juga bukan 127.0.0.1, padahal ponsel tetap tidak
+  // akan pernah dapat menjangkaunya.
+  const ikatan = baris
+    .map((b) => b.trim().split(/\s+/).find((k) => new RegExp(`[.:]${PORT}$`).test(k)))
+    .filter(Boolean);
+  for (const i of ikatan) console.log(`  mendengarkan di ${i}`);
+
+  const menyeluruh = ikatan.some((i) => /^(0\.0\.0\.0|\[::\]|\*)[.:]/.test(i));
+  const alamatNyata = new Set(nyata.map((a) => a.ip));
+  const diAlamatNyata = ikatan.some((i) => alamatNyata.has(i.replace(/[.:]\d+$/, "")));
+
+  if (menyeluruh || diAlamatNyata) {
+    console.log("  OK — menerima sambungan dari jaringan.");
   } else {
-    console.log("  OK — mendengarkan dan menerima sambungan dari jaringan.");
+    console.log("  TIDAK DAPAT DIJANGKAU PONSEL — tidak terikat ke antarmuka jaringan nyata.");
+    console.log(`  Jalankan ulang dengan: npm run dev -- -H ${nyata[0]?.ip ?? "0.0.0.0"}`);
   }
 }
 
@@ -230,10 +242,19 @@ function periksaAturanFirewall(kategoriAktif = []) {
       [
         "-NoProfile",
         "-Command",
-        "Get-NetFirewallApplicationFilter | Where-Object { $_.Program -like '*node.exe' } |" +
+        // Dua jenis aturan sama-sama membuka jalan, dan keduanya harus dilihat:
+        // aturan berbasis PROGRAM (node.exe) dan aturan berbasis PORTA. Aturan
+        // porta tidak punya filter aplikasi, jadi kueri yang hanya menanyakan
+        // filter aplikasi tidak akan pernah menemukannya.
+        "$kumpulan = @{};" +
+          " Get-NetFirewallApplicationFilter | Where-Object { $_.Program -like '*node.exe' } |" +
           " ForEach-Object { $r = $_ | Get-NetFirewallRule;" +
-          " if ($r.Direction -eq 'Inbound') {" +
-          ' "$($r.DisplayName)|$($r.Action)|$($r.Enabled)|$($r.Profile)" } }',
+          " if ($r.Direction -eq 'Inbound') { $kumpulan[$r.Name] = $r } };" +
+          ` Get-NetFirewallPortFilter | Where-Object { $_.Protocol -eq 'TCP' -and $_.LocalPort -contains '${PORT}' } |` +
+          " ForEach-Object { $r = $_ | Get-NetFirewallRule;" +
+          " if ($r.Direction -eq 'Inbound') { $kumpulan[$r.Name] = $r } };" +
+          ' $kumpulan.Values | ForEach-Object {' +
+          ' "$($_.DisplayName)|$($_.Action)|$($_.Enabled)|$($_.Profile)" }',
       ],
       { encoding: "utf8", timeout: 60_000, stdio: ["ignore", "pipe", "ignore"] },
     );
