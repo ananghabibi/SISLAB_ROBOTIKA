@@ -256,6 +256,7 @@ menu.
 | `netsh` menerima aturan firewall tetapi tidak ada bedanya | Baris `LocalFirewallRules N/A (GPO-store only)` — laptop dikelola Group Policy, aturan buatan sendiri diabaikan | Pakai jalan memutar pada bagian 6.5: uji dengan kamera laptop, atau lewat terowongan Cloudflare |
 | HP memuat terus lalu gagal walau firewall sudah dibuka | Ponsel berada di jaringan lain, atau router mengaktifkan *client isolation* | Pastikan tiga angka pertama alamat IP ponsel sama dengan laptop. Bila sama dan tetap gagal, uji lewat hotspot ponsel — bila lewat hotspot berhasil, berarti routernya yang memisahkan perangkat |
 | Alamat WiFi yang kemarin bisa, hari ini tidak | Windows menggolongkan ulang jaringan menjadi Public, yang memblokir sambungan masuk | `netsh advfirewall show currentprofile`; bila Public, ubah tipe jaringan menjadi Private |
+| Tombol Pindai QR tidak membuka kamera | Halaman dibuka lewat `http`; peramban hanya mengizinkan kamera pada `https` atau `localhost` | Ikuti langkah `chrome://flags` pada bagian 6.5 huruf d |
 | HP memuat terus padahal peladen berjalan | Skema tidak cocok — peladen `http` tetapi ponsel mencoba `https` (atau sebaliknya) karena mengingat kunjungan sebelumnya | Buka tab penyamaran dan ketik alamat lengkap dengan `http://` atau `https://` sesuai perintah yang sedang dijalankan |
 | HP memuat terus lalu gagal di alamat WiFi yang benar | Windows Firewall menutup port 3000 | Command Prompt sebagai Administrator: `netsh advfirewall firewall add rule name="SILAB dev 3000" dir=in action=allow protocol=TCP localport=3000` |
 | `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
@@ -537,23 +538,37 @@ ditolak, buka *Windows Defender Firewall* → *Allow an app* dan izinkan Node.js
 pada jaringan **Private**.
 
 **d. Kamera memerlukan https.** Ini yang paling sering menghentikan orang.
-Lewat `http://172.16.x.x:3000`, halamannya terbuka tetapi tombol
+Lewat `http://192.168.x.x:3000`, halamannya terbuka tetapi tombol
 &ldquo;Pindai QR&rdquo; **tidak akan membuka kamera** — peramban hanya
-mengizinkannya pada `https` atau `localhost`. Untuk mencoba dari ponsel,
-jalankan:
+mengizinkannya pada `https` atau `localhost`. Aplikasi menyebutkan hal ini apa
+adanya bila terjadi, jadi jangan tertukar dengan gangguan jaringan.
 
-```cmd
-npm run dev:https
+`npm run dev:https` **tidak menolong untuk ponsel**: sertifikat yang dibuat
+Next.js hanya mencakup `localhost`, sehingga ponsel menolaknya sebelum sempat
+menawarkan &ldquo;Proceed&rdquo;.
+
+Yang berhasil — dan sudah diuji sampai absensi tercatat — adalah memberi tahu
+Chrome ponsel bahwa satu alamat itu boleh dianggap aman. Di Chrome ponsel buka:
+
+```
+chrome://flags/#unsafely-treat-insecure-origin-as-secure
 ```
 
-Next.js akan membuat sertifikat sendiri, dan alamatnya berubah menjadi
-`https://172.16.x.x:3000`. Ponsel akan memperingatkan bahwa sertifikatnya tidak
-dikenal — pilih **Advanced → Proceed**. Setelah itu kamera berfungsi.
+Entri **&ldquo;Insecure origins treated as secure&rdquo;** punya **dua**
+kendali, dan keduanya harus diisi:
 
-> Peringatan sertifikat itu wajar untuk pengujian, tetapi **tidak layak dipakai
-> sehari-hari** — 38 anggota tidak boleh dibiasakan menekan "Proceed" pada
-> peringatan keamanan. Untuk di laboratorium, pakai Pilihan B pada `Caddyfile`;
-> lihat bagian berikutnya.
+1. **Kotak teks** → alamat lengkap berikut portnya, tanpa garis miring di akhir,
+   misalnya `http://192.168.1.138:3000`
+2. **Daftar pilihan** di bawahnya → ubah menjadi `Enabled`
+
+Tekan **Relaunch**, lalu **tutup Chrome sepenuhnya** dari daftar aplikasi
+terbaru dan buka lagi. Sesudah itu kamera berfungsi pada alamat tersebut.
+Kembalikan ke `Disabled` setelah selesai menguji.
+
+> Anggota laboratorium **tidak perlu melakukan ini**. Di laboratorium alamatnya
+> sudah https lewat Caddy (Pilihan B pada `Caddyfile`), sehingga kamera langsung
+> berfungsi begitu halaman dibuka. Langkah di atas hanya untuk laptop
+> pengembangan yang tidak dapat memasang sertifikat tepercaya.
 
 ### Bila ponsel tetap tidak bisa menjangkau laptop
 
