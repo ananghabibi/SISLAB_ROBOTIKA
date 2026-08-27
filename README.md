@@ -11,6 +11,11 @@ Keluarannya adalah bukti sah untuk klaim Kredit Poin Kinerja Mahasiswa
 Spesifikasi lengkap ada di [`SPEC.md`](SPEC.md). Rencana pengerjaan dan status
 tiap milestone ada di [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
+**Anggota dan pengurus laboratorium** tidak perlu membaca berkas ini — cara
+memakai sistemnya ada di
+[`docs/PANDUAN-PENGGUNA.md`](docs/PANDUAN-PENGGUNA.md). README ini untuk yang
+memasang dan merawat peladennya.
+
 > **Baru pertama kali mencoba di laptop sendiri?** Langsung ke
 > [bagian 3 — Panduan pemula](#3-mencoba-di-laptop-sendiri-panduan-pemula).
 > Di sana tertulis apa saja yang perlu dipasang dan perintahnya satu per satu.
