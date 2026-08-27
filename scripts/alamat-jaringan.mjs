@@ -75,6 +75,7 @@ if (virtual.length > 0) {
 
 periksaProfilWindows();
 periksaPendengar();
+periksaAturanFirewall();
 
 /**
  * Memeriksa kategori jaringan Windows.
@@ -188,4 +189,90 @@ function periksaPendengar() {
   } else {
     console.log("  OK — mendengarkan dan menerima sambungan dari jaringan.");
   }
+}
+
+/**
+ * Memeriksa aturan firewall masuk untuk node.exe.
+ *
+ * Profil Private saja belum cukup. Windows tetap menolak sambungan masuk bila
+ * tidak ada aturan yang mengizinkannya, atau bila ada aturan BLOCK — dan aturan
+ * Block selalu menang atas Allow, berapa pun banyaknya Allow yang ada. Keadaan
+ * itu lahir sendiri: kotak "Windows Defender Firewall" yang muncul saat pertama
+ * kali `npm run dev` dijalankan akan membuat aturan Block bila ditekan Cancel,
+ * dan kotak itu tidak muncul lagi sesudahnya.
+ *
+ * Pemeriksaannya memakan beberapa detik, jadi ia dijalankan paling akhir.
+ */
+function periksaAturanFirewall() {
+  if (platform() !== "win32") return;
+
+  console.log("\nAturan firewall untuk node.exe (perlu beberapa detik)...");
+
+  let keluaran;
+  try {
+    keluaran = execFileSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        "Get-NetFirewallApplicationFilter | Where-Object { $_.Program -like '*node.exe' } |" +
+          " ForEach-Object { $r = $_ | Get-NetFirewallRule;" +
+          " if ($r.Direction -eq 'Inbound') {" +
+          ' "$($r.DisplayName)|$($r.Action)|$($r.Enabled)|$($r.Profile)" } }',
+      ],
+      { encoding: "utf8", timeout: 60_000, stdio: ["ignore", "pipe", "ignore"] },
+    );
+  } catch {
+    console.log("  Tidak dapat diperiksa otomatis. Periksa sendiri di");
+    console.log("  Windows Defender Firewall > Advanced settings > Inbound Rules,");
+    console.log("  cari Node.js dan pastikan tidak ada yang bertindak Block.");
+    return;
+  }
+
+  const aturan = keluaran
+    .split("\n")
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .map((b) => {
+      const [nama, tindakan, aktif, profil] = b.split("|");
+      return {
+        nama: nama ?? "?",
+        tindakan: tindakan ?? "?",
+        aktif: aktif ?? "?",
+        profil: profil ?? "?",
+      };
+    });
+
+  if (aturan.length === 0) {
+    console.log("  TIDAK ADA aturan masuk untuk node.exe.");
+    console.log("  Windows akan menolak ponsel tanpa memberi tahu siapa pun. Buat izinnya");
+    console.log("  lewat PowerShell sebagai Administrator:");
+    console.log("    New-NetFirewallRule -DisplayName \"SILAB dev 3000\" -Direction Inbound `");
+    console.log("      -Action Allow -Protocol TCP -LocalPort 3000 -Profile Private");
+    return;
+  }
+
+  for (const a of aturan) {
+    const buruk = a.tindakan === "Block" && a.aktif === "True";
+    console.log(`  ${buruk ? "BLOKIR" : "OK    "}  ${a.tindakan.padEnd(5)} ${a.profil.padEnd(16)} ${a.nama}`);
+  }
+
+  const memblokir = aturan.filter((a) => a.tindakan === "Block" && a.aktif === "True");
+  if (memblokir.length === 0) {
+    console.log("  Tidak ada aturan Block. Firewall bukan penyebabnya.");
+    return;
+  }
+
+  console.log("");
+  console.log("  ---------------------------------------------------------------");
+  console.log("  ADA ATURAN BLOCK YANG AKTIF. Aturan Block selalu menang atas Allow,");
+  console.log("  jadi menambah izin baru tidak akan menolong selama ini masih ada.");
+  console.log("  Aturan seperti ini lahir bila kotak peringatan Windows Defender");
+  console.log("  Firewall pernah ditekan Cancel saat `npm run dev` pertama kali.");
+  console.log("");
+  console.log("  Hapus lewat PowerShell sebagai Administrator:");
+  for (const a of memblokir) {
+    console.log(`    Remove-NetFirewallRule -DisplayName "${a.nama}"`);
+  }
+  console.log("  ---------------------------------------------------------------");
 }
