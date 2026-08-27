@@ -300,9 +300,30 @@ Aplikasi akan menyebutkan sebabnya. Yang paling sering:
 
 ## 10. Ponsel tidak bisa membuka alamat laptop
 
-Jalankan **`npm run alamat`** lebih dulu. Ia memeriksa keempat sebab yang
-paling sering dan menyebut mana yang sedang berlaku, lengkap dengan perintah
-perbaikannya:
+**Periksa nama WiFi di ponsel dan di laptop lebih dulu — harus persis sama.**
+
+Ini sebab yang paling sering, dan yang paling lama tidak ketahuan karena semua
+tanda lain terlihat normal. Satu router sering menyiarkan dua nama sekaligus,
+misalnya `Habibi Home` dan `Habibi Home 2` — pemisahan 2,4 GHz dan 5 GHz, atau
+satu di antaranya jaringan tamu. Perangkat pada dua nama berbeda **tidak dapat
+saling menghubungi** meski keduanya dapat internet dan sama-sama beralamat
+`192.168.1.x` dari router yang sama.
+
+Yang membuatnya sulit dikenali: laptop dapat berpindah sendiri ke nama lain
+saat sinyalnya lebih kuat. Sambungan yang kemarin berhasil mati hari ini tanpa
+ada yang diubah, dan tidak ada satu pun pesan galat yang menyebutkannya.
+
+Tandanya jelas bila diuji: dari laptop, `ping <alamat-ponsel>` gagal total
+(100% loss) sekalipun Windows Defender Firewall dimatikan. Firewall tidak
+pernah jadi soal di keadaan ini — ia hanya menolak paket yang tiba, sedangkan
+di sini tidak ada satu pun paket yang tiba.
+
+`npm run alamat` menyebutkan nama jaringan laptop; cocokkan dengan yang tertulis
+di ponsel.
+
+Bila namanya sudah sama dan ponsel tetap gagal, jalankan **`npm run alamat`**.
+Ia memeriksa keempat sebab berikutnya dan menyebut mana yang sedang berlaku,
+lengkap dengan perintah perbaikannya:
 
 1. **Alamat yang salah diketik.** Alamat IP di pengaturan WiFi *ponsel* adalah
    alamat ponsel itu sendiri. Yang dibutuhkan alamat *laptop*, dan alamat itu
@@ -320,10 +341,15 @@ terlihat penuh "Allow" tanpa satu pun "Block", padahal semuanya untuk profil
 yang salah. Windows menolak sambungan masuk pada profil yang tidak punya
 aturan Allow — tidak perlu ada Block untuk memblokir.
 
-Kalau keempatnya sudah bersih dan ponsel masih gagal, sebabnya ada di router:
-cari **AP Isolation** atau **Client Isolation** pada SSID yang dipakai, lalu
-matikan. Pastikan juga ponsel dan laptop berada di SSID yang **persis sama** —
-SSID kedua dan SSID tamu sering diisolasi secara bawaan.
+Kalau keempatnya sudah bersih, nama jaringannya sudah sama, dan ponsel masih
+gagal, sebabnya ada di router: cari **AP Isolation** atau **Client Isolation**
+pada jaringan yang dipakai, lalu matikan.
+
+> **Untuk pemasangan di laboratorium.** Pastikan WiFi lab menyiarkan **satu
+> nama saja**, atau mini PC dan seluruh ponsel anggota berada pada nama yang
+> sama. Router dengan dua nama akan membuat sebagian anggota bisa absen dan
+> sebagian lain tidak, tanpa pola yang terlihat — dan tanpa satu pun pesan
+> galat yang menjelaskannya.
 
 ---
 

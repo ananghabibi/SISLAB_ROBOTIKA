@@ -128,6 +128,18 @@ function periksaProfilWindows() {
   // bernama "Domain" pada aturan firewall.
   const kategori = profil.map((p) => (p.kategori === "DomainAuthenticated" ? "Domain" : p.kategori));
 
+  // Nama jaringan laptop disebut tegas supaya bisa diadu dengan nama yang
+  // terbaca di ponsel. Dua SSID pada router yang sama — pemisahan 2,4/5 GHz,
+  // atau satu jaringan tamu — lazim saling diisolasi: keduanya dapat internet
+  // dan sama-sama beralamat 192.168.x, tetapi tidak dapat saling menghubungi.
+  // Laptop pun dapat berpindah SSID sendiri ke sinyal yang lebih kuat, sehingga
+  // sambungan yang kemarin berhasil mati tanpa ada yang diubah.
+  console.log("");
+  console.log(`  Laptop ini tersambung ke: ${profil.map((p) => p.nama).join(", ")}`);
+  console.log("  PONSEL WAJIB tersambung ke nama jaringan yang PERSIS SAMA.");
+  console.log("  Nama yang mirip tetapi tidak sama — berbeda akhiran, angka, atau");
+  console.log("  embel-embel 5G — adalah jaringan lain, dan biasanya diisolasi.");
+
   const publik = profil.filter((p) => p.kategori === "Public");
   if (publik.length === 0) return kategori;
 
