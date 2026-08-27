@@ -298,7 +298,36 @@ Aplikasi akan menyebutkan sebabnya. Yang paling sering:
 
 ---
 
-## 10. Khusus pengurus: menguji dari ponsel di alamat `http`
+## 10. Ponsel tidak bisa membuka alamat laptop
+
+Jalankan **`npm run alamat`** lebih dulu. Ia memeriksa keempat sebab yang
+paling sering dan menyebut mana yang sedang berlaku, lengkap dengan perintah
+perbaikannya:
+
+1. **Alamat yang salah diketik.** Alamat IP di pengaturan WiFi *ponsel* adalah
+   alamat ponsel itu sendiri. Yang dibutuhkan alamat *laptop*, dan alamat itu
+   berubah tiap kali laptop menyambung ulang ke WiFi.
+2. **Profil jaringan Public.** Windows menandai WiFi sebagai Public tiap kali
+   ia ragu, dan Public memblokir semua sambungan masuk.
+3. **Peladen belum jalan, atau terikat hanya ke `127.0.0.1`.**
+4. **Tidak ada aturan firewall Allow untuk profil yang sedang aktif** — atau
+   ada aturan Block, yang selalu menang atas Allow.
+
+Sebab keempat paling menjebak, dan justru muncul **setelah** jaringan
+dipindahkan dari Public ke Private: aturan izin yang sudah ada dibuat waktu
+jaringannya masih Public, dan ia tidak ikut berpindah profil. Daftarnya
+terlihat penuh "Allow" tanpa satu pun "Block", padahal semuanya untuk profil
+yang salah. Windows menolak sambungan masuk pada profil yang tidak punya
+aturan Allow — tidak perlu ada Block untuk memblokir.
+
+Kalau keempatnya sudah bersih dan ponsel masih gagal, sebabnya ada di router:
+cari **AP Isolation** atau **Client Isolation** pada SSID yang dipakai, lalu
+matikan. Pastikan juga ponsel dan laptop berada di SSID yang **persis sama** —
+SSID kedua dan SSID tamu sering diisolasi secara bawaan.
+
+---
+
+## 11. Khusus pengurus: menguji dari ponsel di alamat `http`
 
 **Bagian ini bukan untuk anggota.** Di laboratorium, alamatnya sudah `https` dan
 kamera langsung berfungsi.
@@ -328,7 +357,7 @@ Setelah itu kamera berfungsi pada alamat tersebut.
 
 ---
 
-## 11. Pertanyaan yang belum terjawab di sini
+## 12. Pertanyaan yang belum terjawab di sini
 
 Hubungi **Koordinator Operasional** untuk absensi, keanggotaan, dan inventaris;
 **Kepala Laboratorium** untuk peran, periode, dan Surat Keterangan Kontribusi.

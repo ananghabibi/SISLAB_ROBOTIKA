@@ -73,18 +73,21 @@ if (virtual.length > 0) {
   for (const a of virtual) console.log(`  ${a.ip.padEnd(16)} [${a.nama}]`);
 }
 
-periksaProfilWindows();
+const kategoriAktif = periksaProfilWindows();
 periksaPendengar();
-periksaAturanFirewall();
+periksaAturanFirewall(kategoriAktif);
 
 /**
  * Memeriksa kategori jaringan Windows.
+ *
+ * Mengembalikan daftar kategori yang sedang aktif, karena pemeriksaan aturan
+ * firewall di bawah harus tahu profil mana yang sebenarnya berlaku.
  *
  * Diam saja di sistem operasi lain. Kegagalan menjalankan PowerShell juga tidak
  * dianggap galat: skrip ini alat bantu, bukan syarat menjalankan aplikasi.
  */
 function periksaProfilWindows() {
-  if (platform() !== "win32") return;
+  if (platform() !== "win32") return [];
 
   let keluaran;
   try {
@@ -101,7 +104,7 @@ function periksaProfilWindows() {
     console.log("\nKategori jaringan tidak dapat diperiksa otomatis. Periksa sendiri di");
     console.log("  Pengaturan > Jaringan & Internet > WiFi > (jaringan Anda)");
     console.log("dan pastikan tertulis Private, bukan Public.");
-    return;
+    return [];
   }
 
   const profil = keluaran
@@ -113,7 +116,7 @@ function periksaProfilWindows() {
       return { nama: nama?.trim() ?? "?", kategori: kategori?.trim() ?? "?" };
     });
 
-  if (profil.length === 0) return;
+  if (profil.length === 0) return [];
 
   console.log("\nKategori jaringan Windows:");
   for (const p of profil) {
@@ -121,8 +124,12 @@ function periksaProfilWindows() {
     console.log(`  ${aman ? "OK    " : "BLOKIR"}  ${p.nama} — ${p.kategori}`);
   }
 
+  // "DomainAuthenticated" pada Get-NetConnectionProfile setara dengan profil
+  // bernama "Domain" pada aturan firewall.
+  const kategori = profil.map((p) => (p.kategori === "DomainAuthenticated" ? "Domain" : p.kategori));
+
   const publik = profil.filter((p) => p.kategori === "Public");
-  if (publik.length === 0) return;
+  if (publik.length === 0) return kategori;
 
   console.log("\n  ---------------------------------------------------------------");
   console.log("  INILAH SEBABNYA PONSEL TIDAK BISA MEMBUKA. Profil Public memblokir");
@@ -142,6 +149,7 @@ function periksaProfilWindows() {
   console.log("  tiba-tiba tidak bisa membuka lagi, jalankan `npm run alamat` lebih");
   console.log("  dulu sebelum menduga aplikasinya yang rusak.");
   console.log("  ---------------------------------------------------------------");
+  return kategori;
 }
 
 /**
@@ -194,16 +202,23 @@ function periksaPendengar() {
 /**
  * Memeriksa aturan firewall masuk untuk node.exe.
  *
- * Profil Private saja belum cukup. Windows tetap menolak sambungan masuk bila
- * tidak ada aturan yang mengizinkannya, atau bila ada aturan BLOCK — dan aturan
- * Block selalu menang atas Allow, berapa pun banyaknya Allow yang ada. Keadaan
- * itu lahir sendiri: kotak "Windows Defender Firewall" yang muncul saat pertama
- * kali `npm run dev` dijalankan akan membuat aturan Block bila ditekan Cancel,
- * dan kotak itu tidak muncul lagi sesudahnya.
+ * Dua keadaan memblokir ponsel, dan keduanya harus diperiksa terhadap profil
+ * yang SEDANG AKTIF — bukan terhadap daftar aturan begitu saja:
+ *
+ *   1. Ada aturan Block. Block selalu menang atas Allow, berapa pun banyaknya
+ *      Allow. Aturan begini lahir sendiri bila kotak peringatan Windows
+ *      Defender Firewall pernah ditekan Cancel saat `npm run dev` pertama kali.
+ *   2. Tidak ada aturan Allow yang mencakup profil aktif. Ini yang paling
+ *      menjebak: daftar aturannya terlihat penuh Allow dan tidak ada Block sama
+ *      sekali, tetapi seluruh Allow itu untuk profil lain. Windows menolak
+ *      sambungan masuk pada profil yang tidak punya Allow — tidak perlu ada
+ *      Block untuk memblokir. Gejalanya muncul justru SETELAH jaringan
+ *      dipindahkan dari Public ke Private, karena aturan Allow yang ada
+ *      dibuat waktu jaringannya masih Public.
  *
  * Pemeriksaannya memakan beberapa detik, jadi ia dijalankan paling akhir.
  */
-function periksaAturanFirewall() {
+function periksaAturanFirewall(kategoriAktif = []) {
   if (platform() !== "win32") return;
 
   console.log("\nAturan firewall untuk node.exe (perlu beberapa detik)...");
@@ -259,7 +274,7 @@ function periksaAturanFirewall() {
 
   const memblokir = aturan.filter((a) => a.tindakan === "Block" && a.aktif === "True");
   if (memblokir.length === 0) {
-    console.log("  Tidak ada aturan Block. Firewall bukan penyebabnya.");
+    laporkanCakupanProfil(aturan, kategoriAktif);
     return;
   }
 
@@ -274,5 +289,52 @@ function periksaAturanFirewall() {
   for (const a of memblokir) {
     console.log(`    Remove-NetFirewallRule -DisplayName "${a.nama}"`);
   }
+  console.log("  ---------------------------------------------------------------");
+}
+
+/** Apakah nilai Profile sebuah aturan mencakup kategori jaringan tertentu. */
+function profilMencakup(profilAturan, kategori) {
+  const bagian = profilAturan.split(",").map((b) => b.trim());
+  return bagian.includes("Any") || bagian.includes(kategori);
+}
+
+/**
+ * Memastikan ada aturan Allow yang benar-benar berlaku pada profil aktif.
+ *
+ * Dipisahkan karena inilah kesimpulan yang paling mudah salah: "tidak ada
+ * aturan Block" bukan berarti "firewall bukan penyebabnya".
+ */
+function laporkanCakupanProfil(aturan, kategoriAktif) {
+  if (kategoriAktif.length === 0) {
+    console.log("  Tidak ada aturan Block.");
+    return;
+  }
+
+  const mengizinkan = aturan.filter((a) => a.tindakan === "Allow" && a.aktif === "True");
+  const tanpaIzin = kategoriAktif.filter(
+    (k) => !mengizinkan.some((a) => profilMencakup(a.profil, k)),
+  );
+
+  if (tanpaIzin.length === 0) {
+    console.log(`  Tidak ada aturan Block, dan profil aktif (${kategoriAktif.join(", ")}) diizinkan.`);
+    console.log("  Firewall bukan penyebabnya.");
+    return;
+  }
+
+  console.log("");
+  console.log("  ---------------------------------------------------------------");
+  console.log(`  INILAH SEBABNYA. Jaringan Anda sekarang berprofil ${tanpaIzin.join(", ")},`);
+  console.log("  tetapi tidak ada satu pun aturan Allow di atas yang mencakup profil itu.");
+  console.log("  Windows menolak sambungan masuk pada profil yang tidak punya aturan");
+  console.log("  Allow — tidak perlu ada aturan Block untuk memblokir.");
+  console.log("");
+  console.log("  Ini lazim terjadi tepat setelah jaringan dipindahkan dari Public ke");
+  console.log("  Private: aturan yang ada dibuat waktu jaringannya masih Public, dan");
+  console.log("  ia tidak ikut berpindah.");
+  console.log("");
+  console.log("  Perbaiki lewat PowerShell sebagai Administrator:");
+  console.log(`    New-NetFirewallRule -DisplayName "SILAB dev ${PORT}" \``);
+  console.log("      -Direction Inbound -Action Allow -Protocol TCP \`");
+  console.log(`      -LocalPort ${PORT} -Profile ${tanpaIzin.join(",")}`);
   console.log("  ---------------------------------------------------------------");
 }
