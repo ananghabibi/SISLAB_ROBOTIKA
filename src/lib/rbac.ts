@@ -137,7 +137,13 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
     PENGAWAS: bacaSemua,
   },
   peminjaman: {
-    KEPALA_LAB: bacaSemua,
+    // MENYIMPANG DARI SPEC 4.2, yang memberi Kepala Lab "B" (baca saja) di sini.
+    // Diubah atas permintaan Kepala Laboratorium: di laboratorium ini dialah
+    // yang paling sering berada di ruangan saat alat diminta, dan menolak
+    // mencatatkannya hanya akan melahirkan pencatatan susulan oleh orang lain
+    // atas nama orang lain — persis jenis catatan yang tidak bisa dipercaya.
+    // Hapus tetap tertutup: catatan peminjaman tidak dihapus siapa pun.
+    KEPALA_LAB: tulisSemua,
     KOORD_OPERASIONAL: tulisSemua,
     KOORD_RISET: bacaSemua,
     KOORD_PENGEMBANGAN: bacaSemua,

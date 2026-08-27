@@ -153,7 +153,7 @@ tercatat di audit log atas nama Anda. Jalur ini sengaja dibuat merepotkan: kalau
 mulai sering dipakai, yang perlu diperbaiki jaringan atau layarnya, bukan
 menambah kenyamanan di sana.
 
-### Koordinator Operasional / Ketua Squad — peminjaman alat
+### Kepala Lab / Koordinator Operasional / Ketua Squad — peminjaman alat
 
 **Inventaris** memuat seluruh aset laboratorium beserta kondisinya dan siapa
 yang sedang memegangnya.

@@ -255,6 +255,12 @@ lembar label QR, dan tidak melihat tombol catat peminjaman.
 - **Aset yang pernah dipinjam tidak bisa dihapus.** Riwayat peminjamannya
   adalah bukti siapa memegang apa. Untuk alat yang sudah tidak ada, pakai
   kondisi HILANG atau RUSAK.
+- **Kepala Lab diberi hak mencatat peminjaman**, menyimpang dari SPEC 4.2 yang
+  menulis `B`. Diminta Kepala Laboratorium sendiri: dialah yang paling sering
+  ada di ruangan saat alat diminta, dan menolak mencatatkannya hanya akan
+  melahirkan pencatatan susulan oleh orang lain atas nama orang lain. Tabel di
+  SPEC sudah diberi catatan kaki supaya tidak "diperbaiki" kembali kelak. Hapus
+  tetap tertutup untuk semua peran.
 - **ANGGOTA hanya melihat pinjamannya sendiri**, bukan pinjaman squadnya —
   tanggung jawab atas alat melekat pada satu orang, bukan pada squad.
 

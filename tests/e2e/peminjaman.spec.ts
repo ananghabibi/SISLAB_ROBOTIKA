@@ -154,6 +154,27 @@ test.describe("peminjaman alat", () => {
     expect(dicoba.status()).toBe(403);
   });
 
+  test("kepala lab boleh mencatat peminjaman", async ({ page }) => {
+    // Menyimpang dari SPEC 4.2 atas permintaan Kepala Laboratorium; lihat
+    // catatan kaki pada tabel matriks di SPEC.md. Diuji supaya penyimpangan itu
+    // tidak diam-diam hilang saat matriksnya disentuh lagi kelak.
+    await masuk(page, AKUN_UJI.kepalaLab);
+
+    await page.goto("/peminjaman");
+    await expect(page.getByRole("link", { name: "Catat peminjaman" })).toBeVisible();
+
+    await page.goto("/inventaris");
+    const kodeAset = await page
+      .getByRole("link", { name: "Pinjamkan alat ini" })
+      .first()
+      .getAttribute("href")
+      .then((h) => new URL(h!, "http://x").searchParams.get("kode")!);
+
+    await page.goto("/peminjaman/baru");
+    await isiFormulirPinjam(page, kodeAset, "Uji pencatatan oleh Kepala Laboratorium");
+    await expect(page.getByText(/tercatat dipinjam/)).toBeVisible();
+  });
+
   test("lembar label QR terbit sebagai PDF bagi pengurus", async ({ page }) => {
     await masuk(page, AKUN_UJI.koordOperasional);
 

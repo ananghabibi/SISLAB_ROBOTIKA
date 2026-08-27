@@ -18,6 +18,7 @@ import bcrypt from "bcryptjs";
 export const SANDI_UJI = process.env.SANDI_UJI ?? "UjiCobaLab2026";
 
 export const AKUN_UJI = {
+  kepalaLab: "anang.habibi@unisma.ac.id",
   koordOperasional: "22301053005@student.unisma.ac.id",
   anggota: "22501053005@student.unisma.ac.id",
 } as const;

@@ -112,7 +112,7 @@ Legenda: **B** = baca semua, **Bs** = baca miliknya/squadnya saja, **T** = tulis
 | Master anggota | T, H | T | B | B | Bs | Bs | B |
 | Peran & hak akses | T | — | — | — | — | — | — |
 | Inventaris | T, H | T | B | B | B | B | B |
-| Peminjaman | B | T | B | B | T | Bs | B |
+| Peminjaman | T ¹ | T | B | B | T | Bs | B |
 | Piket | B | T | B | B | T (squadnya) | Bs | B |
 | Logbook riset | B | B | T | B | T (squadnya) | T (squadnya) | B |
 | Laporan insiden | T | T | B | B | T | T | B |
@@ -120,6 +120,14 @@ Legenda: **B** = baca semua, **Bs** = baca miliknya/squadnya saja, **T** = tulis
 | Surat Keterangan Kontribusi | **T (terbit)** | B | B | B | — | Bs | B |
 | Audit log | B | Bs | — | — | — | — | — |
 | Ekspor data | T | T | B | B | — | — | B |
+
+¹ **Diubah setelah SPEC ditulis.** Semula `B` (baca saja) untuk Kepala
+Laboratorium. Diubah menjadi `T` atas permintaan Kepala Laboratorium sendiri:
+di laboratorium ini dialah yang paling sering berada di ruangan saat alat
+diminta, dan menolak mencatatkannya hanya akan melahirkan pencatatan susulan
+oleh orang lain atas nama orang lain. Hapus tetap tertutup untuk semua peran.
+Perubahannya ada di `src/lib/rbac.ts`; jangan "diperbaiki" kembali ke `B`
+tanpa membaca catatan ini lebih dulu.
 
 **Aturan yang tidak boleh dilanggar:**
 - Hanya `KEPALA_LAB` yang dapat menerbitkan Surat Keterangan Kontribusi. Ini bukan sekadar pembatasan teknis — surat itu adalah pernyataan pribadi dosen kepada Program Studi.
