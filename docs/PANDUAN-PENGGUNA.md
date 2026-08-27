@@ -318,8 +318,15 @@ Tandanya jelas bila diuji: dari laptop, `ping <alamat-ponsel>` gagal total
 pernah jadi soal di keadaan ini — ia hanya menolak paket yang tiba, sedangkan
 di sini tidak ada satu pun paket yang tiba.
 
-`npm run alamat` menyebutkan nama jaringan laptop; cocokkan dengan yang tertulis
-di ponsel.
+`npm run alamat` menyebutkan SSID yang sedang dipakai laptop; cocokkan dengan
+yang tertulis di ponsel.
+
+> **Jangan memakai nama profil Windows untuk membandingkan.** Windows
+> menambahkan akhiran ` 2`, ` 3`, dan seterusnya pada nama *profil* bila entri
+> dengan nama itu sudah pernah ada — misalnya setelah kartu WiFi diganti atau
+> jaringannya dilupakan lalu disambungkan lagi. Jadi profil `Habibi Home 2`
+> dapat merujuk SSID `Habibi Home` yang sama persis. Yang menentukan hanyalah
+> SSID di daftar WiFi.
 
 Bila namanya sudah sama dan ponsel tetap gagal, jalankan **`npm run alamat`**.
 Ia memeriksa keempat sebab berikutnya dan menyebut mana yang sedang berlaku,

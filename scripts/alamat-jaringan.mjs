@@ -128,17 +128,28 @@ function periksaProfilWindows() {
   // bernama "Domain" pada aturan firewall.
   const kategori = profil.map((p) => (p.kategori === "DomainAuthenticated" ? "Domain" : p.kategori));
 
-  // Nama jaringan laptop disebut tegas supaya bisa diadu dengan nama yang
-  // terbaca di ponsel. Dua SSID pada router yang sama — pemisahan 2,4/5 GHz,
-  // atau satu jaringan tamu — lazim saling diisolasi: keduanya dapat internet
-  // dan sama-sama beralamat 192.168.x, tetapi tidak dapat saling menghubungi.
-  // Laptop pun dapat berpindah SSID sendiri ke sinyal yang lebih kuat, sehingga
-  // sambungan yang kemarin berhasil mati tanpa ada yang diubah.
+  // Nama jaringan disebut tegas supaya bisa diadu dengan yang terbaca di
+  // ponsel — TETAPI yang dipakai membandingkan haruslah SSID, bukan nama
+  // profil. Windows menambahkan akhiran " 2", " 3", dan seterusnya pada nama
+  // PROFIL bila entri dengan nama itu sudah pernah ada, misalnya setelah kartu
+  // WiFi diganti atau jaringannya dilupakan lalu disambungkan lagi. SSID-nya
+  // sendiri tidak berubah. Menyamakan keduanya membuat orang mengira laptop
+  // dan ponselnya berada di jaringan berbeda padahal sama.
+  const ssid = ssidAktif();
   console.log("");
-  console.log(`  Laptop ini tersambung ke: ${profil.map((p) => p.nama).join(", ")}`);
-  console.log("  PONSEL WAJIB tersambung ke nama jaringan yang PERSIS SAMA.");
-  console.log("  Nama yang mirip tetapi tidak sama — berbeda akhiran, angka, atau");
-  console.log("  embel-embel 5G — adalah jaringan lain, dan biasanya diisolasi.");
+  if (ssid.length > 0) {
+    console.log(`  SSID yang sedang dipakai laptop: ${ssid.join(", ")}`);
+    const berbeda = profil.some((p) => !ssid.includes(p.nama));
+    if (berbeda) {
+      console.log(`  (nama profil Windows-nya "${profil.map((p) => p.nama).join(", ")}" —`);
+      console.log("   akhiran angka itu buatan Windows, BUKAN nama jaringan lain)");
+    }
+  } else {
+    console.log(`  Nama profil Windows: ${profil.map((p) => p.nama).join(", ")}`);
+    console.log("  Catatan: nama profil dapat berakhiran angka tambahan buatan Windows.");
+    console.log("  Yang harus dicocokkan adalah SSID di daftar WiFi, bukan nama ini.");
+  }
+  console.log("  Ponsel harus tersambung ke SSID yang sama.");
 
   const publik = profil.filter((p) => p.kategori === "Public");
   if (publik.length === 0) return kategori;
@@ -370,4 +381,29 @@ function laporkanCakupanProfil(aturan, kategoriAktif) {
   console.log("      -Direction Inbound -Action Allow -Protocol TCP \`");
   console.log(`      -LocalPort ${PORT} -Profile ${tanpaIzin.join(",")}`);
   console.log("  ---------------------------------------------------------------");
+}
+
+/**
+ * SSID yang sedang dipakai adaptor WiFi.
+ *
+ * Diambil terpisah dari nama profil karena keduanya kerap berbeda, dan yang
+ * berarti bagi ponsel hanyalah SSID. Nama label pada keluaran `netsh` mengikuti
+ * bahasa Windows, jadi yang dicocokkan adalah kata "SSID" itu sendiri — sebuah
+ * akronim yang tidak diterjemahkan — sambil menyingkirkan baris "BSSID".
+ */
+function ssidAktif() {
+  try {
+    const keluaran = execFileSync("netsh", ["wlan", "show", "interfaces"], {
+      encoding: "utf8",
+      timeout: 10_000,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return keluaran
+      .split("\n")
+      .filter((b) => /(^|[^B])SSID\s*:/.test(b))
+      .map((b) => b.split(":").slice(1).join(":").trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
 }
