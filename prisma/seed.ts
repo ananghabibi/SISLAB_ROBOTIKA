@@ -21,6 +21,7 @@ import {
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+import { AWALAN_ASET_CONTOH } from "../src/lib/aset";
 import { uraiCsv } from "../src/lib/csv";
 import {
   angkatanDariNpm,
@@ -165,6 +166,44 @@ async function tetapkanKetuaSquad() {
 }
 
 /**
+ * Membuang sisa data uji coba yang tidak lagi tercantum di CSV.
+ *
+ * Tanpa ini, data contoh akan menetap selamanya: seeder hanya menyisipkan dan
+ * memperbarui, jadi baris CONTOH- yang dihapus dari berkas tetap hidup di basis
+ * data — dan ikut tercetak di label QR seolah aset sungguhan. Yang dibersihkan
+ * hanya yang berawalan CONTOH-; aset sebenarnya tidak pernah disentuh, karena
+ * seeder bukan tempat menghapus catatan yang dirawat manusia.
+ *
+ * Aset contoh yang pernah dipinjam sengaja TIDAK dihapus. Riwayat peminjaman
+ * merujuk kepadanya, dan memutus rujukan itu menghapus bukti siapa memegang apa
+ * — sekalipun bukti itu berasal dari uji coba.
+ */
+async function bersihkanAsetContoh(kodeDipakai: Set<string>): Promise<void> {
+  const tersisa = await prisma.asset.findMany({
+    where: { kodeAset: { startsWith: AWALAN_ASET_CONTOH, notIn: [...kodeDipakai] } },
+    select: { id: true, kodeAset: true, _count: { select: { loans: true } } },
+  });
+  if (tersisa.length === 0) return;
+
+  const bisaDihapus = tersisa.filter((a) => a._count.loans === 0);
+  const berjejak = tersisa.filter((a) => a._count.loans > 0);
+
+  if (bisaDihapus.length > 0) {
+    await prisma.asset.deleteMany({ where: { id: { in: bisaDihapus.map((a) => a.id) } } });
+    console.log(`              ${bisaDihapus.length} aset contoh lama dihapus.`);
+  }
+  if (berjejak.length > 0) {
+    console.log(
+      `              ${berjejak.length} aset contoh tidak dihapus karena punya riwayat\n` +
+        `              peminjaman: ${berjejak.map((a) => a.kodeAset).join(", ")}.\n` +
+        "              Halaman Inventaris pun akan menolak menghapusnya. Bila seluruh\n" +
+        "              isinya memang masih data uji coba, kosongkan basis data dengan\n" +
+        "              `npm run db:reset` lalu semai ulang.",
+    );
+  }
+}
+
+/**
  * Memuat master inventaris dari `data/aset-data.csv`.
  *
  * Idempoten menurut `kodeAset`: menjalankannya ulang memperbarui aset yang
@@ -175,6 +214,7 @@ async function seedAset() {
   const baris = bacaCsv("aset-data.csv");
   if (baris.length === 0) {
     console.log("  aset      : 0 (data/aset-data.csv kosong)");
+    await bersihkanAsetContoh(new Set());
     return;
   }
 
@@ -185,8 +225,10 @@ async function seedAset() {
   );
 
   let contoh = 0;
+  const kodeDipakai = new Set<string>();
   for (const a of baris) {
-    if (a.kode_aset!.startsWith("CONTOH-")) contoh++;
+    kodeDipakai.add(a.kode_aset!);
+    if (a.kode_aset!.startsWith(AWALAN_ASET_CONTOH)) contoh++;
 
     const penanggungJawabId = a.penanggung_jawab_npm
       ? (npmKePengguna.get(a.penanggung_jawab_npm) ?? null)
@@ -221,10 +263,12 @@ async function seedAset() {
   console.log(`  aset      : ${baris.length}`);
   if (contoh > 0) {
     console.log(
-      `              PERINGATAN: ${contoh} di antaranya masih data CONTOH.\n` +
-        "              Ganti data/aset-data.csv dengan master inventaris sebenarnya.",
+      `              PERINGATAN: ${contoh} di antaranya masih data UJI COBA.\n` +
+        "              Ganti data/aset-data.csv dengan master inventaris sebenarnya;\n" +
+        "              menjalankan seeder lagi akan membuang sisa data uji coba.",
     );
   }
+  await bersihkanAsetContoh(kodeDipakai);
 }
 
 async function seedPeriode() {

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
-import { kondisiAsetSah } from "@/lib/aset";
+import { AWALAN_ASET_CONTOH, kondisiAsetSah } from "@/lib/aset";
 import { daftarAset, sudahLewatTenggat } from "@/lib/inventaris";
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
@@ -51,7 +51,7 @@ export default async function HalamanInventaris({
     ...(filter.kondisi && kondisiAsetSah(filter.kondisi) ? { kondisi: filter.kondisi } : {}),
   };
 
-  const [aset, kategori, anggota] = await Promise.all([
+  const [aset, kategori, anggota, contoh] = await Promise.all([
     daftarAset(where),
     prisma.asset.findMany({ distinct: ["kategori"], select: { kategori: true }, orderBy: { kategori: "asc" } }),
     prisma.user.findMany({
@@ -59,12 +59,15 @@ export default async function HalamanInventaris({
       orderBy: { nama: "asc" },
       select: { id: true, nama: true },
     }),
+    // Dihitung atas SELURUH inventaris, bukan atas yang sedang tersaring:
+    // "5 aset masih data uji coba" pada saringan Sensor akan terbaca seolah
+    // sisa inventarisnya sudah sungguhan.
+    prisma.asset.count({ where: { kodeAset: { startsWith: AWALAN_ASET_CONTOH } } }),
   ]);
 
   const bolehSunting = bolehTulis(pengguna.role, "inventaris");
   const bolehPinjamkan = bolehTulis(pengguna.role, "peminjaman");
   const bolehBuang = bolehHapus(pengguna.role, "inventaris");
-  const contoh = aset.filter((a) => a.kodeAset.startsWith("CONTOH-")).length;
 
   // Label dicetak untuk apa yang sedang terlihat, bukan untuk seluruh gudang.
   const kueriLabel = new URLSearchParams();
@@ -96,9 +99,11 @@ export default async function HalamanInventaris({
         <Card className="mb-4 border-peringatan/40 bg-peringatan-lembut/40">
           <CardContent>
             <p className="text-sm text-peringatan">
-              <strong>{contoh} aset masih data contoh.</strong> Ganti isi{" "}
-              <code>data/aset-data.csv</code> dengan master inventaris yang sebenarnya, lalu
-              jalankan ulang seeder — atau sunting satu per satu di halaman ini.
+              <strong>{contoh} aset masih data uji coba</strong> (berkode{" "}
+              <code>{AWALAN_ASET_CONTOH}</code>). Ganti isi <code>data/aset-data.csv</code> dengan
+              master inventaris yang sebenarnya lalu jalankan <code>npm run db:seed</code>: sisa
+              data uji coba akan terbuang sendiri, kecuali yang terlanjur punya riwayat
+              peminjaman.
             </p>
           </CardContent>
         </Card>

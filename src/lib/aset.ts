@@ -37,6 +37,15 @@ export function kondisiAsetSah(nilai: string): nilai is KondisiAset {
   return (KONDISI_ASET as readonly string[]).includes(nilai);
 }
 
+/**
+ * Awalan kode untuk aset yang masih data uji coba.
+ *
+ * Dipakai halaman Inventaris untuk memasang peringatan dan seeder untuk
+ * membuang sisanya. Satu tempat, supaya keduanya tidak pernah berbeda pendapat
+ * soal apa yang dianggap data uji coba.
+ */
+export const AWALAN_ASET_CONTOH = "CONTOH-";
+
 /** Awalan wajib pada QR label aset. */
 export const AWALAN_LABEL = "SILAB-ASET:";
 

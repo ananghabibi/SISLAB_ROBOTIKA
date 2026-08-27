@@ -1,10 +1,20 @@
 # =============================================================================
 # Master inventaris Laboratorium Robotika.
 #
-# PERINGATAN. Baris di bawah hanya CONTOH bentuk isian, bukan aset sungguhan.
-# Gantilah seluruhnya dengan 18 baris dari lembar "01 Master Inventaris" pada
-# berkas Sistem_Pencatatan_Lab_Robotika_v2.xlsx sebelum dipakai. Kolomnya sudah
-# disusun sama persis dengan lembar itu.
+# PERINGATAN. Baris di bawah masih DATA UJI COBA, bukan aset sungguhan. Isinya
+# dibuat menyerupai barang yang lazim ada di laboratorium robotika supaya
+# pengurus bisa mencoba penyaringan, pencetakan label, dan peminjaman dengan
+# data yang terasa nyata — bukan supaya dipakai sebagai catatan resmi.
+#
+# Gantilah seluruhnya dengan isi lembar "01 Master Inventaris" pada berkas
+# Sistem_Pencatatan_Lab_Robotika_v2.xlsx sebelum dipakai sungguhan. Kolomnya
+# sudah disusun sama persis dengan lembar itu.
+#
+# Semua kode uji coba berawalan CONTOH-. Awalan itulah yang dibaca aplikasi:
+# selama masih ada, halaman Inventaris memasang peringatan, dan seeder akan
+# MENGHAPUS sisa baris CONTOH- yang tidak lagi tercantum di berkas ini. Jadi
+# begitu Anda menempelkan data sebenarnya lalu menjalankan `npm run db:seed`,
+# data uji coba ini hilang dengan sendirinya.
 #
 # kondisi: BAIK | PERLU_DICEK | RUSAK_RINGAN | RUSAK | DALAM_PERBAIKAN |
 #          DALAM_PENGEMBANGAN | TERPAKAI | HILANG
@@ -12,9 +22,39 @@
 # penanggung_jawab_npm: boleh dikosongkan
 # =============================================================================
 kode_aset,nama,kategori,merk,jumlah,satuan,kondisi,lokasi,tahun_perolehan,penanggung_jawab_npm,boleh_dipinjam,keterangan
-CONTOH-001,Multimeter Digital,Alat Ukur,Fluke 117,2,unit,BAIK,Rak A1,2023,22301053005,ya,Contoh — ganti dengan data sebenarnya
-CONTOH-002,Solder Station,Alat Kerja,Hakko FX-888D,3,unit,BAIK,Meja Kerja 2,2022,22301053005,ya,Contoh — ganti dengan data sebenarnya
-CONTOH-003,Osiloskop 100 MHz,Alat Ukur,Rigol DS1104Z,1,unit,PERLU_DICEK,Rak A2,2021,22301053006,ya,Contoh — ganti dengan data sebenarnya
-CONTOH-004,Drone Frame VTOL,Komponen,,1,set,DALAM_PENGEMBANGAN,Rak VTOL,2024,22301053029,tidak,Contoh — sedang dirakit squad VTOL
-CONTOH-005,Baterai LiPo 4S 5000mAh,Komponen,Tattu,6,buah,BAIK,Lemari Baterai,2024,22301053029,ya,Contoh — ganti dengan data sebenarnya
-CONTOH-006,Laptop Kerja Lab,Perangkat Komputasi,Lenovo ThinkPad,2,unit,BAIK,Meja Kerja 1,2023,22301053005,ya,Contoh — ganti dengan data sebenarnya
+CONTOH-001,Multimeter Digital,Alat Ukur,Fluke 117,2,unit,BAIK,Rak A1,2023,22301053005,ya,
+CONTOH-002,Multimeter Saku,Alat Ukur,UNI-T UT120C,4,unit,BAIK,Rak A1,2024,22301053005,ya,Untuk pengukuran cepat di meja kerja
+CONTOH-003,Osiloskop 100 MHz 4 Kanal,Alat Ukur,Rigol DS1104Z,1,unit,PERLU_DICEK,Meja Ukur,2021,22301053006,ya,Kanal 3 perlu dikalibrasi ulang
+CONTOH-004,Tang Ampere,Alat Ukur,UNI-T UT210E,1,unit,BAIK,Rak A1,2023,22301053005,ya,
+CONTOH-005,Jangka Sorong Digital,Alat Ukur,Mitutoyo 500-196,2,unit,BAIK,Rak A2,2022,22301053023,ya,
+CONTOH-006,Catu Daya DC 30V 5A,Alat Ukur,Wanptek KPS3050D,2,unit,BAIK,Meja Ukur,2022,22301053006,ya,
+CONTOH-007,Solder Station,Alat Kerja,Hakko FX-888D,3,unit,BAIK,Meja Kerja 2,2022,22301053005,ya,
+CONTOH-008,Hot Air Rework Station,Alat Kerja,Quick 861DW,1,unit,DALAM_PERBAIKAN,Meja Kerja 2,2021,22301053005,tidak,Elemen pemanas mati sejak Juli
+CONTOH-009,Penyedot Asap Solder,Alat Kerja,,2,unit,BAIK,Meja Kerja 2,2023,,ya,
+CONTOH-010,Toolset Obeng Presisi 60 in 1,Perkakas,Jakemy JM-8160,5,set,BAIK,Laci Perkakas,2023,22301053005,ya,
+CONTOH-011,Gerinda Tangan,Perkakas,Makita 9553B,1,unit,BAIK,Bengkel,2022,22301053005,tidak,Alat berisiko — hanya dipakai di bengkel dengan pendampingan
+CONTOH-012,Bor Duduk Mini,Perkakas,Bosch GBM 320,1,unit,BAIK,Bengkel,2022,22301053005,tidak,Hanya dipakai di bengkel
+CONTOH-013,Lem Tembak,Perkakas,,3,buah,BAIK,Laci Perkakas,2024,,ya,
+CONTOH-014,Laptop Kerja Lab,Perangkat Komputasi,Lenovo ThinkPad T480,2,unit,BAIK,Meja Kerja 1,2023,22301053005,ya,
+CONTOH-015,Mini PC Layar Absensi,Perangkat Komputasi,Intel NUC11,1,unit,BAIK,Rak Display,2025,22301053005,tidak,Menyalakan halaman /display — tidak boleh dipindahkan
+CONTOH-016,Printer 3D FDM,Perangkat Komputasi,Creality Ender-3 V2,2,unit,BAIK,Ruang Fabrikasi,2023,22301053023,tidak,Dipakai di tempat; pengajuan cetak lewat Squad Produk
+CONTOH-017,Raspberry Pi 4 Model B 4GB,Perangkat Komputasi,Raspberry Pi,3,unit,BAIK,Lemari Komponen,2023,22301053006,ya,
+CONTOH-018,NVIDIA Jetson Nano 4GB,Perangkat Komputasi,NVIDIA,1,unit,BAIK,Lemari Komponen,2024,22301053006,ya,Untuk penglihatan komputer squad Ground
+CONTOH-019,Sensor IMU 9 DOF,Sensor,InvenSense MPU-9250,6,buah,BAIK,Lemari Komponen,2024,22301053029,ya,
+CONTOH-020,LiDAR 2D 360 Derajat,Sensor,Slamtec RPLIDAR A1M8,1,unit,BAIK,Lemari Komponen,2024,22401053016,ya,
+CONTOH-021,Modul GPS,Sensor,u-blox NEO-M8N,3,buah,BAIK,Lemari Komponen,2023,22301053029,ya,
+CONTOH-022,Kamera FPV dan Pemancar Video,Sensor,Caddx Ratel 2,2,set,BAIK,Rak VTOL,2024,22301053029,ya,
+CONTOH-023,Sensor Ultrasonik HC-SR04,Sensor,,12,buah,TERPAKAI,Lemari Komponen,2022,,ya,Sebagian sudah terpasang pada purwarupa
+CONTOH-024,Servo MG996R,Aktuator,TowerPro,10,buah,BAIK,Lemari Komponen,2024,22401053016,ya,
+CONTOH-025,Motor Brushless 2216 920KV,Aktuator,SunnySky,8,buah,BAIK,Rak VTOL,2024,22301053029,ya,
+CONTOH-026,ESC 30A,Aktuator,Hobbywing SkyWalker,8,buah,RUSAK_RINGAN,Rak VTOL,2023,22301053029,ya,Dua unit gosong saat uji terbang
+CONTOH-027,Motor DC Gearbox JGB37,Aktuator,,6,buah,BAIK,Lemari Komponen,2023,22401053016,ya,
+CONTOH-028,Baterai LiPo 4S 5000mAh,Catu Daya,Tattu,6,buah,BAIK,Lemari Baterai,2024,22301053029,tidak,Wajib disimpan di lemari tahan api; tidak dibawa keluar lab
+CONTOH-029,Pengisi Daya Baterai LiPo,Catu Daya,SkyRC iMAX B6AC,2,unit,BAIK,Lemari Baterai,2023,22301053029,ya,
+CONTOH-030,Rangka Drone VTOL,Wahana,,1,set,DALAM_PENGEMBANGAN,Rak VTOL,2025,22301053029,tidak,Sedang dirakit Squad KRTI VTOL
+CONTOH-031,Wahana ASV Katamaran,Wahana,,1,set,DALAM_PENGEMBANGAN,Rak KKI,2025,22201053012,tidak,Sedang dirakit Squad KKI
+CONTOH-032,Robot Beroda 4WD,Wahana,,2,unit,BAIK,Rak Ground,2024,22401053016,ya,
+CONTOH-033,Rangka Drone Racing 5 inci,Wahana,iFlight Nazgul5,1,unit,RUSAK,Rak VTOL,2023,22301053029,tidak,Patah saat jatuh; menunggu keputusan penghapusan
+CONTOH-034,Anemometer Digital,Alat Ukur,,1,unit,HILANG,Rak A2,2022,22301053006,tidak,Tidak ditemukan sejak inventarisasi Juni
+CONTOH-035,Kacamata Pengaman,K3,,6,buah,BAIK,Bengkel,2024,22301053005,ya,
+CONTOH-036,APAR 3 kg,K3,,2,unit,BAIK,Dekat Pintu Keluar,2023,22301053005,tidak,Perlengkapan keselamatan — tidak dipinjamkan
