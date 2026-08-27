@@ -62,3 +62,24 @@ export function tanggalKalenderWib(waktu: Date = new Date()): Date {
   }).format(waktu);
   return new Date(`${bagian}T00:00:00.000Z`);
 }
+
+/** Selisih WIB terhadap UTC: +7 jam, tanpa waktu musim panas. */
+const OFFSET_WIB_JAM = 7;
+
+/**
+ * Akhir hari WIB dari tanggal yang diketik pengguna (`YYYY-MM-DD`), sebagai UTC.
+ *
+ * Tenggat pengembalian alat adalah tanggal, bukan jam. Bila tanggal itu
+ * disimpan apa adanya sebagai tengah malam UTC, alat yang dijanjikan kembali
+ * "hari Jumat" sudah dihitung terlambat sejak Jumat pukul tujuh pagi WIB.
+ * Yang benar adalah batas akhir harinya: 23.59.59 WIB, yaitu 16.59.59 UTC.
+ *
+ * Mengembalikan null bila tanggalnya tidak terbaca.
+ */
+export function akhirHariWib(tanggal: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) return null;
+  const waktu = new Date(`${tanggal}T23:59:59.999Z`);
+  if (Number.isNaN(waktu.getTime())) return null;
+  waktu.setUTCHours(waktu.getUTCHours() - OFFSET_WIB_JAM);
+  return waktu;
+}

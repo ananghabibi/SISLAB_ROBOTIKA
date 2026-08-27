@@ -184,19 +184,64 @@ kode yang benar.
 
 ---
 
-## ⬜ Milestone 4 — Inventaris dan Peminjaman
+## ✅ Milestone 4 — Inventaris dan Peminjaman
 
-1. CRUD aset; label QR siap cetak (PDF, beberapa label per halaman).
-2. Peminjaman dan pengembalian lewat pemindaian QR aset.
-3. Daftar alat belum kembali; penandaan terlambat otomatis.
-4. Unggah foto kondisi saat pinjam dan saat kembali (validasi jenis dan ukuran).
-5. Impor 18 baris aset awal dari `01 Master Inventaris`.
+1. ✅ CRUD aset (`/inventaris`); label QR siap cetak — 21 label per halaman A4,
+   mengikuti saringan yang sedang aktif (`/api/inventaris/label-qr`).
+2. ✅ Peminjaman dan pengembalian lewat pemindaian QR aset (`/peminjaman`).
+3. ✅ Daftar alat belum kembali; penandaan terlambat otomatis
+   (`/api/cron/tandai-terlambat`, dipanggil penjadwal pukul 00:01 WIB).
+4. ✅ Unggah foto kondisi saat pinjam dan saat kembali, divalidasi lewat bita
+   penanda berkas — bukan lewat nama atau tipe yang dikirim peramban.
+5. ✅ Impor aset dari `data/aset-data.csv`. **Isinya masih 6 baris CONTOH**;
+   ganti dengan 18 baris `01 Master Inventaris` lalu jalankan ulang seeder.
 
 **Kriteria diterima:** meminjam aset yang sedang dipinjam ditolak di tingkat
 basis data; jumlah alat belum kembali muncul benar di rekap.
 
-> Sudah siap dari Milestone 1: `loans_asset_dipinjam_unik` sudah tegak dan
-> sudah diverifikasi menolak pinjaman kedua atas aset yang sama.
+### Kriteria diterima — hasil verifikasi
+
+Dijalankan ke basis data sungguhan, bukan tiruan.
+
+| Kriteria SPEC | Hasil |
+|---|---|
+| Meminjam aset yang sedang dipinjam ditolak di tingkat basis data | ✅ Pinjaman kedua ditolak `P2002` oleh `loans_asset_dipinjam_unik`. Dua permintaan yang dikirim **bersamaan** atas aset yang sama: tepat satu lolos. Lewat peramban, penolakan itu sampai ke layar petugas sebagai kalimat ("… sedang dipinjam dan belum dikembalikan"), bukan sebagai halaman galat |
+| Jumlah alat belum kembali muncul benar di rekap | ✅ Peminjam dengan satu pinjaman lewat tenggat tercatat `alatBelumKembali = 1`; peminjam yang masih dalam tenggat tercatat 0 |
+
+Ikut diverifikasi pada jalan yang sama: aset yang sudah dikembalikan bisa
+dipinjam lagi; kondisi aset ikut turun mengikuti keadaannya saat kembali;
+`tandaiTerlambat()` mengubah DIPINJAM menjadi TERLAMBAT; aset bertanda "tidak
+boleh dipinjam" dan kode aset yang tidak ada ditolak dengan pesan yang menyebut
+sebabnya. Lewat peramban: ANGGOTA menerima 403 pada `/peminjaman/baru` dan pada
+lembar label QR, dan tidak melihat tombol catat peminjaman.
+
+### Catatan keputusan
+
+- **Penolakan pinjam ganda dikenali dari dua penanda, bukan satu.** Semula kode
+  hanya mencari nama indeks `loans_asset_dipinjam_unik` di `meta` galat Prisma.
+  Verifikasi ke basis data sungguhan menunjukkan Prisma 6.19 melaporkan
+  `meta.target: ["assetId"]` — nama medannya, bukan nama indeksnya. Akibatnya
+  penolakan basis data terlempar mentah dan petugas melihat halaman galat
+  peladen alih-alih kalimat penjelas. Kini keduanya diterima.
+- **Tenggat jatuh pada akhir hari WIB, bukan tengah malam UTC.** Alat yang
+  dijanjikan kembali "hari Jumat" tidak boleh terhitung terlambat sejak Jumat
+  pukul tujuh pagi. Konversinya ada di `akhirHariWib()` beserta ujinya.
+- **Label QR memakai awalan `SILAB-ASET:`.** Pemindai peminjaman dan pemindai
+  absensi memakai kamera yang sama, jadi keduanya harus bisa dibedakan tanpa
+  menebak. QR absensi yang tanpa sengaja diarahkan ke kolom peminjaman ditolak
+  sebagai bukan-label. Kolom teksnya tetap bisa diisi tangan: label yang sobek
+  tidak boleh menghentikan pencatatan.
+- **`tandaiTerlambat()` bukan sumber kebenaran.** Potongan skor memeriksa
+  tenggat secara langsung, jadi penjadwal yang mati semalam tidak membuat
+  seorang pun lolos dari catatannya. Cron hanya mengganti label supaya daftar
+  di layar ikut memerah.
+- **Foto disimpan sebelum baris pinjaman dibuat.** Berkas yatim hanya memakan
+  ruang; pinjaman tanpa foto menghilangkan buktinya.
+- **Aset yang pernah dipinjam tidak bisa dihapus.** Riwayat peminjamannya
+  adalah bukti siapa memegang apa. Untuk alat yang sudah tidak ada, pakai
+  kondisi HILANG atau RUSAK.
+- **ANGGOTA hanya melihat pinjamannya sendiri**, bukan pinjaman squadnya —
+  tanggung jawab atas alat melekat pada satu orang, bukan pada squad.
 
 ---
 

@@ -12,7 +12,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { PrismaClient, type Jenjang, type Role, type StatusAnggota } from "@prisma/client";
+import {
+  PrismaClient,
+  type Jenjang,
+  type KondisiAset,
+  type Role,
+  type StatusAnggota,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 import { uraiCsv } from "../src/lib/csv";
@@ -158,6 +164,69 @@ async function tetapkanKetuaSquad() {
   console.log(`  ketua     : ${baris.filter((s) => s.npm_ketua).length}`);
 }
 
+/**
+ * Memuat master inventaris dari `data/aset-data.csv`.
+ *
+ * Idempoten menurut `kodeAset`: menjalankannya ulang memperbarui aset yang
+ * sudah ada, bukan menggandakannya. Aset yang sedang dipinjam tidak terpengaruh,
+ * karena pinjaman disimpan terpisah dari master asetnya.
+ */
+async function seedAset() {
+  const baris = bacaCsv("aset-data.csv");
+  if (baris.length === 0) {
+    console.log("  aset      : 0 (data/aset-data.csv kosong)");
+    return;
+  }
+
+  const npmKePengguna = new Map(
+    (await prisma.user.findMany({ where: { npm: { not: null } }, select: { id: true, npm: true } }))
+      .filter((u): u is { id: string; npm: string } => u.npm !== null)
+      .map((u) => [u.npm, u.id]),
+  );
+
+  let contoh = 0;
+  for (const a of baris) {
+    if (a.kode_aset!.startsWith("CONTOH-")) contoh++;
+
+    const penanggungJawabId = a.penanggung_jawab_npm
+      ? (npmKePengguna.get(a.penanggung_jawab_npm) ?? null)
+      : null;
+    if (a.penanggung_jawab_npm && !penanggungJawabId) {
+      throw new Error(
+        `Penanggung jawab NPM ${a.penanggung_jawab_npm} pada aset ${a.kode_aset} tidak ada di seed-data.csv`,
+      );
+    }
+
+    const data = {
+      nama: a.nama!,
+      kategori: a.kategori!,
+      merk: a.merk || null,
+      jumlah: angkaAtau(a.jumlah!, 1) ?? 1,
+      satuan: a.satuan || "unit",
+      kondisi: (a.kondisi || "BAIK") as KondisiAset,
+      lokasi: a.lokasi || "Belum ditentukan",
+      tahunPerolehan: angkaAtau(a.tahun_perolehan!, null),
+      penanggungJawabId,
+      bolehDipinjam: (a.boleh_dipinjam || "ya").toLowerCase() !== "tidak",
+      keterangan: a.keterangan || null,
+    };
+
+    await prisma.asset.upsert({
+      where: { kodeAset: a.kode_aset! },
+      update: data,
+      create: { kodeAset: a.kode_aset!, ...data },
+    });
+  }
+
+  console.log(`  aset      : ${baris.length}`);
+  if (contoh > 0) {
+    console.log(
+      `              PERINGATAN: ${contoh} di antaranya masih data CONTOH.\n` +
+        "              Ganti data/aset-data.csv dengan master inventaris sebenarnya.",
+    );
+  }
+}
+
 async function seedPeriode() {
   const nama = "Semester Ganjil TA 2026/2027";
   const data = {
@@ -189,6 +258,7 @@ async function main() {
   await seedSquad();
   await seedAnggota();
   await tetapkanKetuaSquad();
+  await seedAset();
   await seedPeriode();
 
   const jumlah = await prisma.user.count();

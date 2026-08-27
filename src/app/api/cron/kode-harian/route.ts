@@ -7,25 +7,16 @@
 // Endpoint yang mengembalikan kode akan meruntuhkan lapis 2 seluruhnya.
 // -----------------------------------------------------------------------------
 
-import { timingSafeEqual } from "node:crypto";
-
 import { NextResponse } from "next/server";
 
+import { rahasiaCronCocok } from "@/lib/cron";
 import { pastikanKodeHariIni } from "@/lib/kode-harian";
 import { tanggalPendekWib } from "@/lib/waktu";
 
 export const dynamic = "force-dynamic";
 
-function rahasiaCocok(diberikan: string | null): boolean {
-  const seharusnya = process.env.CRON_SECRET;
-  if (!seharusnya || !diberikan) return false;
-  const a = Buffer.from(diberikan);
-  const b = Buffer.from(seharusnya);
-  return a.length === b.length && timingSafeEqual(new Uint8Array(a), new Uint8Array(b));
-}
-
 export async function POST(permintaan: Request) {
-  if (!rahasiaCocok(permintaan.headers.get("x-cron-secret"))) {
+  if (!rahasiaCronCocok(permintaan.headers.get("x-cron-secret"))) {
     return NextResponse.json({ ok: false, pesan: "Tidak berwenang." }, { status: 401 });
   }
 

@@ -60,6 +60,22 @@ export function saringanRekapKontribusi(pengguna: PenggunaLingkup) {
 }
 
 /**
+ * Penyaring daftar peminjaman (modul `peminjaman`).
+ *
+ * Bentuknya berbeda dari dua penyaring di atas karena yang disaring bukan tabel
+ * anggota melainkan tabel pinjaman: pembatasannya jatuh pada `peminjamId`.
+ * Seorang ANGGOTA hanya melihat alat yang ia pinjam sendiri — bukan alat yang
+ * dipinjam teman satu squadnya, karena tanggung jawab atas alat melekat pada
+ * satu orang, bukan pada squad.
+ */
+export function saringanPeminjaman(pengguna: PenggunaLingkup) {
+  const izin = izinUntuk(pengguna.role, "peminjaman");
+  if (izin.baca === "SEMUA") return {};
+  if (izin.baca === "TIDAK") return { peminjamId: "__tidak-ada__" };
+  return { peminjamId: pengguna.id };
+}
+
+/**
  * Apakah `pengguna` boleh melihat data milik `pemilik` pada sebuah modul.
  *
  * Dipakai untuk penjagaan per baris, misalnya saat seseorang menebak id anggota

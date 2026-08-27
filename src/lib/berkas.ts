@@ -17,7 +17,9 @@ import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-export const UKURAN_MAKSIMAL = 8 * 1024 * 1024; // 8 MB
+import { UKURAN_MAKSIMAL, UKURAN_MAKSIMAL_MB } from "./unggahan";
+
+export { UKURAN_MAKSIMAL, UKURAN_MAKSIMAL_MB };
 
 /** Jenis yang diterima, beserta tanda pengenal di awal berkasnya. */
 const JENIS_DITERIMA = [
@@ -55,7 +57,7 @@ export async function simpanGambar(berkas: File, kelompok: string): Promise<Hasi
     const mb = (berkas.size / 1024 / 1024).toFixed(1);
     return {
       ok: false,
-      pesan: `Ukuran foto ${mb} MB melampaui batas ${UKURAN_MAKSIMAL / 1024 / 1024} MB. Kecilkan dulu fotonya.`,
+      pesan: `Ukuran foto ${mb} MB melampaui batas ${UKURAN_MAKSIMAL_MB} MB. Kecilkan dulu fotonya.`,
     };
   }
 

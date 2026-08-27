@@ -8,6 +8,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 // Diimpor dari modul yang tidak menyentuh Prisma, supaya tidak ikut menyeret
 // klien basis data ke dalam berkas yang berjalan di peramban.
 import { PANJANG_KENDALA_MINIMAL, PANJANG_URAIAN_MINIMAL } from "@/lib/catatan-pulang";
+import { pesanGalatKamera } from "@/lib/kamera";
 
 type Tahap = "diam" | "memindai" | "konfirmasi" | "mengirim" | "selesai";
 
@@ -22,52 +23,6 @@ const KEGIATAN = [
 ] as const;
 
 const ID_KOTAK_PINDAI = "kotak-pindai-qr";
-
-/**
- * Menerjemahkan kegagalan membuka kamera menjadi sebab yang sebenarnya.
- *
- * Sebelumnya seluruh kegagalan diringkas menjadi "pastikan tidak ada aplikasi
- * lain yang memakainya". Pesan itu menyesatkan: sebab yang paling sering justru
- * halaman dibuka lewat http, dan peramban menolak memberi akses kamera pada
- * koneksi yang tidak aman — tanpa pernah menyebutkannya. Orang lalu menutup
- * aplikasi kamera berkali-kali untuk masalah yang tidak ada.
- *
- * Galat aslinya ikut disertakan di akhir, supaya keadaan yang belum terpikirkan
- * pun masih meninggalkan petunjuk alih-alih tebakan.
- */
-function pesanGalatKamera(kesalahan: unknown): string {
-  if (typeof window !== "undefined" && !window.isSecureContext) {
-    return (
-      "Halaman ini dibuka lewat koneksi http, dan peramban hanya mengizinkan " +
-      "kamera pada koneksi aman (https). Buka lewat alamat https laboratorium, " +
-      "atau minta Koordinator Operasional mencatatkan absensi Anda."
-    );
-  }
-
-  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-    return "Peramban ini tidak menyediakan akses kamera. Coba Chrome atau Safari versi terbaru.";
-  }
-
-  const nama =
-    kesalahan instanceof DOMException || kesalahan instanceof Error
-      ? ((kesalahan as DOMException).name ?? "")
-      : "";
-  const rincian = kesalahan instanceof Error ? kesalahan.message : String(kesalahan ?? "");
-
-  switch (nama) {
-    case "NotAllowedError":
-    case "SecurityError":
-      return "Izin kamera ditolak. Aktifkan izin kamera untuk situs ini di pengaturan peramban, lalu coba lagi.";
-    case "NotFoundError":
-    case "OverconstrainedError":
-      return "Kamera belakang tidak ditemukan pada perangkat ini.";
-    case "NotReadableError":
-    case "AbortError":
-      return "Kamera sedang dipakai aplikasi lain. Tutup aplikasi kamera atau panggilan video, lalu coba lagi.";
-    default:
-      return `Kamera tidak dapat dibuka${rincian ? ` — ${rincian}` : "."}`;
-  }
-}
 
 export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
   const router = useRouter();

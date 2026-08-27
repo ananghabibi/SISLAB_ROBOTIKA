@@ -6,9 +6,9 @@ Malang.
 Panduan ini untuk **anggota dan pengurus laboratorium**. Kalau Anda yang
 memasang atau merawat sistemnya, baca [`../README.md`](../README.md).
 
-> **Status.** Absensi, skor kontribusi, dan pengelolaan anggota sudah berjalan.
-> Inventaris, piket, logbook, dan Surat Keterangan Kontribusi menyusul — menunya
-> sudah tampak tetapi isinya belum ada.
+> **Status.** Absensi, skor kontribusi, pengelolaan anggota, serta inventaris
+> dan peminjaman alat sudah berjalan. Piket, logbook, dan Surat Keterangan
+> Kontribusi menyusul — menunya sudah tampak tetapi isinya belum ada.
 
 ---
 
@@ -38,7 +38,7 @@ Keanggotaan, bukan dari siapa pun yang kebetulan punya surel kampus.
 ## 2. Absen masuk
 
 Absensi hanya bisa dilakukan **dari dalam laboratorium**, tersambung WiFi lab.
-Ini disengaja — lihat bagian 7.
+Ini disengaja — lihat bagian 8.
 
 1. Sambungkan ponsel ke **WiFi laboratorium**
 2. Buka SILAB, masuk ke menu **Absensi Saya**
@@ -57,7 +57,7 @@ Nama Anda akan muncul di daftar **Sedang di laboratorium** pada layar lab.
   tampil.
 - **Kode harian hanya ada di layar lab.** Ia tidak pernah dikirim lewat aplikasi,
   tidak muncul di dasbor, dan tidak bisa dilihat dari ponsel. Jangan
-  memfotokannya untuk teman — lihat bagian 7.
+  memfotokannya untuk teman — lihat bagian 8.
 
 ---
 
@@ -122,7 +122,19 @@ kehadiran masih kurang 12 hari, halaman itu menuliskannya apa adanya.
 
 ---
 
-## 5. Untuk pengurus
+## 5. Alat yang Anda pinjam
+
+Menu **Peminjaman** menampilkan alat yang sedang Anda pegang beserta tenggatnya.
+Anda hanya melihat pinjaman Anda sendiri; pencatatan pinjam dan kembali
+dilakukan pengurus, bukan Anda.
+
+Kembalikan tepat waktu. Alat yang lewat tenggat memotong skor kontribusi Anda 5
+poin per alat, dan potongannya baru hilang setelah alatnya benar-benar tercatat
+kembali.
+
+---
+
+## 6. Untuk pengurus
 
 ### Koordinator Operasional — absensi manual
 
@@ -135,6 +147,42 @@ Setiap catatan diberi penanda **Manual** yang selalu terlihat di rekap, dan
 tercatat di audit log atas nama Anda. Jalur ini sengaja dibuat merepotkan: kalau
 mulai sering dipakai, yang perlu diperbaiki jaringan atau layarnya, bukan
 menambah kenyamanan di sana.
+
+### Koordinator Operasional / Ketua Squad — peminjaman alat
+
+**Inventaris** memuat seluruh aset laboratorium beserta kondisinya dan siapa
+yang sedang memegangnya.
+
+**Mencetak label QR.** Tombol **Cetak label QR** di halaman Inventaris
+menghasilkan PDF berisi 21 label per lembar A4 — QR, kode aset, nama, kategori,
+dan lokasi. Bila Anda sedang menyaring daftarnya (misal satu kategori saja),
+yang tercetak hanya yang tampak, jadi label yang sudah tertempel tidak perlu
+dicetak ulang. Gunting menurut garis putus-putus, tempel pada alatnya.
+
+**Mencatat alat keluar.** Pada baris asetnya, tekan **Pinjamkan alat ini** —
+atau **Peminjaman → Catat peminjaman** lalu pindai label QR pada alatnya.
+Kolom kodenya tetap bisa diketik tangan kalau labelnya sobek atau kameranya
+tidak mau terbuka. Isi peminjam, jumlah, tanggal rencana kembali, keperluan,
+dan **foto kondisi alat saat itu**. Fotonya wajib: kalau nanti ada yang lecet,
+foto inilah yang menentukan sejak kapan.
+
+Yang tercatat sebagai penyerah alat adalah **Anda**, bukan peminjamnya. Setiap
+alat yang keluar punya dua nama.
+
+**Satu alat tidak bisa dipinjam dua orang.** Bila alat itu belum dikembalikan,
+sistem menolak dengan menyebut nama alatnya. Penolakan ini terjadi di basis
+data, jadi dua petugas yang menekan tombol pada detik yang sama pun tidak bisa
+sama-sama lolos.
+
+**Mencatat alat kembali.** Halaman **Peminjaman** menampilkan alat yang masih di
+luar, diurutkan dari tenggat yang paling dekat; yang lewat tenggat diberi
+penanda merah **Terlambat**. Buka **Catat pengembalian** pada barisnya, pilih
+kondisi saat kembali, unggah fotonya. Kondisi yang bukan `BAIK` wajib disertai
+catatan, dan kondisi asetnya di inventaris ikut turun mengikutinya.
+
+**Alat yang belum kembali memotong skor kontribusi peminjamnya** sebesar 5 poin
+per alat — tetapi hanya setelah tenggatnya lewat. Pinjaman yang masih dalam
+tenggat bukan pelanggaran.
 
 ### Kepala Laboratorium
 
@@ -155,7 +203,7 @@ merujuk catatan aslinya, sehingga jejaknya tidak hilang.
 
 ---
 
-## 6. Layar laboratorium
+## 7. Layar laboratorium
 
 Satu monitor di dalam ruangan menampilkan halaman `/display` dalam mode layar
 penuh (tekan **F11**). Isinya jam besar, kode harian, QR berputar, dan daftar
@@ -169,7 +217,7 @@ jelas — supaya tidak ada yang mengira laboratoriumnya tutup.
 
 ---
 
-## 7. Mengapa harus di dalam laboratorium
+## 8. Mengapa harus di dalam laboratorium
 
 Sistem ini punya tiga lapis yang berlaku bersamaan:
 
@@ -189,7 +237,7 @@ meninggalkan jejak.
 
 ---
 
-## 8. Masalah yang sering terjadi
+## 9. Masalah yang sering terjadi
 
 ### "Absensi hanya dapat dilakukan dari dalam jaringan WiFi laboratorium"
 
@@ -229,7 +277,7 @@ Aplikasi akan menyebutkan sebabnya. Yang paling sering:
 
 ---
 
-## 9. Khusus pengurus: menguji dari ponsel di alamat `http`
+## 10. Khusus pengurus: menguji dari ponsel di alamat `http`
 
 **Bagian ini bukan untuk anggota.** Di laboratorium, alamatnya sudah `https` dan
 kamera langsung berfungsi.
@@ -259,7 +307,7 @@ Setelah itu kamera berfungsi pada alamat tersebut.
 
 ---
 
-## 10. Pertanyaan yang belum terjawab di sini
+## 11. Pertanyaan yang belum terjawab di sini
 
 Hubungi **Koordinator Operasional** untuk absensi, keanggotaan, dan inventaris;
 **Kepala Laboratorium** untuk peran, periode, dan Surat Keterangan Kontribusi.

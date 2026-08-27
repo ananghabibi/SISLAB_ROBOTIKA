@@ -32,8 +32,8 @@ export const MENU: ButirMenu[] = [
 
   { label: "Anggota", href: "/anggota", kelompok: "Pengelolaan", milestone: 1, selesai: true },
   { label: "Peran & Hak Akses", href: "/peran", kelompok: "Pengelolaan", milestone: 1, selesai: true },
-  { label: "Inventaris", href: "/inventaris", kelompok: "Pengelolaan", milestone: 4, selesai: false },
-  { label: "Peminjaman", href: "/peminjaman", kelompok: "Pengelolaan", milestone: 4, selesai: false },
+  { label: "Inventaris", href: "/inventaris", kelompok: "Pengelolaan", milestone: 4, selesai: true },
+  { label: "Peminjaman", href: "/peminjaman", kelompok: "Pengelolaan", milestone: 4, selesai: true },
   { label: "Periode & Target", href: "/periode", kelompok: "Pengelolaan", milestone: 3, selesai: true },
 
   { label: "Surat Kontribusi", href: "/skk", kelompok: "Pengawasan", milestone: 6, selesai: false },

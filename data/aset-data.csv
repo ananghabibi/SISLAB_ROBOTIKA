@@ -1,0 +1,20 @@
+# =============================================================================
+# Master inventaris Laboratorium Robotika.
+#
+# PERINGATAN. Baris di bawah hanya CONTOH bentuk isian, bukan aset sungguhan.
+# Gantilah seluruhnya dengan 18 baris dari lembar "01 Master Inventaris" pada
+# berkas Sistem_Pencatatan_Lab_Robotika_v2.xlsx sebelum dipakai. Kolomnya sudah
+# disusun sama persis dengan lembar itu.
+#
+# kondisi: BAIK | PERLU_DICEK | RUSAK_RINGAN | RUSAK | DALAM_PERBAIKAN |
+#          DALAM_PENGEMBANGAN | TERPAKAI | HILANG
+# boleh_dipinjam: ya | tidak
+# penanggung_jawab_npm: boleh dikosongkan
+# =============================================================================
+kode_aset,nama,kategori,merk,jumlah,satuan,kondisi,lokasi,tahun_perolehan,penanggung_jawab_npm,boleh_dipinjam,keterangan
+CONTOH-001,Multimeter Digital,Alat Ukur,Fluke 117,2,unit,BAIK,Rak A1,2023,22301053005,ya,Contoh — ganti dengan data sebenarnya
+CONTOH-002,Solder Station,Alat Kerja,Hakko FX-888D,3,unit,BAIK,Meja Kerja 2,2022,22301053005,ya,Contoh — ganti dengan data sebenarnya
+CONTOH-003,Osiloskop 100 MHz,Alat Ukur,Rigol DS1104Z,1,unit,PERLU_DICEK,Rak A2,2021,22301053006,ya,Contoh — ganti dengan data sebenarnya
+CONTOH-004,Drone Frame VTOL,Komponen,,1,set,DALAM_PENGEMBANGAN,Rak VTOL,2024,22301053029,tidak,Contoh — sedang dirakit squad VTOL
+CONTOH-005,Baterai LiPo 4S 5000mAh,Komponen,Tattu,6,buah,BAIK,Lemari Baterai,2024,22301053029,ya,Contoh — ganti dengan data sebenarnya
+CONTOH-006,Laptop Kerja Lab,Perangkat Komputasi,Lenovo ThinkPad,2,unit,BAIK,Meja Kerja 1,2023,22301053005,ya,Contoh — ganti dengan data sebenarnya

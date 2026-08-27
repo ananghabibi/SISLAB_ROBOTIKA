@@ -70,7 +70,8 @@ services:
       - caddy-data:/data
       - caddy-config:/config
 
-  # Penjadwal internal: menerbitkan kode harian pukul 00:01 WIB.
+  # Penjadwal internal: menerbitkan kode harian dan menandai pinjaman
+  # yang lewat tenggat, tiap pukul 00:01 WIB.
   cron:
     image: alpine:3.20
     restart: unless-stopped
