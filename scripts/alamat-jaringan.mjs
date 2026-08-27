@@ -26,6 +26,9 @@ const VIRTUAL = /(wsl|hyper-?v|vethernet|virtual|vmware|virtualbox|docker|loopba
 /** Blok alamat yang lazim dipakai adaptor virtual Windows. */
 const CURIGA = [/^172\.(1[6-9]|2\d|3[01])\./, /^169\.254\./];
 
+/** Porta peladen pengembangan; boleh diganti lewat PORT. */
+const PORT = process.env.PORT ?? "3000";
+
 const alamat = [];
 for (const [nama, daftar] of Object.entries(networkInterfaces())) {
   for (const a of daftar ?? []) {
@@ -48,8 +51,14 @@ if (nyata.length === 0) {
   console.log("  (tidak ada — semua antarmuka tampak virtual)\n");
 } else {
   for (const a of nyata) {
-    console.log(`  http://${a.ip}:3000        [${a.nama}]`);
+    console.log(`  http://${a.ip}:${PORT}        [${a.nama}]`);
   }
+  console.log("");
+  console.log("PENTING: alamat ini adalah alamat LAPTOP, dan dapat berubah");
+  console.log("sendiri setiap kali laptop menyambung ulang ke WiFi. Alamat yang");
+  console.log("Anda lihat di pengaturan WiFi PONSEL adalah alamat ponsel itu");
+  console.log("sendiri — mengetiknya di ponsel berarti menyuruh ponsel memanggil");
+  console.log("dirinya sendiri, dan hasilnya selalu \"situs tidak dapat dijangkau\".");
   console.log("");
   console.log(`Jalankan peladen terikat ke alamat itu supaya tidak salah pilih:`);
   console.log(`  npm run dev -- -H ${nyata[0].ip}`);
@@ -65,6 +74,7 @@ if (virtual.length > 0) {
 }
 
 periksaProfilWindows();
+periksaPendengar();
 
 /**
  * Memeriksa kategori jaringan Windows.
@@ -131,4 +141,51 @@ function periksaProfilWindows() {
   console.log("  tiba-tiba tidak bisa membuka lagi, jalankan `npm run alamat` lebih");
   console.log("  dulu sebelum menduga aplikasinya yang rusak.");
   console.log("  ---------------------------------------------------------------");
+}
+
+/**
+ * Memeriksa apakah ada yang mendengarkan di porta itu, dan di alamat mana.
+ *
+ * Menangkap dua keadaan yang gejalanya sama-sama "situs tidak dapat dijangkau"
+ * tetapi sebabnya berlawanan: peladen belum dijalankan sama sekali, atau
+ * peladen berjalan tetapi terikat hanya ke 127.0.0.1 sehingga tidak menerima
+ * siapa pun dari luar laptop. Keduanya tidak meninggalkan pesan galat di
+ * aplikasi, dan keduanya mudah tertukar dengan masalah firewall.
+ */
+function periksaPendengar() {
+  const perintah =
+    platform() === "win32"
+      ? { berkas: "netstat", argumen: ["-ano", "-p", "TCP"] }
+      : { berkas: "ss", argumen: ["-ltn"] };
+
+  let keluaran;
+  try {
+    keluaran = execFileSync(perintah.berkas, perintah.argumen, {
+      encoding: "utf8",
+      timeout: 10_000,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return; // Alat bantu; ketiadaannya bukan galat.
+  }
+
+  const baris = keluaran
+    .split("\n")
+    .filter((b) => /LISTEN/i.test(b) && new RegExp(`[.:]${PORT}\\b`).test(b));
+
+  console.log(`\nPeladen pada porta ${PORT}:`);
+  if (baris.length === 0) {
+    console.log("  BELUM JALAN — tidak ada yang mendengarkan di porta ini.");
+    console.log("  Jalankan `npm run dev` lebih dulu, di jendela terminal tersendiri.");
+    return;
+  }
+
+  // Terikat ke localhost saja berarti hanya laptop yang bisa membukanya.
+  const hanyaLokal = baris.every((b) => /127\.0\.0\.1|\[::1\]/.test(b));
+  if (hanyaLokal) {
+    console.log("  TERIKAT KE LAPTOP SAJA (127.0.0.1) — ponsel tidak akan pernah bisa.");
+    console.log(`  Jalankan ulang dengan: npm run dev -- -H ${nyata[0]?.ip ?? "0.0.0.0"}`);
+  } else {
+    console.log("  OK — mendengarkan dan menerima sambungan dari jaringan.");
+  }
 }
