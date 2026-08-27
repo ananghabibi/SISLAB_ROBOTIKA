@@ -18,6 +18,7 @@ import { simpanGambar } from "@/lib/berkas";
 import { kembalikanAset, pinjamAset } from "@/lib/inventaris";
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
+import { KELOMPOK_IDENTITAS, KELOMPOK_PEMINJAMAN } from "@/lib/unggahan";
 import { akhirHariWib } from "@/lib/waktu";
 
 export interface KeadaanPinjam {
@@ -34,6 +35,7 @@ const skemaPinjam = z.object({
   jumlah: z.coerce.number().int().min(1, "Jumlah minimal 1."),
   keperluan: z.string().trim().min(10, "Tuliskan keperluannya, minimal 10 karakter."),
   rencanaKembali: z.string().trim().min(1, "Tanggal rencana kembali wajib diisi."),
+  dibawaKeluar: z.boolean(),
 });
 
 const skemaKembali = z.object({
@@ -61,6 +63,7 @@ export async function catatPinjam(
     jumlah: data.get("jumlah") ?? "1",
     keperluan: data.get("keperluan") ?? "",
     rencanaKembali: data.get("rencanaKembali") ?? "",
+    dibawaKeluar: data.get("dibawaKeluar") === "ya",
   });
   if (!terurai.success) return { galat: terurai.error.issues[0]!.message };
   const m = terurai.data;
@@ -94,8 +97,28 @@ export async function catatPinjam(
 
   const foto = data.get("fotoPinjam");
   if (!(foto instanceof File)) return { galat: "Foto kondisi alat saat dipinjam wajib diunggah." };
-  const unggahan = await simpanGambar(foto, "peminjaman");
+
+  // Jaminan identitas diperiksa SEBELUM apa pun disimpan. Kalau tidak, formulir
+  // yang lupa melampirkan KTM akan meninggalkan foto kondisi yatim di cakram
+  // setiap kali petugas mencoba ulang.
+  const fotoIdentitas = data.get("fotoIdentitas");
+  if (m.dibawaKeluar && !(fotoIdentitas instanceof File && fotoIdentitas.size > 0)) {
+    return {
+      galat:
+        "Alat yang dibawa keluar laboratorium wajib disertai foto KTM atau KTP peminjam. " +
+        "Bila alat hanya dipakai di dalam lab, hapus centang 'Dibawa keluar laboratorium'.",
+    };
+  }
+
+  const unggahan = await simpanGambar(foto, KELOMPOK_PEMINJAMAN);
   if (!unggahan.ok) return { galat: unggahan.pesan };
+
+  let jalurIdentitas: string | null = null;
+  if (m.dibawaKeluar) {
+    const unggahanId = await simpanGambar(fotoIdentitas as File, KELOMPOK_IDENTITAS);
+    if (!unggahanId.ok) return { galat: `Foto kartu identitas: ${unggahanId.pesan}` };
+    jalurIdentitas = unggahanId.jalur;
+  }
 
   const hasil = await pinjamAset({
     kodeAset,
@@ -105,6 +128,8 @@ export async function catatPinjam(
     keperluan: m.keperluan,
     rencanaKembali,
     fotoPinjamUrl: unggahan.jalur,
+    dibawaKeluar: m.dibawaKeluar,
+    fotoIdentitasUrl: jalurIdentitas,
   });
   if (!hasil.ok) return { galat: hasil.pesan };
 
@@ -118,7 +143,11 @@ export async function catatPinjam(
 
   revalidatePath("/peminjaman");
   revalidatePath("/inventaris");
-  return { berhasil: `${kodeAset} tercatat dipinjam ${peminjam.nama}.` };
+  return {
+    berhasil:
+      `${kodeAset} tercatat dipinjam ${peminjam.nama}` +
+      (m.dibawaKeluar ? ", dibawa keluar lab dengan jaminan kartu identitas." : "."),
+  };
 }
 
 /** Mencatat alat kembali beserta kondisinya. */
@@ -151,7 +180,7 @@ export async function catatKembali(
 
   const foto = data.get("fotoKembali");
   if (!(foto instanceof File)) return { galat: "Foto kondisi alat saat kembali wajib diunggah." };
-  const unggahan = await simpanGambar(foto, "peminjaman");
+  const unggahan = await simpanGambar(foto, KELOMPOK_PEMINJAMAN);
   if (!unggahan.ok) return { galat: unggahan.pesan };
 
   const hasil = await kembalikanAset({
@@ -174,5 +203,9 @@ export async function catatKembali(
 
   revalidatePath("/peminjaman");
   revalidatePath("/inventaris");
-  return { berhasil: `${lama.asset.kodeAset} tercatat kembali dari ${lama.peminjam.nama}.` };
+  return {
+    berhasil:
+      `${lama.asset.kodeAset} tercatat kembali dari ${lama.peminjam.nama}` +
+      (lama.fotoIdentitasUrl ? ", dan foto kartu identitasnya sudah dihapus." : "."),
+  };
 }

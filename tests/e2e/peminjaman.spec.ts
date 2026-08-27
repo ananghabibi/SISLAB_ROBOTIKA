@@ -28,10 +28,17 @@ async function masuk(page: Page, surel: string) {
   await page.waitForURL(/\/dasbor/);
 }
 
-async function isiFormulirPinjam(page: Page, kodeAset: string, keperluan: string) {
+async function isiFormulirPinjam(
+  page: Page,
+  kodeAset: string,
+  keperluan: string,
+  { keluarLab = false, lampirkanIdentitas = true } = {},
+) {
   await page.getByLabel("Kode aset").fill(kodeAset);
 
-  const peminjam = page.getByLabel("Peminjam");
+  // Dicocokkan persis: teks pada centang "Dibawa keluar laboratorium" juga
+  // memuat kata "Peminjam", dan pencocokan sebagian akan mengenai keduanya.
+  const peminjam = page.getByLabel("Peminjam", { exact: true });
   const nilai = await peminjam.locator("option").nth(1).getAttribute("value");
   await peminjam.selectOption(nilai!);
 
@@ -41,6 +48,22 @@ async function isiFormulirPinjam(page: Page, kodeAset: string, keperluan: string
   await page
     .getByLabel("Foto kondisi saat dipinjam")
     .setInputFiles({ name: "kondisi.png", mimeType: "image/png", buffer: PNG_MUNGIL });
+
+  if (keluarLab) {
+    await page.getByLabel("Dibawa keluar laboratorium").check();
+    if (lampirkanIdentitas) {
+      await page
+        .getByLabel("Foto KTM atau KTP peminjam")
+        .setInputFiles({ name: "ktm.png", mimeType: "image/png", buffer: PNG_MUNGIL });
+    } else {
+      // Peramban akan menahan pengiriman karena kolomnya `required`; penjagaan
+      // peladen yang sedang diuji, jadi wajibnya dilepas dari DOM lebih dulu.
+      await page.getByLabel("Foto KTM atau KTP peminjam").evaluate((el) => {
+        (el as HTMLInputElement).required = false;
+      });
+    }
+  }
+
   await page.getByRole("button", { name: "Catat peminjaman" }).click();
 }
 
@@ -87,6 +110,48 @@ test.describe("peminjaman alat", () => {
 
     const label = await page.request.get("/api/inventaris/label-qr");
     expect(label.status()).toBe(403);
+  });
+
+  test("alat yang dibawa keluar lab wajib disertai foto kartu identitas", async ({ page }) => {
+    await masuk(page, AKUN_UJI.koordOperasional);
+
+    await page.goto("/inventaris");
+    const kodeAset = await page
+      .getByRole("link", { name: "Pinjamkan alat ini" })
+      .first()
+      .getAttribute("href")
+      .then((h) => new URL(h!, "http://x").searchParams.get("kode")!);
+
+    // Kolom kartu identitas hanya muncul setelah dicentang.
+    await page.goto("/peminjaman/baru");
+    await expect(page.getByLabel("Foto KTM atau KTP peminjam")).toHaveCount(0);
+
+    // Dicentang tanpa melampirkan apa pun: peladen menolak.
+    await isiFormulirPinjam(page, kodeAset, "Uji dibawa keluar tanpa kartu identitas", {
+      keluarLab: true,
+      lampirkanIdentitas: false,
+    });
+    await expect(page.getByText(/wajib disertai foto KTM atau KTP/)).toBeVisible();
+
+    // Dengan kartu identitas: diterima, dan alatnya ditandai di luar lab.
+    await page.goto("/peminjaman/baru");
+    await isiFormulirPinjam(page, kodeAset, "Uji dibawa keluar dengan kartu identitas", {
+      keluarLab: true,
+    });
+    await expect(page.getByText(/dibawa keluar lab dengan jaminan kartu identitas/)).toBeVisible();
+
+    await page.goto("/peminjaman");
+    const baris = page.locator("li").filter({ hasText: kodeAset }).first();
+    await expect(baris.getByText("Di luar lab")).toBeVisible();
+
+    // Fotonya hanya boleh dibaca petugas — anggota biasa ditolak.
+    const tautan = await baris.getByRole("link", { name: /lihat foto/ }).getAttribute("href");
+    expect(tautan).toContain("/api/berkas/identitas/");
+
+    await page.context().clearCookies();
+    await masuk(page, AKUN_UJI.anggota);
+    const dicoba = await page.request.get(tautan!);
+    expect(dicoba.status()).toBe(403);
   });
 
   test("lembar label QR terbit sebagai PDF bagi pengurus", async ({ page }) => {

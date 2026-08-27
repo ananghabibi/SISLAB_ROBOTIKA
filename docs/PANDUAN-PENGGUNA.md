@@ -132,6 +132,11 @@ Kembalikan tepat waktu. Alat yang lewat tenggat memotong skor kontribusi Anda 5
 poin per alat, dan potongannya baru hilang setelah alatnya benar-benar tercatat
 kembali.
 
+Untuk alat yang dibawa **keluar** laboratorium, Anda diminta menyerahkan **KTM
+atau KTP** untuk difoto petugas. Fotonya dihapus sendiri saat alat Anda
+kembalikan, dan selama disimpan hanya bisa dilihat petugas yang mencatat
+peminjaman.
+
 ---
 
 ## 6. Untuk pengurus
@@ -169,6 +174,21 @@ foto inilah yang menentukan sejak kapan.
 Yang tercatat sebagai penyerah alat adalah **Anda**, bukan peminjamnya. Setiap
 alat yang keluar punya dua nama.
 
+**Alat yang dibawa keluar laboratorium.** Centang **Dibawa keluar
+laboratorium**, lalu foto **KTM atau KTP** peminjam. Tanpa foto itu sistem
+menolak menyimpan — penolakannya terjadi sampai di tingkat basis data, jadi
+tidak ada jalan pintas. Alat yang hanya dipakai di dalam lab tidak menuntutnya;
+meminta KTM untuk alat yang dipakai di meja sebelah hanya akan membuat centang
+itu ditekan asal, dan jaminannya kehilangan arti.
+
+Foto kartu identitas **dihapus otomatis begitu alat dikembalikan**. Keperluannya
+habis di situ, sedangkan pindaian KTM yang mengendap di komputer lab — dan ikut
+tersalin ke setiap cadangan harian — hanya menambah risiko. Yang tersisa di
+catatan adalah keterangan bahwa jaminan itu pernah ada beserta waktu
+penghapusannya. Selama alat masih di luar, fotonya hanya dapat dibuka petugas
+yang berwenang mencatat peminjaman; anggota lain menerima 403 sekalipun
+tautannya bocor.
+
 **Satu alat tidak bisa dipinjam dua orang.** Bila alat itu belum dikembalikan,
 sistem menolak dengan menyebut nama alatnya. Penolakan ini terjadi di basis
 data, jadi dua petugas yang menekan tombol pada detik yang sama pun tidak bisa
@@ -176,7 +196,8 @@ sama-sama lolos.
 
 **Mencatat alat kembali.** Halaman **Peminjaman** menampilkan alat yang masih di
 luar, diurutkan dari tenggat yang paling dekat; yang lewat tenggat diberi
-penanda merah **Terlambat**. Buka **Catat pengembalian** pada barisnya, pilih
+penanda merah **Terlambat**, dan yang dibawa keluar lab diberi penanda **Di
+luar lab**. Buka **Catat pengembalian** pada barisnya, pilih
 kondisi saat kembali, unggah fotonya. Kondisi yang bukan `BAIK` wajib disertai
 catatan, dan kondisi asetnya di inventaris ikut turun mengikutinya.
 

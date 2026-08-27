@@ -291,6 +291,14 @@ model Loan {
   rencanaKembali  DateTime
   fotoPinjamUrl   String
 
+  // Alat yang dibawa keluar laboratorium menuntut jaminan identitas: foto KTM
+  // atau KTP peminjam. Fotonya DIHAPUS saat alat kembali (lihat
+  // `kembalikanAset`) — keperluannya habis begitu alatnya ada lagi, sedangkan
+  // menyimpan pindaian kartu identitas tanpa batas waktu adalah risiko.
+  dibawaKeluar       Boolean   @default(false)
+  fotoIdentitasUrl   String?
+  identitasDihapusPada DateTime?
+
   tglKembali       DateTime?
   petugasKembaliId String?
   kondisiKembali   KondisiAset?

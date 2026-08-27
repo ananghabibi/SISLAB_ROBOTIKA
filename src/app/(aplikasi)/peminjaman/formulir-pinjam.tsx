@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { PemindaiAset } from "@/components/pemindai-aset";
@@ -28,6 +28,11 @@ export function FormulirPinjam({
   tanggalMinimal: string;
 }) {
   const [keadaan, kirim] = useActionState<KeadaanPinjam, FormData>(catatPinjam, {});
+
+  // Kolom kartu identitas hanya muncul saat alatnya memang dibawa keluar.
+  // Meminta KTM untuk alat yang dipakai di meja sebelah hanya akan membuat
+  // petugas terbiasa mencentangnya asal, lalu jaminan itu kehilangan artinya.
+  const [dibawaKeluar, setDibawaKeluar] = useState(false);
 
   return (
     <form action={kirim} className="space-y-4">
@@ -91,6 +96,45 @@ export function FormulirPinjam({
           required
         />
       </Field>
+
+      <div className="rounded-lg border border-garis p-3">
+        <label className="flex min-h-11 items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            name="dibawaKeluar"
+            value="ya"
+            checked={dibawaKeluar}
+            onChange={(e) => setDibawaKeluar(e.target.checked)}
+            className="mt-0.5 size-5 shrink-0"
+          />
+          <span>
+            <strong>Dibawa keluar laboratorium</strong>
+            <span className="mt-0.5 block text-teks-redup">
+              Centang bila alat tidak dipakai di dalam lab. Peminjam wajib menyerahkan KTM atau
+              KTP untuk difoto.
+            </span>
+          </span>
+        </label>
+
+        {dibawaKeluar ? (
+          <div className="mt-3 border-t border-garis pt-3">
+            <Field
+              label="Foto KTM atau KTP peminjam"
+              htmlFor="fotoIdentitas"
+              petunjuk={`Wajib. Foto ini dihapus otomatis saat alat dikembalikan. Maksimal ${UKURAN_MAKSIMAL_MB} MB.`}
+            >
+              <Input
+                id="fotoIdentitas"
+                name="fotoIdentitas"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                capture="environment"
+                required
+              />
+            </Field>
+          </div>
+        ) : null}
+      </div>
 
       {keadaan.galat ? (
         <p className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">{keadaan.galat}</p>

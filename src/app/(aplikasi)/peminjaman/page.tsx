@@ -94,10 +94,33 @@ export default async function HalamanPeminjaman() {
                         </p>
                         <p className="mt-1 text-sm">{p.keperluan}</p>
                       </div>
-                      <Badge variant={lewat ? "bahaya" : "utama"}>
-                        {lewat ? "Terlambat" : "Dipinjam"} · {tanggalPendekWib(p.rencanaKembali)}
-                      </Badge>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {p.dibawaKeluar ? (
+                          <Badge variant="peringatan">Di luar lab</Badge>
+                        ) : null}
+                        <Badge variant={lewat ? "bahaya" : "utama"}>
+                          {lewat ? "Terlambat" : "Dipinjam"} · {tanggalPendekWib(p.rencanaKembali)}
+                        </Badge>
+                      </div>
                     </div>
+
+                    {p.dibawaKeluar && bolehCatat ? (
+                      <p className="mt-2 text-sm text-teks-redup">
+                        Jaminan kartu identitas{" "}
+                        {p.fotoIdentitasUrl ? (
+                          <a
+                            href={`/api/berkas/${p.fotoIdentitasUrl}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-semibold text-utama underline"
+                          >
+                            tersimpan — lihat foto
+                          </a>
+                        ) : (
+                          "sudah dihapus."
+                        )}
+                      </p>
+                    ) : null}
 
                     {bolehCatat ? (
                       <details className="mt-3">

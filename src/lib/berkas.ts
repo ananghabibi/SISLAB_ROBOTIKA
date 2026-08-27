@@ -14,7 +14,7 @@
 // -----------------------------------------------------------------------------
 
 import { randomBytes } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { UKURAN_MAKSIMAL, UKURAN_MAKSIMAL_MB } from "./unggahan";
@@ -91,6 +91,25 @@ export function lokasiBerkas(jalur: string): string | null {
   // Penjagaan terakhir: hasil akhirnya wajib berada di dalam folder unggahan.
   if (!penuh.startsWith(path.resolve(akarUnggahan()) + path.sep)) return null;
   return penuh;
+}
+
+/**
+ * Menghapus satu berkas unggahan.
+ *
+ * Dipakai membuang foto kartu identitas begitu alatnya kembali. Kegagalan
+ * penghapusan tidak dilempar: pengembalian alat tidak boleh gagal hanya karena
+ * berkasnya sudah lebih dulu hilang dari cakram. Kembaliannya menyatakan apakah
+ * berkas itu benar-benar ada dan terhapus.
+ */
+export async function hapusBerkas(jalur: string): Promise<boolean> {
+  const lokasi = lokasiBerkas(jalur);
+  if (!lokasi) return false;
+  try {
+    await unlink(lokasi);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function tipeDariJalur(jalur: string): string {

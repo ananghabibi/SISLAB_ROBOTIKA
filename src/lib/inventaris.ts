@@ -16,6 +16,7 @@
 
 import { Prisma, type KondisiAset, type Loan } from "@prisma/client";
 
+import { hapusBerkas } from "./berkas";
 import { prisma } from "./prisma";
 
 /**
@@ -31,7 +32,11 @@ const PENANDA_PINJAM_GANDA = ["loans_asset_dipinjam_unik", "assetId"];
 
 export type HasilPinjam =
   | { ok: true; pinjaman: Loan }
-  | { ok: false; kode: "SEDANG_DIPINJAM" | "TIDAK_BOLEH_DIPINJAM" | "ASET_TIDAK_ADA"; pesan: string };
+  | {
+      ok: false;
+      kode: "SEDANG_DIPINJAM" | "TIDAK_BOLEH_DIPINJAM" | "ASET_TIDAK_ADA" | "IDENTITAS_KURANG";
+      pesan: string;
+    };
 
 export type HasilKembali =
   | { ok: true; pinjaman: Loan }
@@ -55,6 +60,10 @@ export interface MasukanPinjam {
   keperluan: string;
   rencanaKembali: Date;
   fotoPinjamUrl: string;
+  /** Dibawa keluar laboratorium; menuntut jaminan kartu identitas. */
+  dibawaKeluar: boolean;
+  /** Foto KTM/KTP; wajib ada bila `dibawaKeluar`. */
+  fotoIdentitasUrl: string | null;
 }
 
 export async function pinjamAset(masukan: MasukanPinjam): Promise<HasilPinjam> {
@@ -77,6 +86,15 @@ export async function pinjamAset(masukan: MasukanPinjam): Promise<HasilPinjam> {
       pesan: `${aset.nama} ditandai tidak boleh dipinjam. Hubungi Koordinator Operasional.`,
     };
   }
+  if (masukan.dibawaKeluar && !masukan.fotoIdentitasUrl) {
+    // Basis data pun menolaknya lewat `loans_identitas_wajib`; pemeriksaan di
+    // sini hanya supaya pesannya terbaca manusia, bukan sebagai galat SQL.
+    return {
+      ok: false,
+      kode: "IDENTITAS_KURANG",
+      pesan: "Alat yang dibawa keluar laboratorium wajib disertai foto KTM atau KTP peminjam.",
+    };
+  }
 
   try {
     const pinjaman = await prisma.loan.create({
@@ -88,6 +106,8 @@ export async function pinjamAset(masukan: MasukanPinjam): Promise<HasilPinjam> {
         keperluan: masukan.keperluan,
         rencanaKembali: masukan.rencanaKembali,
         fotoPinjamUrl: masukan.fotoPinjamUrl,
+        dibawaKeluar: masukan.dibawaKeluar,
+        fotoIdentitasUrl: masukan.fotoIdentitasUrl,
         status: "DIPINJAM",
       },
     });
@@ -124,6 +144,13 @@ export async function kembalikanAset(masukan: MasukanKembali): Promise<HasilKemb
     };
   }
 
+  // Jaminan kartu identitas dibuang begitu alatnya ada lagi. Keperluannya sudah
+  // habis, sedangkan pindaian KTM/KTP yang mengendap di cakram laboratorium —
+  // dan ikut tersalin ke setiap cadangan harian — adalah risiko yang tidak
+  // memberi manfaat apa pun setelah alat kembali. Waktu penghapusannya dicatat
+  // supaya "tidak ada foto" tetap punya sebab yang terbaca.
+  const adaIdentitas = Boolean(pinjaman.fotoIdentitasUrl);
+
   const diperbarui = await prisma.$transaction(async (tx) => {
     const hasil = await tx.loan.update({
       where: { id: pinjaman.id },
@@ -134,6 +161,7 @@ export async function kembalikanAset(masukan: MasukanKembali): Promise<HasilKemb
         fotoKembaliUrl: masukan.fotoKembaliUrl,
         catatan: masukan.catatan?.trim() || null,
         status: masukan.kondisiKembali === "HILANG" ? "HILANG" : "KEMBALI",
+        ...(adaIdentitas ? { fotoIdentitasUrl: null, identitasDihapusPada: new Date() } : {}),
       },
     });
 
@@ -146,6 +174,11 @@ export async function kembalikanAset(masukan: MasukanKembali): Promise<HasilKemb
 
     return hasil;
   });
+
+  // Berkasnya dibuang setelah transaksi berhasil. Urutan ini disengaja: rujukan
+  // yang menggantung ke berkas yang sudah hilang jauh lebih buruk daripada satu
+  // berkas yatim yang tertinggal bila penghapusan gagal.
+  if (adaIdentitas) await hapusBerkas(pinjaman.fotoIdentitasUrl!);
 
   return { ok: true, pinjaman: diperbarui };
 }

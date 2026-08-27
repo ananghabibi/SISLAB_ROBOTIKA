@@ -237,6 +237,21 @@ lembar label QR, dan tidak melihat tombol catat peminjaman.
   di layar ikut memerah.
 - **Foto disimpan sebelum baris pinjaman dibuat.** Berkas yatim hanya memakan
   ruang; pinjaman tanpa foto menghilangkan buktinya.
+- **Alat yang dibawa keluar lab menuntut foto KTM/KTP**, ditegakkan basis data
+  lewat `loans_identitas_wajib` — bukan hanya oleh formulir, supaya jalur
+  penulisan yang ditambahkan kelak tidak bisa melewatinya. Alat yang dipakai di
+  dalam lab tidak menuntutnya: jaminan yang diminta untuk segalanya akan
+  ditekan asal, lalu berhenti menjadi jaminan.
+- **Foto kartu identitas dihapus saat alat kembali**, dan waktu penghapusannya
+  dicatat supaya "tidak ada foto" tetap punya sebab yang terbaca. Pindaian
+  KTM/KTP yang menetap di cakram laboratorium ikut tersalin ke setiap cadangan
+  harian, dan setelah alatnya kembali ia tidak memberi manfaat apa pun. Berkas
+  dibuang SETELAH transaksi berhasil: rujukan menggantung lebih buruk daripada
+  berkas yatim.
+- **Foto identitas disimpan di folder terpisah** (`identitas/`) supaya
+  penjagaannya bisa berbeda dari foto kondisi: ia menuntut izin tulis
+  peminjaman, sedangkan foto kondisi cukup sudah masuk. Nama berkas yang acak
+  bukan penjagaan — satu tautan bocor sudah cukup.
 - **Aset yang pernah dipinjam tidak bisa dihapus.** Riwayat peminjamannya
   adalah bukti siapa memegang apa. Untuk alat yang sudah tidak ada, pakai
   kondisi HILANG atau RUSAK.
