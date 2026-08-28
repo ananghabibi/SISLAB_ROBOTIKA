@@ -547,6 +547,14 @@ Cari blok **Wireless LAN adapter Wi-Fi** dan ambil baris `IPv4 Address`
 `Default Switch` — dan perhatikan bahwa `ipconfig` menyebut blok itu apa
 adanya, jadi nama bloknyalah yang menentukan, bukan angka alamatnya.
 
+> **Peringatan "Cross origin request detected" dari Next.js dapat diabaikan.**
+> Ia muncul karena halaman dibuka lewat alamat WiFi sementara peladen
+> pengembangan menganggap dirinya `localhost`. `next.config.ts` sudah
+> mendaftarkan seluruh alamat IPv4 laptop pada `allowedDevOrigins`, dibaca dari
+> mesinnya sendiri supaya tetap benar walau alamat WiFi berubah. Bila
+> peringatannya masih muncul, jalankan ulang `npm run dev` — berkas konfigurasi
+> hanya dibaca saat peladen mulai.
+
 **b. Pastikan jaringan WiFi bertipe Private, bukan Public.** Ini penyebab yang
 paling sering membuat alamat yang kemarin bisa dibuka mendadak tidak bisa:
 Windows kadang menggolongkan ulang jaringan yang sama menjadi Public, dan profil

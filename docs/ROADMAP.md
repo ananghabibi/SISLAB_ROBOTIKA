@@ -298,9 +298,13 @@ Kepala Lab.
 | PENGAWAS tidak pernah bisa menulis | Sebagai PENGAWAS, keempat halaman terbuka tanpa satu pun formulir |
 | Tamu tidak masuk ke rekap absensi | Catat satu tamu, lalu buka Rekap Kontribusi — angkanya tidak berubah |
 
-Migrasi `20260828040000_logbook_periode` **belum pernah dijalankan** ke basis
-data mana pun. Jalankan `npm run db:migrate` (pengembangan) atau
-`npx prisma migrate deploy` (laboratorium) sebelum menguji.
+Migrasi `20260828040000_logbook_periode` harus dijalankan sebelum menguji:
+`npm run db:migrate` (pengembangan) atau `npx prisma migrate deploy`
+(laboratorium). **Urutannya penting** — `git pull` dulu, baru migrasi. Migrasi
+yang dijalankan sebelum kodenya ditarik akan menjawab "Already in sync" dengan
+benar (berkas migrasinya memang belum ada), lalu halaman Logbook dan Dasbor
+gagal dengan `Unknown argument periodId` karena klien Prisma masih dibuat dari
+skema yang lama.
 
 ### Catatan keputusan
 
