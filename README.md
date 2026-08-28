@@ -730,9 +730,18 @@ sekadar AP-nya diganti:
 
 4. Jalankan ulang aplikasinya — `.env` hanya dibaca saat peladen mulai. Pada
    pemasangan Docker: `docker compose up -d --force-recreate app`.
-5. Uji dari ponsel yang tersambung ke jaringan itu, dan sekali lagi dari ponsel
-   yang **memakai data seluler** — yang kedua harus ditolak. Bila keduanya
-   diterima, lapis 1 tidak sedang menjaga apa pun.
+5. Uji dari ponsel yang tersambung ke jaringan itu — harus **diterima**.
+6. Uji kebalikannya, dan jangan dilewati: ubah sementara `LAB_SUBNETS` ke blok
+   lain (misalnya `192.168.99.0/24`), jalankan ulang peladen, lalu coba absen
+   lagi dari ponsel yang sama — kali ini harus **ditolak** dengan pesan lapis 1.
+   Kembalikan nilainya sesudah itu.
+
+   Tanpa langkah 6, yang terbukti barulah &ldquo;absensi bisa&rdquo;, bukan
+   &ldquo;absensi terjaga&rdquo; — dan keduanya terlihat sama persis dari luar.
+   Mencoba lewat data seluler **bukan** penggantinya: dari sana peladennya
+   memang tidak dapat dijangkau sama sekali, jadi yang muncul &ldquo;situs
+   tidak dapat dijangkau&rdquo;, bukan penolakan. Gejala itu sama saja dengan
+   yang muncul bila aplikasinya mati.
 
 Yang perlu diperhatikan:
 
