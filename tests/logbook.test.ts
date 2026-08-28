@@ -5,6 +5,7 @@ import {
   mingguKeDari,
   pekanAktif,
   pekanBerjalan,
+  pekanDapatDiisi,
   rentangPekan,
 } from "@/lib/logbook";
 import { awalPekanWib } from "@/lib/waktu";
@@ -114,5 +115,44 @@ describe("pembacaan anggota yang terlibat", () => {
     expect(
       bacaAnggotaTerlibat([{ id: "", nama: "Kosong" }, { id: "a2", nama: "Sinta" }]),
     ).toEqual([{ id: "a2", nama: "Sinta" }]);
+  });
+});
+
+describe("pekan yang boleh diisi", () => {
+  const MULAI = new Date("2026-09-01T00:00:00.000Z");
+  const SELESAI = new Date("2027-01-31T00:00:00.000Z");
+
+  it("menolak pekan sebelum periode dibuka", () => {
+    // Keadaan nyata saat sistem dicoba pada 28 Agustus: pekan berjalan
+    // bernomor 0, dan halamannya sempat menawarkan "Isi logbook pekan 0".
+    const nol = mingguKeDari(new Date("2026-08-28T10:00:00+07:00"), MULAI);
+    expect(nol).toBe(0);
+    const hasil = pekanDapatDiisi(nol, MULAI, SELESAI, new Date("2026-08-28T10:00:00+07:00"));
+    expect(hasil.boleh).toBe(false);
+    expect(hasil.boleh === false && hasil.alasan).toContain("sebelum periode dimulai");
+  });
+
+  it("menerima pekan yang sedang berjalan", () => {
+    expect(pekanDapatDiisi(1, MULAI, SELESAI, new Date("2026-09-02T10:00:00+07:00")).boleh).toBe(
+      true,
+    );
+  });
+
+  it("menolak pekan yang belum tiba", () => {
+    const hasil = pekanDapatDiisi(5, MULAI, SELESAI, new Date("2026-09-02T10:00:00+07:00"));
+    expect(hasil.boleh === false && hasil.alasan).toContain("belum tiba");
+  });
+
+  it("menolak pekan setelah periode berakhir", () => {
+    // Nomor pekan terus bertambah selamanya sesudah tanggal selesai lewat.
+    const jauh = mingguKeDari(new Date("2027-06-01T10:00:00+07:00"), MULAI);
+    const hasil = pekanDapatDiisi(jauh, MULAI, SELESAI, new Date("2027-06-01T10:00:00+07:00"));
+    expect(hasil.boleh).toBe(false);
+    expect(hasil.boleh === false && hasil.alasan).toContain("hanya berjalan sampai pekan");
+  });
+
+  it("menerima pekan terakhir periode tepat pada batasnya", () => {
+    const terakhir = mingguKeDari(SELESAI, MULAI);
+    expect(pekanDapatDiisi(terakhir, MULAI, SELESAI, SELESAI).boleh).toBe(true);
   });
 });

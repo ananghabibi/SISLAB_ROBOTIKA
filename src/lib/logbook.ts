@@ -82,3 +82,53 @@ export function bacaAnggotaTerlibat(nilai: unknown): AnggotaTerlibat[] {
     return [{ id, nama }];
   });
 }
+
+export type AlasanTolakPekan =
+  | { boleh: true }
+  | { boleh: false; alasan: string };
+
+/**
+ * Apakah sebuah nomor pekan boleh diisi sekarang.
+ *
+ * Tiga penolakan, dan ketiganya pernah bisa lolos:
+ *
+ * 1. Pekan sebelum periode dibuka — bernomor 0 atau kurang. Muncul ketika
+ *    sistem dicoba sebelum semester berjalan, dan halamannya dengan lugu
+ *    menawarkan "Isi logbook pekan 0".
+ * 2. Pekan yang belum tiba. Logbook yang boleh diisi ke depan akan diisi
+ *    sebulan sekaligus pada malam sebelum penilaian.
+ * 3. Pekan setelah periode berakhir. Nomor pekan terus bertambah selamanya
+ *    setelah tanggal selesai lewat, jadi tanpa batas ini periode yang sudah
+ *    ditutup masih menerima entri baru.
+ */
+export function pekanDapatDiisi(
+  mingguKe: number,
+  mulaiPeriode: Date,
+  selesaiPeriode: Date,
+  sekarang: Date = new Date(),
+): AlasanTolakPekan {
+  if (mingguKe < 1) {
+    return {
+      boleh: false,
+      alasan: "Pekan itu berada sebelum periode dimulai, jadi belum ada yang bisa dicatat.",
+    };
+  }
+
+  const pekanTerakhir = mingguKeDari(selesaiPeriode, mulaiPeriode);
+  if (mingguKe > pekanTerakhir) {
+    return {
+      boleh: false,
+      alasan: `Periode ini hanya berjalan sampai pekan ${pekanTerakhir}.`,
+    };
+  }
+
+  if (mingguKe > mingguKeDari(sekarang, mulaiPeriode)) {
+    return {
+      boleh: false,
+      alasan:
+        "Pekan itu belum tiba. Logbook hanya dapat diisi untuk pekan yang sedang atau sudah berjalan.",
+    };
+  }
+
+  return { boleh: true };
+}

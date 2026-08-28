@@ -19,7 +19,7 @@ import { z } from "zod";
 import { catatAudit } from "@/lib/audit";
 import { simpanGambar } from "@/lib/berkas";
 import { periodeAktif } from "@/lib/kontribusi";
-import { mingguKeDari, rentangPekan } from "@/lib/logbook";
+import { pekanDapatDiisi, rentangPekan } from "@/lib/logbook";
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
 import { KELOMPOK_LOGBOOK } from "@/lib/unggahan";
@@ -71,11 +71,8 @@ export async function simpanLogbook(
     return { galat: "Belum ada periode aktif. Kepala Laboratorium perlu membukanya lebih dulu." };
   }
 
-  const pekanSekarang = mingguKeDari(new Date(), periode.tanggalMulai);
-  if (m.mingguKe > pekanSekarang) {
-    return { galat: "Pekan itu belum tiba. Logbook hanya dapat diisi untuk pekan yang sedang atau sudah berjalan." };
-  }
-  if (m.mingguKe < 1) return { galat: "Pekan itu berada sebelum periode dimulai." };
+  const boleh = pekanDapatDiisi(m.mingguKe, periode.tanggalMulai, periode.tanggalSelesai);
+  if (!boleh.boleh) return { galat: boleh.alasan };
 
   const anggotaTerpilih = data.getAll("anggota").map(String).filter(Boolean);
   if (anggotaTerpilih.length === 0) {

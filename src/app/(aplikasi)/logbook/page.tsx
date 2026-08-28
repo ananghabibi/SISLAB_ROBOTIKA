@@ -2,8 +2,9 @@ import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { periodeAktif } from "@/lib/kontribusi";
-import { bacaAnggotaTerlibat, rentangPekan } from "@/lib/logbook";
+import { bacaAnggotaTerlibat, pekanDapatDiisi, rentangPekan } from "@/lib/logbook";
 import { squadPadaPekan } from "@/lib/pemantauan";
+import { keadaanPeriode } from "@/lib/periode";
 import { saringanLogbook, wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
 import { tanggalPendekWib } from "@/lib/waktu";
@@ -34,7 +35,15 @@ export default async function Halaman() {
   const pekan = rentangPekan(mingguKe, periode.tanggalMulai);
   const belum = squad.filter((s) => !s.sudahMengisi);
 
-  const bolehMengisi = izin.tulis !== "TIDAK";
+  // Pekan berjalan bisa berada di luar periode — bernomor 0 atau kurang bila
+  // periodenya belum dibuka, atau melewati pekan terakhir bila sudah ditutup.
+  // Di kedua keadaan itu formulirnya TIDAK boleh muncul: peladen akan menolak
+  // apa pun yang dikirim, dan formulir yang mustahil berhasil lebih buruk
+  // daripada tidak ada formulir sama sekali.
+  const keadaan = keadaanPeriode(periode);
+  const pekanTerbuka = pekanDapatDiisi(mingguKe, periode.tanggalMulai, periode.tanggalSelesai);
+
+  const bolehMengisi = izin.tulis !== "TIDAK" && pekanTerbuka.boleh;
   const squadBolehDiisi =
     izin.tulis === "SEMUA" ? squad : squad.filter((s) => s.id === pengguna.squadId);
 
@@ -67,10 +76,37 @@ export default async function Halaman() {
     <>
       <KepalaHalaman
         judul="Logbook Riset"
-        keterangan={`${periode.nama} · pekan ${mingguKe} (${tanggalPendekWib(pekan.mulai)} – ${tanggalPendekWib(pekan.selesai)})`}
+        keterangan={
+          pekanTerbuka.boleh
+            ? `${periode.nama} · pekan ${mingguKe} (${tanggalPendekWib(pekan.mulai)} – ${tanggalPendekWib(pekan.selesai)})`
+            : `${periode.nama} · ${tanggalPendekWib(periode.tanggalMulai)} – ${tanggalPendekWib(periode.tanggalSelesai)}`
+        }
       />
 
-      {izin.baca === "SEMUA" ? (
+      {!pekanTerbuka.boleh ? (
+        <Card className="mb-5 border-peringatan/50">
+          <CardHeader>
+            <CardTitle>
+              {keadaan === "BELUM_MULAI"
+                ? "Periode aktif belum dimulai"
+                : "Periode aktif sudah berakhir"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>{pekanTerbuka.alasan}</p>
+            <p className="text-teks-redup">
+              {periode.nama} berjalan {tanggalPendekWib(periode.tanggalMulai)} –{" "}
+              {tanggalPendekWib(periode.tanggalSelesai)}. Pekan 1 dimulai Senin{" "}
+              {tanggalPendekWib(rentangPekan(1, periode.tanggalMulai).mulai)}.
+            </p>
+            <p className="text-teks-redup">
+              Tanggal periode dapat disesuaikan di Periode &amp; Target oleh Kepala Laboratorium.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {izin.baca === "SEMUA" && pekanTerbuka.boleh ? (
         <Card className={belum.length > 0 ? "mb-5 border-peringatan/50" : "mb-5"}>
           <CardHeader>
             <CardTitle>
