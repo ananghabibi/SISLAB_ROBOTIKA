@@ -31,6 +31,8 @@ import {
   ipDalamCidr,
   ipKeAngka,
   pilahAntarmuka,
+  profilMemblokir,
+  profilTanpaIzin,
   rentangJaringan,
   seJaringan,
 } from "./alamat-lib.mjs";
@@ -582,12 +584,6 @@ function cakupanProfil(kategoriAktif) {
   return kategoriAktif.length > 0 ? kategoriAktif.join(",") : "Private";
 }
 
-/** Apakah nilai Profile sebuah aturan mencakup kategori jaringan tertentu. */
-function profilMencakup(profilAturan, kategori) {
-  const bagian = profilAturan.split(",").map((b) => b.trim());
-  return bagian.includes("Any") || bagian.includes(kategori);
-}
-
 /**
  * Memastikan ada aturan Allow yang benar-benar berlaku pada profil aktif.
  *
@@ -600,10 +596,7 @@ function laporkanCakupanProfil(aturan, kategoriAktif) {
     return;
   }
 
-  const mengizinkan = aturan.filter((a) => a.tindakan === "Allow" && a.aktif === "True");
-  const tanpaIzin = kategoriAktif.filter(
-    (k) => !mengizinkan.some((a) => profilMencakup(a.profil, k)),
-  );
+  const tanpaIzin = profilTanpaIzin(aturan, kategoriAktif);
 
   if (tanpaIzin.length === 0) {
     console.log(`  Tidak ada aturan Block, dan profil aktif (${kategoriAktif.join(", ")}) diizinkan.`);
@@ -615,12 +608,31 @@ function laporkanCakupanProfil(aturan, kategoriAktif) {
     return;
   }
 
+  // Ketiadaan aturan Allow belum berarti memblokir: firewall profil itu bisa
+  // saja dimatikan, atau tindakan bawaan masuknya justru Allow.
+  const keadaan = keadaanFirewall();
+  const memblokir = tanpaIzin.filter((k) => profilMemblokir(k, keadaan));
+
+  if (memblokir.length === 0) {
+    console.log("");
+    console.log(`  Tidak ada aturan Allow yang mencakup profil aktif (${tanpaIzin.join(", ")}),`);
+    console.log("  TETAPI firewall profil itu memang tidak menutup sambungan masuk");
+    console.log("  (dimatikan, atau tindakan bawaannya Allow). Firewall bukan");
+    console.log("  penyebabnya.");
+    return;
+  }
+
   console.log("");
   console.log("  ---------------------------------------------------------------");
-  console.log(`  INILAH SEBABNYA. Jaringan Anda sekarang berprofil ${tanpaIzin.join(", ")},`);
-  console.log("  tetapi tidak ada satu pun aturan Allow di atas yang mencakup profil itu.");
-  console.log("  Windows menolak sambungan masuk pada profil yang tidak punya aturan");
-  console.log("  Allow — tidak perlu ada aturan Block untuk memblokir.");
+  console.log("  BILA PONSEL GAGAL MEMBUKA, INI SEBAB YANG PALING MUNGKIN.");
+  console.log(`  Jaringan Anda sekarang berprofil ${memblokir.join(", ")}, tetapi tidak ada`);
+  console.log("  satu pun aturan Allow di atas yang mencakup profil itu. Windows");
+  console.log("  menolak sambungan masuk pada profil yang tidak punya aturan Allow —");
+  console.log("  tidak perlu ada aturan Block untuk memblokir.");
+  console.log("");
+  console.log("  Skrip ini tidak dapat melihat dari sisi ponsel. Bila ponsel ternyata");
+  console.log("  sudah bisa membuka halamannya, abaikan bagian ini — berarti ada jalan");
+  console.log("  masuk lain yang tidak tampak pada daftar aturan di atas.");
   console.log("");
   console.log("  Ini lazim terjadi tepat setelah jaringan dipindahkan dari Public ke");
   console.log("  Private: aturan yang ada dibuat waktu jaringannya masih Public, dan");
@@ -629,8 +641,44 @@ function laporkanCakupanProfil(aturan, kategoriAktif) {
   console.log("  Perbaiki lewat PowerShell sebagai Administrator:");
   console.log(`    New-NetFirewallRule -DisplayName "SILAB dev ${PORT}" \``);
   console.log("      -Direction Inbound -Action Allow -Protocol TCP `");
-  console.log(`      -LocalPort ${PORT} -Profile ${tanpaIzin.join(",")}`);
+  console.log(`      -LocalPort ${PORT} -Profile ${memblokir.join(",")}`);
   console.log("  ---------------------------------------------------------------");
+}
+
+/**
+ * Keadaan tiap profil firewall: menyala atau tidak, dan tindakan bawaan untuk
+ * sambungan masuk.
+ *
+ * Kegagalan membacanya mengembalikan daftar kosong, dan `profilMemblokir`
+ * memperlakukan profil yang tidak terbaca sebagai memblokir.
+ */
+function keadaanFirewall() {
+  try {
+    const keluaran = execFileSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        'Get-NetFirewallProfile | ForEach-Object {' +
+          ' "$($_.Name)|$($_.Enabled)|$($_.DefaultInboundAction)" }',
+      ],
+      { encoding: "utf8", timeout: 20_000, stdio: ["ignore", "pipe", "ignore"] },
+    );
+    return keluaran
+      .split("\n")
+      .map((b) => b.trim())
+      .filter(Boolean)
+      .map((b) => {
+        const [nama, aktif, bawaanMasuk] = b.split("|");
+        return {
+          nama: nama?.trim() ?? "",
+          aktif: aktif?.trim() ?? "",
+          bawaanMasuk: bawaanMasuk?.trim() ?? "",
+        };
+      });
+  } catch {
+    return [];
+  }
 }
 
 /**

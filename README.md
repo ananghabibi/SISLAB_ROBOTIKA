@@ -605,6 +605,18 @@ Tekan **Relaunch**, lalu **tutup Chrome sepenuhnya** dari daftar aplikasi
 terbaru dan buka lagi. Sesudah itu kamera berfungsi pada alamat tersebut.
 Kembalikan ke `Disabled` setelah selesai menguji.
 
+Yang dicocokkan adalah alamat **persis**, berikut portnya. Alamat laptop dapat
+berubah sendiri setiap kali menyambung ulang ke WiFi — dan begitu berubah,
+izin ini tidak lagi berlaku serta kamera berhenti terbuka tanpa penjelasan.
+Jalankan `npm run alamat` lebih dulu, dan perbarui isi kotaknya bila alamatnya
+sudah lain. Beberapa alamat boleh ditulis sekaligus, dipisah koma.
+
+Perlu diketahui pula: memindai QR **tidak dapat dilewati** dengan mengetik
+sesuatu. Kode harian baru diminta setelah QR terbaca, dan urutan itu memang
+disengaja — lihat bagian 7. Jadi selama kamera belum terbuka di ponsel,
+pengujian absensi dari ponsel memang belum dapat diselesaikan; pakai jalan
+memutar di bawah.
+
 > Anggota laboratorium **tidak perlu melakukan ini**. Di laboratorium alamatnya
 > sudah https lewat Caddy (Pilihan B pada `Caddyfile`), sehingga kamera langsung
 > berfungsi begitu halaman dibuka. Langkah di atas hanya untuk laptop

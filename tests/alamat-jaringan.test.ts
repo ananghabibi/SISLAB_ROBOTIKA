@@ -6,6 +6,8 @@ import {
   jaringanDari,
   panjangPrefiks,
   pilahAntarmuka,
+  profilMemblokir,
+  profilTanpaIzin,
   rentangJaringan,
   seJaringan,
 } from "../scripts/alamat-lib.mjs";
@@ -139,5 +141,71 @@ describe("pencocokan alamat dengan LAB_SUBNETS", () => {
   it("tidak melebar melewati batas prefiksnya", () => {
     expect(ipDalamCidr("172.16.16.1", "172.16.0.0/20")).toBe(false);
     expect(ipDalamCidr("172.17.0.1", "172.16.0.0/20")).toBe(false);
+  });
+});
+
+describe("kesimpulan aturan firewall", () => {
+  // Persis yang terbaca di laptop pengembangan: dua aturan Node.js, keduanya
+  // hanya untuk profil Public.
+  const NODE_PUBLIC = [
+    { nama: "Node.js JavaScript Runtime", tindakan: "Allow", aktif: "True", profil: "Public" },
+    { nama: "Node.js JavaScript Runtime", tindakan: "Allow", aktif: "True", profil: "Public" },
+  ];
+
+  const NYALA = [
+    { nama: "Domain", aktif: "True", bawaanMasuk: "Block" },
+    { nama: "Private", aktif: "True", bawaanMasuk: "Block" },
+    { nama: "Public", aktif: "True", bawaanMasuk: "Block" },
+  ];
+
+  it("menyatakan profil Public terlayani oleh aturan Public", () => {
+    expect(profilTanpaIzin(NODE_PUBLIC, ["Public"])).toEqual([]);
+  });
+
+  it("menemukan profil Private yang tidak tersentuh aturan Public", () => {
+    // Keadaan yang muncul tepat setelah jaringan dipindahkan ke Private:
+    // aturannya dibuat waktu masih Public dan tidak ikut berpindah.
+    expect(profilTanpaIzin(NODE_PUBLIC, ["Private"])).toEqual(["Private"]);
+  });
+
+  it("menghitung aturan berprofil Any dan yang menyebut beberapa profil", () => {
+    const aturan = [{ nama: "SILAB", tindakan: "Allow", aktif: "True", profil: "Any" }];
+    expect(profilTanpaIzin(aturan, ["Private", "Public"])).toEqual([]);
+
+    const gabungan = [
+      { nama: "SILAB", tindakan: "Allow", aktif: "True", profil: "Domain, Private" },
+    ];
+    expect(profilTanpaIzin(gabungan, ["Private"])).toEqual([]);
+    expect(profilTanpaIzin(gabungan, ["Public"])).toEqual(["Public"]);
+  });
+
+  it("mengabaikan aturan Allow yang sedang dinonaktifkan", () => {
+    const mati = [
+      { nama: "Node.js", tindakan: "Allow", aktif: "False", profil: "Private" },
+    ];
+    expect(profilTanpaIzin(mati, ["Private"])).toEqual(["Private"]);
+  });
+
+  it("tidak memvonis memblokir bila firewall profil itu dimatikan", () => {
+    const mati = [{ nama: "Private", aktif: "False", bawaanMasuk: "Block" }];
+    expect(profilMemblokir("Private", mati)).toBe(false);
+  });
+
+  it("tidak memvonis memblokir bila tindakan bawaan masuknya Allow", () => {
+    const terbuka = [{ nama: "Private", aktif: "True", bawaanMasuk: "Allow" }];
+    expect(profilMemblokir("Private", terbuka)).toBe(false);
+  });
+
+  it("memvonis memblokir pada profil yang menyala dengan bawaan Block", () => {
+    expect(profilMemblokir("Private", NYALA)).toBe(true);
+  });
+
+  it("menganggap profil yang tidak terbaca sebagai memblokir", () => {
+    // Lebih baik menyarankan aturan yang ternyata tidak perlu daripada diam
+    // saat firewall memang menutup.
+    expect(profilMemblokir("Private", [])).toBe(true);
+    expect(profilMemblokir("Private", [{ nama: "Public", aktif: "True", bawaanMasuk: "Block" }])).toBe(
+      true,
+    );
   });
 });

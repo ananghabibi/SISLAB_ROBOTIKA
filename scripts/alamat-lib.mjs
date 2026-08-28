@@ -186,3 +186,44 @@ export function pilahAntarmuka(
   }
   return hasil;
 }
+
+/**
+ * @typedef {{ nama: string, tindakan: string, aktif: string, profil: string }} AturanFirewall
+ * @typedef {{ nama: string, aktif: string, bawaanMasuk: string }} KeadaanProfil
+ */
+
+/** Apakah nilai Profile sebuah aturan mencakup kategori jaringan tertentu. */
+export function profilMencakup(/** @type {string} */ profilAturan, /** @type {string} */ kategori) {
+  const bagian = profilAturan.split(",").map((b) => b.trim());
+  return bagian.includes("Any") || bagian.includes(kategori);
+}
+
+/** Profil aktif yang tidak punya satu pun aturan Allow yang mencakupnya. */
+export function profilTanpaIzin(
+  /** @type {AturanFirewall[]} */ aturan,
+  /** @type {string[]} */ kategoriAktif,
+) {
+  const mengizinkan = aturan.filter((a) => a.tindakan === "Allow" && a.aktif === "True");
+  return kategoriAktif.filter((k) => !mengizinkan.some((a) => profilMencakup(a.profil, k)));
+}
+
+/**
+ * Apakah profil firewall itu benar-benar menolak sambungan masuk yang tidak
+ * punya aturan Allow.
+ *
+ * Ketiadaan aturan Allow saja belum berarti memblokir. Bila firewall untuk
+ * profil itu dimatikan, atau tindakan bawaan masuknya justru Allow, sambungan
+ * tetap diterima. Tanpa pemeriksaan ini skripnya pernah memvonis "INILAH
+ * SEBABNYA" pada laptop yang ponselnya jelas-jelas berhasil membuka — vonis
+ * yang salah lebih mahal daripada tidak memberi vonis sama sekali, karena ia
+ * mengirim orang memperbaiki yang tidak rusak.
+ *
+ * Profil yang tidak terbaca dianggap memblokir: lebih baik menyarankan aturan
+ * yang ternyata tidak perlu daripada diam saat firewall memang menutup.
+ */
+export function profilMemblokir(/** @type {string} */ nama, /** @type {KeadaanProfil[]} */ keadaan) {
+  const profil = keadaan.find((k) => k.nama === nama);
+  if (!profil) return true;
+  if (profil.aktif === "False") return false;
+  return profil.bawaanMasuk !== "Allow";
+}
