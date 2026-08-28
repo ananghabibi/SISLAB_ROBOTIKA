@@ -257,9 +257,9 @@ menu.
 | `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |
 | `localhost:3000` kosong padahal alamat IP bisa dibuka | Windows menerjemahkan `localhost` ke IPv6 `::1`, sedangkan peladen mendengarkan IPv4 | Pakai `http://127.0.0.1:3000` |
 | Muncul `Next.js 16.x` padahal proyek memakai 15.5.24 | `npm install` menaikkan versi tanpa diminta | `npm ci` — memasang persis versi yang terkunci |
-| HP tidak bisa membuka alamat `172.2x.x.x` atau `172.3x.x.x` | Itu adaptor virtual WSL/Hyper-V, bukan WiFi laptop | Ambil alamat dari blok **Wireless LAN adapter Wi-Fi** pada `ipconfig` |
+| HP tidak bisa membuka alamat `172.x.x.x` | Bisa jadi adaptor virtual WSL/Hyper-V — tetapi blok itu juga dipakai WiFi kampus, jadi alamatnya belum tentu salah | `npm run alamat` memilah keduanya lewat gerbang bawaan. Cara manual: ambil alamat dari blok **Wireless LAN adapter Wi-Fi** pada `ipconfig`, abaikan blok `vEthernet`/`WSL` |
 | `netsh` menerima aturan firewall tetapi tidak ada bedanya | Baris `LocalFirewallRules N/A (GPO-store only)` — laptop dikelola Group Policy, aturan buatan sendiri diabaikan | Pakai jalan memutar pada bagian 6.5: uji dengan kamera laptop, atau lewat terowongan Cloudflare |
-| HP memuat terus lalu gagal walau firewall sudah dibuka | Ponsel berada di jaringan lain, atau router mengaktifkan *client isolation* | Pastikan tiga angka pertama alamat IP ponsel sama dengan laptop. Bila sama dan tetap gagal, uji lewat hotspot ponsel — bila lewat hotspot berhasil, berarti routernya yang memisahkan perangkat |
+| HP memuat terus lalu gagal walau firewall sudah dibuka | Ponsel berada di jaringan lain, atau router mengaktifkan *client isolation* | `npm run alamat -- <alamat-ip-ponsel>` menghitungnya memakai topeng yang sebenarnya. (Aturan "tiga angka pertama harus sama" hanya benar pada topeng /24; WiFi kampus lazim /20.) Bila sudah sejaringan dan tetap gagal, uji lewat hotspot ponsel — bila lewat hotspot berhasil, berarti routernya yang memisahkan perangkat |
 | Alamat WiFi yang kemarin bisa, hari ini tidak | Windows menggolongkan ulang jaringan menjadi Public, yang memblokir sambungan masuk | `netsh advfirewall show currentprofile`; bila Public, ubah tipe jaringan menjadi Private |
 | Tombol Pindai QR tidak membuka kamera | Halaman dibuka lewat `http`; peramban hanya mengizinkan kamera pada `https` atau `localhost` | Ikuti langkah `chrome://flags` pada bagian 6.5 huruf d |
 | HP memuat terus padahal peladen berjalan | Skema tidak cocok — peladen `http` tetapi ponsel mencoba `https` (atau sebaliknya) karena mengingat kunjungan sebelumnya | Buka tab penyamaran dan ketik alamat lengkap dengan `http://` atau `https://` sesuai perintah yang sedang dijalankan |
@@ -278,6 +278,7 @@ menu.
 | `npm test` | Jalankan uji Vitest |
 | `npm run dev:https` | Jalankan dengan https, agar kamera ponsel bisa dipakai |
 | `npm run alamat` | Cari alamat WiFi laptop untuk dibuka dari ponsel |
+| `npm run alamat -- <ip-ponsel>` | Sama, sekalian menguji apakah ponsel itu sejaringan |
 | `npm run test:e2e` | Jalankan uji Playwright (perlu peladen berjalan) |
 | `npm run build` | Build produksi |
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
@@ -505,10 +506,35 @@ npm run dev -- -H 192.168.1.138
 Mengikat secara tegas menghilangkan keraguan: bila ponsel tetap tidak bisa
 membuka alamat itu, sebabnya sudah pasti jaringan, bukan pemilihan antarmuka.
 
+Yang membedakan alamat nyata dari adaptor virtual adalah **gerbang bawaan**:
+kartu WiFi memegangnya, adaptor WSL, Docker, dan Hyper-V tidak. Blok alamatnya
+tidak dapat dijadikan patokan — WSL dan Docker memang mengambil alamat dari
+`172.16.x.x`–`172.31.x.x`, tetapi sebagian WiFi kampus juga membagikan alamat
+dari blok yang sama. Di WiFi UNISMA, misalnya, laptop mendapat alamat seperti
+`172.16.15.117` dengan topeng `255.255.240.0`, dan alamat itu **benar**.
+
+Bila ponsel sudah tersambung, sebutkan sekalian alamatnya supaya tidak perlu
+menebak apakah keduanya sejaringan:
+
+```cmd
+npm run alamat -- 172.16.15.122
+```
+
+Perbandingannya memakai topeng jaringan yang sebenarnya. Ini penting: aturan
+lisan &ldquo;tiga angka pertamanya harus sama&rdquo; hanya benar pada topeng
+`/24`. Pada `/20` milik WiFi kampus, `172.16.3.9` dan `172.16.15.117` berada di
+**satu** jaringan meski angka ketiganya berbeda jauh.
+
+Perintah yang sama juga membaca `.env` dan memberi tahu bila subnet Anda belum
+tercantum di `LAB_SUBNETS`. Tanpa peringatan itu gejalanya menyesatkan:
+halamannya terbuka mulus di ponsel, QR terpindai, lalu absensi ditolak 403 —
+oleh lapis 1, bukan oleh kerusakan. Menambah subnet kampus ke `LAB_SUBNETS`
+hanya untuk mencoba di laptop; di laboratorium berlaku bagian 6.6 huruf b.
+
 Cara panjangnya: Baris `Network:` yang
 tercetak Next.js **belum tentu benar**: bila laptop punya WSL, Docker, atau
-Hyper-V, yang tercetak sering justru alamat adaptor virtualnya — biasanya
-`172.2x.x.x` atau `172.3x.x.x` — dan alamat itu tidak dapat dihubungi ponsel.
+Hyper-V, yang tercetak sering justru alamat adaptor virtualnya, dan alamat itu
+tidak dapat dihubungi ponsel.
 
 Cari alamat WiFi yang sebenarnya:
 
@@ -517,8 +543,9 @@ ipconfig
 ```
 
 Cari blok **Wireless LAN adapter Wi-Fi** dan ambil baris `IPv4 Address`
-(misalnya `172.16.2.231`). Abaikan blok bernama `vEthernet`, `WSL`, atau
-`Default Switch`.
+(misalnya `172.16.15.117`). Abaikan blok bernama `vEthernet`, `WSL`, atau
+`Default Switch` — dan perhatikan bahwa `ipconfig` menyebut blok itu apa
+adanya, jadi nama bloknyalah yang menentukan, bukan angka alamatnya.
 
 **b. Pastikan jaringan WiFi bertipe Private, bukan Public.** Ini penyebab yang
 paling sering membuat alamat yang kemarin bisa dibuka mendadak tidak bisa:
