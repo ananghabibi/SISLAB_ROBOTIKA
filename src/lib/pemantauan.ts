@@ -59,26 +59,35 @@ export interface PiketHariIni {
   /** Null pada hari yang memang tidak dijadwalkan, mis. Sabtu dan Minggu. */
   kodeSquad: string | null;
   namaSquad: string | null;
+  /** Id squad terjadwal, dipakai formulir sebagai pilihan bawaan. */
+  idSquad: string | null;
   sudahDiisi: boolean;
 }
 
 /** Apakah piket hari ini sudah dicatat, dan oleh squad mana seharusnya. */
 export async function piketHariIni(sekarang: Date = new Date()): Promise<PiketHariIni> {
   const terjadwal = squadTerjadwal(jadwalPiket(), nomorHariWib(sekarang));
-  if (!terjadwal) return { kodeSquad: null, namaSquad: null, sudahDiisi: false };
+  if (!terjadwal) return { kodeSquad: null, namaSquad: null, idSquad: null, sudahDiisi: false };
 
   const squad = await prisma.squad.findUnique({
     where: { kode: terjadwal.kodeSquad },
     select: { id: true, nama: true },
   });
-  if (!squad) return { kodeSquad: terjadwal.kodeSquad, namaSquad: null, sudahDiisi: false };
+  if (!squad) {
+    return { kodeSquad: terjadwal.kodeSquad, namaSquad: null, idSquad: null, sudahDiisi: false };
+  }
 
   const catatan = await prisma.piketLog.findFirst({
     where: { tanggal: tanggalKalenderWib(sekarang), squadId: squad.id },
     select: { id: true },
   });
 
-  return { kodeSquad: terjadwal.kodeSquad, namaSquad: squad.nama, sudahDiisi: catatan !== null };
+  return {
+    kodeSquad: terjadwal.kodeSquad,
+    namaSquad: squad.nama,
+    idSquad: squad.id,
+    sudahDiisi: catatan !== null,
+  };
 }
 
 /** Banyaknya laporan insiden yang belum selesai ditindaklanjuti. */

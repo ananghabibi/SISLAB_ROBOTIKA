@@ -78,7 +78,14 @@ export default async function Halaman() {
               <FormulirPiket
                 butir={butir}
                 squad={squad}
-                squadBawaan={pengguna.squadId ?? squad[0]!.id}
+                squadBawaan={
+                  // Squadnya sendiri bila punya; kalau tidak — Kepala Lab dan
+                  // para Koordinator memang tidak bersquad — squad yang
+                  // terjadwal hari ini, bukan yang pertama menurut abjad.
+                  pengguna.squadId ??
+                  squad.find((s) => s.id === jadwalHariIni.idSquad)?.id ??
+                  squad[0]!.id
+                }
               />
             </CardContent>
           </Card>

@@ -6,6 +6,7 @@ import {
   bolehHapus,
   bolehMenerbitkanSkk,
   bolehTulis,
+  izinUntuk,
   MATRIKS_AKSES,
   MODUL,
   peranHanyaBaca,
@@ -101,5 +102,29 @@ describe("aturan yang tidak boleh dilanggar (SPEC 4.2)", () => {
   it("anggota dan ketua squad tidak melihat rekap absensi seluruh laboratorium", () => {
     expect(MATRIKS_AKSES.rekap_absensi.ANGGOTA.baca).toBe("SENDIRI");
     expect(MATRIKS_AKSES.rekap_absensi.KETUA_SQUAD.baca).toBe("SENDIRI");
+  });
+});
+
+describe("penyimpangan yang disengaja dari SPEC 4.2", () => {
+  // Ketiganya diminta Kepala Laboratorium sendiri. Diuji supaya tidak
+  // diam-diam hilang saat matriksnya disusun ulang, dan supaya siapa pun yang
+  // membandingkannya dengan SPEC tahu bahwa selisihnya memang disengaja.
+  it("KEPALA_LAB dapat mencatat peminjaman, piket, dan logbook", () => {
+    for (const modul of ["peminjaman", "piket", "logbook"] as const) {
+      expect(izinUntuk("KEPALA_LAB", modul).tulis).toBe("SEMUA");
+    }
+  });
+
+  it("penyimpangan itu tidak ikut membuka hak hapus", () => {
+    // Catatan peminjaman, piket, dan logbook tidak dihapus siapa pun.
+    for (const modul of ["peminjaman", "piket", "logbook"] as const) {
+      expect(izinUntuk("KEPALA_LAB", modul).hapus).toBe(false);
+    }
+  });
+
+  it("PENGAWAS tetap tidak tersentuh oleh penyimpangan itu", () => {
+    for (const modul of ["peminjaman", "piket", "logbook"] as const) {
+      expect(izinUntuk("PENGAWAS", modul).tulis).toBe("TIDAK");
+    }
   });
 });

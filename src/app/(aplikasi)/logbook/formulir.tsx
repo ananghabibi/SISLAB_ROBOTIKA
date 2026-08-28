@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
@@ -35,9 +35,16 @@ export function FormulirLogbook({
   keteranganPekan: string;
 }) {
   const [keadaan, kirim] = useActionState<KeadaanLogbook, FormData>(simpanLogbook, {});
-  // Daftar anggota mengikuti squad terpilih. Bila hanya satu squad yang boleh
-  // diisi, tidak ada yang perlu dipilih sama sekali.
-  const terpilih = squad.find((s) => s.id === squadBawaan) ?? squad[0];
+
+  // Daftar anggota harus MENGIKUTI squad yang sedang dipilih, bukan squad
+  // bawaan. Kepala Lab dan Koordinator Riset boleh mengisi untuk squad mana
+  // pun, dan mereka tidak punya squad sendiri — tanpa ini, mengganti pilihan
+  // squad akan meninggalkan daftar centang milik squad yang lain, dan peladen
+  // menolaknya dengan "ada anggota terpilih yang bukan anggota squad itu".
+  const [squadId, setSquadId] = useState(
+    squad.some((s) => s.id === squadBawaan) ? squadBawaan : (squad[0]?.id ?? ""),
+  );
+  const terpilih = squad.find((s) => s.id === squadId) ?? squad[0];
 
   return (
     <form action={kirim} className="space-y-4">
@@ -45,7 +52,13 @@ export function FormulirLogbook({
 
       {squad.length > 1 ? (
         <Field label="Squad" htmlFor="squadId">
-          <Select id="squadId" name="squadId" defaultValue={squadBawaan} required>
+          <Select
+            id="squadId"
+            name="squadId"
+            value={squadId}
+            onChange={(e) => setSquadId(e.target.value)}
+            required
+          >
             {squad.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.nama}
@@ -54,7 +67,7 @@ export function FormulirLogbook({
           </Select>
         </Field>
       ) : (
-        <input type="hidden" name="squadId" value={terpilih?.id ?? ""} />
+        <input type="hidden" name="squadId" value={squadId} />
       )}
 
       <p className="rounded-lg bg-utama-lembut px-3 py-2 text-sm text-utama">
@@ -64,7 +77,7 @@ export function FormulirLogbook({
       <Field label="Anggota yang ikut bekerja" htmlFor="anggota-0">
         <div className="space-y-2 rounded-lg border border-garis p-3">
           {(terpilih?.anggota ?? []).map((a, i) => (
-            <label key={a.id} className="flex min-h-11 items-center gap-3 text-sm">
+            <label key={`${squadId}-${a.id}`} className="flex min-h-11 items-center gap-3 text-sm">
               <input
                 id={`anggota-${i}`}
                 type="checkbox"

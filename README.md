@@ -816,6 +816,14 @@ Dua hal yang **tidak** diminta dari petugas piket, dan keduanya disengaja:
 Foto ruangan **sebelum** dan **sesudah** wajib. Satu catatan piket per squad per
 hari; percobaan kedua ditolak dengan pesan yang menyebutkan sebabnya.
 
+Siapa yang boleh mencatat piket: **Koordinator Operasional** dan **Kepala
+Laboratorium** untuk squad mana pun, **Ketua Squad** untuk squadnya sendiri.
+Kepala Lab menyimpang dari SPEC 4.2 yang memberinya baca saja — alasannya sama
+dengan penyimpangan peminjaman: dialah yang paling sering berada di ruangan pada
+jam-jam terakhir, dan piket yang tidak bisa dicatat orang yang sedang berdiri di
+sana akan dicatat besok pagi dari ingatan. Bila belum punya squad sendiri,
+pilihan bawaannya adalah squad yang terjadwal hari ini.
+
 ### 6.9 Logbook riset mingguan
 
 Satu entri per squad per pekan. Pekan dihitung mulai **Senin**, bukan mulai hari
@@ -830,6 +838,11 @@ mingguan kehilangan seluruh gunanya.
 Squad yang belum mengisi pekan berjalan tampil menonjol di dasbor Kepala
 Laboratorium dan para Koordinator, serta di bagian atas halaman Logbook. Anggota
 biasa tidak melihat daftar itu: pengingat untuk koordinator, bukan papan aib.
+
+Yang boleh mengisi: **Ketua Squad** dan **Anggota** untuk squadnya sendiri,
+**Koordinator Riset** dan **Kepala Laboratorium** untuk squad mana pun. Dua yang
+terakhir tidak punya squad sendiri, jadi squadnya dipilih dari daftar — dan
+daftar centang anggotanya ikut berganti mengikuti pilihan itu.
 
 Nomor pekan disimpan bersama **periodenya**. Tanpa itu, logbook pekan 1 semester
 depan akan ditolak karena bertabrakan dengan pekan 1 semester ini.

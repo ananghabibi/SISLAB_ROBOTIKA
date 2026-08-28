@@ -337,6 +337,21 @@ data mana pun. Jalankan `npm run db:migrate` (pengembangan) atau
 - **Buku tamu memakai baris hak akses `insiden`.** SPEC 4.2 tidak memberinya
   baris tersendiri, dan pola aksesnya sama persis: boleh diisi siapa pun yang
   sedang berada di ruangan, dibaca seluruhnya oleh Kepala Lab dan Koordinator.
+- **Kepala Lab diberi hak tulis pada piket dan logbook, menyimpang dari
+  SPEC 4.2 yang memberinya "B".** Diminta langsung oleh Kepala Laboratorium,
+  dengan alasan yang sama seperti penyimpangan peminjaman di Milestone 4:
+  dialah yang paling sering berada di ruangan pada jam-jam terakhir, dan piket
+  yang tidak dapat dicatat oleh orang yang sedang berdiri di sana akan dicatat
+  besok pagi berdasarkan ingatan. Hak hapus tetap tertutup, dan PENGAWAS tidak
+  ikut tersentuh — keduanya dikunci uji di `tests/rbac.test.ts`. Untuk logbook,
+  penyimpangan ini terasa lebih jauh: logbook adalah catatan squad tentang
+  pekerjaannya sendiri. Setiap entri menyimpan `dibuatOlehId` dan masuk audit
+  log, jadi pemakaiannya tidak pernah tersamar.
+- **Daftar centang anggota pada formulir logbook mengikuti squad yang sedang
+  dipilih.** Semula ia mengikuti squad bawaan, sehingga siapa pun yang boleh
+  mengisi untuk lebih dari satu squad — Koordinator Riset, dan kini Kepala Lab
+  yang tidak punya squad sendiri — akan mengirim daftar anggota milik squad
+  lain, dan peladen menolaknya dengan pesan yang membingungkan.
 - **Butir checklist dan jadwal piket tinggal di `data/*.csv`.** Keduanya berubah
   karena keputusan pengurus, bukan karena perubahan perangkat lunak. Kode butir
   dipakai sebagai kunci di basis data, sehingga butir yang dihapus tidak

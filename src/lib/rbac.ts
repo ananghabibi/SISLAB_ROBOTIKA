@@ -152,7 +152,14 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
     PENGAWAS: bacaSemua,
   },
   piket: {
-    KEPALA_LAB: bacaSemua,
+    // MENYIMPANG DARI SPEC 4.2, yang memberi Kepala Lab "B" (baca saja).
+    // Diubah atas permintaan Kepala Laboratorium, dengan alasan yang sama
+    // seperti pada peminjaman: dialah yang paling sering berada di ruangan
+    // pada jam-jam terakhir. Piket yang tidak dapat dicatat orang yang sedang
+    // berdiri di sana akan dicatat besok pagi oleh orang lain berdasarkan
+    // ingatan — dan catatan piket yang diisi dari ingatan sama saja dengan
+    // tidak ada catatan.
+    KEPALA_LAB: tulisSemua,
     KOORD_OPERASIONAL: tulisSemua,
     KOORD_RISET: bacaSemua,
     KOORD_PENGEMBANGAN: bacaSemua,
@@ -161,7 +168,15 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
     PENGAWAS: bacaSemua,
   },
   logbook: {
-    KEPALA_LAB: bacaSemua,
+    // MENYIMPANG DARI SPEC 4.2, yang memberi Kepala Lab "B" (baca saja).
+    // Diubah atas permintaan Kepala Laboratorium. Perlu dicatat bahwa ini
+    // menyimpang lebih jauh daripada dua penyimpangan lain: logbook adalah
+    // catatan SQUAD tentang pekerjaannya sendiri, dan yang menulisnya
+    // sebaiknya tetap squad itu. Hak ini dipakai untuk membantu squad yang
+    // ketuanya berhalangan, bukan untuk menuliskan pekerjaan orang lain.
+    // Setiap entri selalu menyimpan siapa penulisnya di `dibuatOlehId` dan
+    // tercatat di audit log, jadi penggunaannya tidak pernah tersamar.
+    KEPALA_LAB: tulisSemua,
     KOORD_OPERASIONAL: bacaSemua,
     KOORD_RISET: tulisSemua,
     KOORD_PENGEMBANGAN: bacaSemua,
