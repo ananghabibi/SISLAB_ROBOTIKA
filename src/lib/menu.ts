@@ -36,8 +36,8 @@ export const MENU: ButirMenu[] = [
   { label: "Peminjaman", href: "/peminjaman", kelompok: "Pengelolaan", milestone: 4, selesai: true },
   { label: "Periode & Target", href: "/periode", kelompok: "Pengelolaan", milestone: 3, selesai: true },
 
-  { label: "Surat Kontribusi", href: "/skk", kelompok: "Pengawasan", milestone: 6, selesai: false },
-  { label: "Audit Log", href: "/audit", kelompok: "Pengawasan", milestone: 6, selesai: false },
+  { label: "Surat Kontribusi", href: "/skk", kelompok: "Pengawasan", milestone: 6, selesai: true },
+  { label: "Audit Log", href: "/audit", kelompok: "Pengawasan", milestone: 6, selesai: true },
   { label: "Ekspor Data", href: "/ekspor", kelompok: "Pengawasan", milestone: 3, selesai: true },
 ];
 

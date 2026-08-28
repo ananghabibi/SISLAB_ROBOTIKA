@@ -18,6 +18,7 @@ import { bolehBaca, bolehHapus, bolehTulis, izinUntuk, type Modul } from "./rbac
 // agar halaman cukup mengimpor satu modul penjagaan.
 export {
   bolehLihatDataOrang,
+  saringanAuditLog,
   saringanDaftarAnggota,
   saringanInsiden,
   saringanLogbook,

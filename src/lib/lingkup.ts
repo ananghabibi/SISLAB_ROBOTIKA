@@ -105,6 +105,21 @@ export function saringanLogbook(pengguna: PenggunaLingkup) {
   return { squadId: pengguna.squadId ?? "__tidak-ada__" };
 }
 
+/**
+ * Penyaring audit log (modul `audit_log`).
+ *
+ * Lingkup "SENDIRI" di sini berarti jejak yang ditinggalkan orang itu sendiri.
+ * Koordinator Operasional memegangnya supaya dapat memeriksa ulang tindakannya
+ * sendiri — mis. absensi manual yang ia catat — tanpa ikut membaca jejak
+ * seluruh laboratorium, yang memang hanya hak Kepala Lab.
+ */
+export function saringanAuditLog(pengguna: PenggunaLingkup) {
+  const izin = izinUntuk(pengguna.role, "audit_log");
+  if (izin.baca === "SEMUA") return {};
+  if (izin.baca === "TIDAK") return { userId: "__tidak-ada__" };
+  return { userId: pengguna.id };
+}
+
 /** Penyaring catatan piket (modul `piket`), juga pada squadnya. */
 export function saringanPiket(pengguna: PenggunaLingkup) {
   const izin = izinUntuk(pengguna.role, "piket");

@@ -363,16 +363,74 @@ skema yang lama.
 
 ---
 
-## ⬜ Milestone 6 — Surat Keterangan Kontribusi dan Audit
+## 🔵 Milestone 6 — Surat Keterangan Kontribusi dan Audit
 
-1. Daftar kandidat SKK beserta alasan kelayakan atau ketidaklayakannya (SPEC 6.2).
-2. Penerbitan oleh Kepala Lab → PDF bernomor berkop, format FRM-LR-07.
-3. `snapshotJson` membekukan angka saat terbit.
-4. Halaman audit log dengan penyaringan.
-5. Impor data awal dari CSV hasil ekspor Google Sheets.
+**Sudah dibangun, menunggu pengujian di peramban.** Uji otomatis bersih
+(`npm run typecheck`, `npm test` — 240 uji, `npm run build`).
+
+1. ✅ Daftar kandidat SKK beserta alasan kelayakan **dan** ketidaklayakannya,
+   berikut angkanya masing-masing (`/skk`, SPEC 6.2).
+2. ✅ Penerbitan oleh Kepala Lab → PDF bernomor berkop, format FRM-LR-07
+   (`/api/skk/<id>/pdf`).
+3. ✅ `snapshotJson` membekukan angka saat terbit; lembar suratnya dirender
+   dari snapshot itu saja, tidak pernah dari perhitungan ulang.
+4. ✅ Halaman audit log dengan penyaringan aksi, entitas, dan pencarian nama
+   pelaku atau id entitas (`/audit`).
+5. ✅ Impor data awal dari CSV hasil ekspor Google Sheets
+   (`npm run impor:absensi -- <berkas.csv> [--tulis]`).
 
 **Kriteria diterima:** SKK terbit tidak berubah walau data absensi dikoreksi;
 nomor surat tidak pernah bentrok; setiap penerbitan tercatat di audit log.
+
+### Yang perlu diuji sebelum milestone ini ditutup
+
+| Kriteria | Cara mengujinya |
+|---|---|
+| SKK terbit tidak berubah walau data absensi dikoreksi | Terbitkan surat untuk seorang anggota, unduh PDF-nya, catat angkanya. Batalkan salah satu catatan absensinya lewat Absensi Manual, lalu unduh PDF yang sama sekali lagi — seluruh angkanya wajib sama persis |
+| Nomor surat tidak pernah bentrok | Terbitkan beberapa surat berturut-turut; nomornya berurutan tanpa terulang. Kekangan `nomor` unik di basis data yang menjaganya, dan penerbitan yang kalah mengambil nomor berikutnya |
+| Setiap penerbitan tercatat di audit log | Sesudah menerbitkan, buka `/audit` dan saring aksi `TERBIT_SKK` |
+| Hanya Kepala Lab yang menerbitkan | Sebagai KOORD_OPERASIONAL, halaman `/skk` terbuka tanpa satu pun formulir penerbitan |
+| Anggota tidak dapat mengunduh surat orang lain | Sebagai ANGGOTA, buka `/api/skk/<id surat orang lain>/pdf` — wajib 403 |
+| Penerbitan meski syarat kurang tetap jujur | Terbitkan untuk anggota yang syaratnya belum lengkap; PDF-nya wajib memuat catatan bahwa surat diterbitkan atas pertimbangan Kepala Lab beserta syarat yang kurang |
+| Impor CSV menolak sebelum menulis | Jalankan `npm run impor:absensi -- berkas.csv` tanpa `--tulis`; ia hanya melaporkan. Baris yang tanggalnya salah ditolak dengan menyebut nomor barisnya |
+| Impor tidak menimpa catatan yang sudah ada | Jalankan impor dua kali dengan `--tulis`; yang kedua melaporkan seluruhnya "dilewati" |
+
+### Catatan keputusan
+
+- **Surat dirender dari `snapshotJson`, bukan dari perhitungan ulang.** Inilah
+  seluruh isi kriteria diterima yang pertama. Snapshot menyimpan pula nama,
+  NPM, dan nama squad pemiliknya — bukan sekadar id yang nanti dibaca ulang —
+  supaya surat lama tetap terbaca sebagaimana ia ditulis dulu walau anggotanya
+  sudah lulus dan pindah squad.
+- **Nomor surat diuji lewat kekangan unik, bukan diandalkan dari hitungan.**
+  Nomor dihitung dari banyaknya surat pada tahun berjalan, lalu penulisannya
+  dicoba; bentrok `P2002` berarti ada penerbitan lain yang menyelip, dan yang
+  kalah mengambil nomor berikutnya sampai sepuluh percobaan. Menghitung tanpa
+  penjagaan ini berarti nomor surat resmi bergantung pada nasib.
+- **Urutan nomor dihitung per TAHUN kalender, bukan per periode.** Satu tahun
+  memuat dua semester; penomoran yang mengulang dari 1 di tengah tahun akan
+  bertabrakan pada kekangan unik sekaligus membingungkan pengarsipan.
+- **Syarat "serah terima dokumentasi" dinyatakan manusia, bukan disimpulkan
+  sistem.** Tidak ada satu pun kejadian di sistem yang dapat membuktikannya.
+  Ia ditanyakan pada formulir penerbitan dan ikut dibekukan di snapshot.
+- **Kepala Lab boleh menerbitkan walau ada syarat yang kurang** — SPEC 6.2
+  menegaskan sistem hanya mengusulkan. Tetapi ia harus mencentang pernyataan
+  tegas, dan syarat yang kurang itu **ikut tercetak di suratnya**. Kelonggaran
+  yang tidak meninggalkan jejak akan menjadi kebiasaan dalam satu semester.
+- **Tidak ada aksi membatalkan atau menghapus surat.** Surat yang sudah keluar
+  mungkin sudah dicetak, ditandatangani, dan dikirim ke Program Studi.
+- **Impor CSV memeriksa dulu, menulis belakangan.** Tanpa `--tulis` ia hanya
+  melaporkan. Barisnya masuk sebagai catatan MANUAL dengan alasan yang menyebut
+  berkas asalnya, sehingga rekap dan audit menampilkannya apa adanya sebagai
+  data yang bukan berasal dari pemindaian QR di pintu.
+- **Tanggal bergaris miring dibaca HARI/BULAN/TAHUN.** Menebak antara urutan
+  Indonesia dan Amerika berarti 4 Maret dan 3 April tertukar tanpa ada yang
+  menyadarinya. Bentuk yang tidak dikenali ditolak dengan menyebut nomor
+  barisnya, tidak ditebak.
+- **`/api/skk/[id]/pdf` didaftarkan pada `outputFileTracingIncludes`.** Perender
+  PDF memuat berkas hurufnya lewat require dinamis; tanpa pendaftaran ini surat
+  terbit sebagai halaman kosong — dan hanya di produksi, tidak pernah saat
+  `npm run dev`.
 
 ---
 

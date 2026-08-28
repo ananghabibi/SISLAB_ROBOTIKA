@@ -284,6 +284,8 @@ menu.
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
 | `npm run db:migrate` | Buat dan terapkan migrasi baru |
 | `npm run sandi -- <surel> <sandi>` | Pasang kata sandi seorang anggota |
+| `npm run impor:absensi -- <berkas.csv>` | Periksa berkas absensi lama, tanpa menulis |
+| `npm run impor:absensi -- <berkas.csv> --tulis` | Simpan hasil impornya |
 | `npm run sandi:uji -- <sandi>` | Siapkan akun uji untuk tiap peran (hanya pengembangan) |
 | `node scripts/siapkan-env.mjs` | Lengkapi `.env`, cetak ulang kata sandi masuk |
 | `npm run db:reset` | Kosongkan dan isi ulang basis data dari awal |
@@ -995,6 +997,73 @@ sendiri.
 
 ---
 
+## 7b. Surat Keterangan Kontribusi dan audit
+
+### 7b.1 Daftar kandidat
+
+`/skk` menampilkan **seluruh** anggota dalam lingkup Anda, bukan hanya yang
+layak — beserta angka tiap syarat SPEC 6.2. Yang belum layak justru perlu
+melihat angka mana yang kurang selagi periodenya masih berjalan.
+
+Syaratnya: kehadiran ≥ 70%, entri logbook squad ≥ 70% pekan aktif, piket
+mencapai target periode, dan skor akhir ≥ ambang periode. Bagi anggota tim
+lomba ada satu syarat lagi — serah terima dokumentasi — yang **tidak dapat
+dinilai sistem** karena tidak ada kejadian di sistem yang membuktikannya. Ia
+ditanyakan pada formulir penerbitan.
+
+### 7b.2 Menerbitkan
+
+Hanya **Kepala Laboratorium**. Suratnya terbit dengan nomor
+`007/SKK/LAB-ROB/FT-UNISMA/IX/2026` — urut per tahun kalender, bulan angka
+Romawi — dan PDF-nya mengikuti format **FRM-LR-07** lengkap dengan kop.
+
+Kepala Lab **boleh** menerbitkan walau ada syarat yang kurang; SPEC 6.2
+menegaskan sistem hanya mengusulkan. Tetapi ia harus mencentang pernyataan
+tegas, dan syarat yang kurang itu **ikut tercetak di suratnya**. Kelonggaran
+yang tidak meninggalkan jejak akan menjadi kebiasaan dalam satu semester.
+
+> **Angka pada surat dibekukan saat terbit.** Lembar PDF dirender dari
+> `snapshotJson`, tidak pernah dari perhitungan ulang. Membatalkan catatan
+> absensi setelah surat terbit **tidak** mengubah angka pada surat itu — dan
+> memang tidak boleh, karena surat itu mungkin sudah dicetak, ditandatangani,
+> dan dikirim ke Program Studi.
+
+Tidak ada tombol membatalkan atau menghapus surat, dengan alasan yang sama.
+
+### 7b.3 Audit log
+
+`/audit` menampilkan jejak seluruh perubahan yang dapat dipertanyakan saat
+audit Program Studi, dengan saringan aksi, entitas, dan pencarian nama pelaku
+atau id entitas. Saringannya memakai formulir GET biasa, sehingga satu tautan
+sudah cukup untuk menunjukkan hal yang sama kepada orang lain.
+
+Kepala Lab membaca seluruhnya; Koordinator Operasional hanya jejak tindakannya
+sendiri.
+
+### 7b.4 Impor absensi lama dari Google Sheets
+
+```bash
+npm run impor:absensi -- data/absensi-lama.csv          # periksa saja
+npm run impor:absensi -- data/absensi-lama.csv --tulis  # simpan
+```
+
+Kolom yang dibaca: `npm`, `tanggal`, `jam_masuk`, `jam_keluar`,
+`jenis_kegiatan`, `uraian`. Kolom lain diabaikan.
+
+Tanpa `--tulis` skrip hanya membaca dan melaporkan: berapa baris sah, berapa
+ditolak, dan **baris ke berapa** yang salah beserta sebabnya. Tanggal boleh
+`2026-03-04` atau `4/3/2026` — yang bergaris miring dibaca **hari/bulan/tahun**.
+Bentuk lain ditolak, tidak ditebak: menebak antara urutan Indonesia dan Amerika
+berarti 4 Maret dan 3 April tertukar tanpa ada yang menyadarinya.
+
+Barisnya masuk sebagai catatan **Manual** dengan alasan yang menyebut berkas
+asalnya, sehingga rekap dan audit menampilkannya apa adanya sebagai data yang
+bukan berasal dari pemindaian QR. Baris yang bentrok dengan catatan yang sudah
+ada **dilewati**, tidak menimpa — tidak ada peran yang boleh mengubah catatan
+absensi, dan skrip pun tidak.
+
+---
+
 ## 8. Menambah anggota pada awal periode
 
 ### Cara yang dianjurkan: berkas CSV
@@ -1107,6 +1176,10 @@ src/lib/logbook.ts        Penomoran pekan logbook, murni dan teruji
 src/lib/insiden.ts        Jenis insiden, status tindak lanjut, penanda mendesak
 src/lib/pemantauan.ts     Kueri penanda dasbor: logbook, piket, insiden
 src/lib/data-csv.ts       Pembaca data/*.csv saat aplikasi berjalan
+src/lib/skk.ts            Syarat SKK (SPEC 6.2) dan nomor surat, murni dan teruji
+src/lib/skk-terbit.ts     Penerbitan surat dan pembekuan snapshotJson
+src/lib/impor.ts          Penguraian CSV absensi lama, murni dan teruji
+src/components/pdf/skk-pdf.tsx  Lembar surat FRM-LR-07
 src/app/api/attendance/   Satu-satunya pintu pencatatan kehadiran
 src/app/display/          Layar laboratorium
 src/lib/rute.ts           Peta rute ke modul; dipakai middleware dan menu

@@ -40,6 +40,10 @@ const nextConfig: NextConfig = {
   // gagal hanya di produksi, bukan saat `npm run dev`. Disertakan secara tegas.
   outputFileTracingIncludes: {
     "/api/ekspor/rekap-pdf": ["./node_modules/pdfkit/js/**/*"],
+    // Surat Keterangan Kontribusi memakai perender yang sama, jadi ia menemui
+    // kegagalan yang sama bila berkas hurufnya tidak ikut disertakan — dan
+    // hanya di produksi, tidak pernah saat `npm run dev`.
+    "/api/skk/[id]/pdf": ["./node_modules/pdfkit/js/**/*"],
   },
   poweredByHeader: false,
   serverExternalPackages: ["bcryptjs", "@react-pdf/renderer"],
