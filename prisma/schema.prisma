@@ -173,6 +173,7 @@ model Period {
 
   snapshots ContributionSnapshot[]
   skk       Skk[]
+  logbooks  Logbook[]
 
   @@index([aktif])
   @@map("periods")
@@ -351,6 +352,11 @@ model Logbook {
   updatedAt DateTime @updatedAt
 
   squadId           String
+  // Nomor pekan dihitung terhadap periode, jadi periodenya harus ikut
+  // disimpan. Tanpa itu, pekan 1 periode berikutnya bertabrakan dengan pekan 1
+  // periode sekarang pada kekangan unik di bawah, dan logbook pertama semester
+  // depan ditolak tanpa sebab yang dapat dimengerti siapa pun.
+  periodId          String
   mingguKe          Int
   tanggal           DateTime @db.Date
   dibuatOlehId      String
@@ -362,11 +368,13 @@ model Logbook {
   rencanaBerikutnya String
   buktiUrl          String?
 
-  squad      Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
-  dibuatOleh User  @relation(fields: [dibuatOlehId], references: [id], onDelete: Restrict)
+  squad      Squad  @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  period     Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  dibuatOleh User   @relation(fields: [dibuatOlehId], references: [id], onDelete: Restrict)
 
-  @@unique([squadId, mingguKe])
+  @@unique([squadId, periodId, mingguKe])
   @@index([squadId])
+  @@index([periodId])
   @@map("logbooks")
 }
 

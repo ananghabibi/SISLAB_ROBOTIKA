@@ -19,7 +19,10 @@ import { bolehBaca, bolehHapus, bolehTulis, izinUntuk, type Modul } from "./rbac
 export {
   bolehLihatDataOrang,
   saringanDaftarAnggota,
+  saringanInsiden,
+  saringanLogbook,
   saringanPeminjaman,
+  saringanPiket,
   saringanRekapKontribusi,
   type PenggunaLingkup,
 } from "./lingkup";

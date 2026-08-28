@@ -416,7 +416,7 @@ Anggota berstatus `NONAKTIF` atau `LULUS` tidak dapat masuk. Untuk menutup
 akses seseorang, ubah statusnya — jangan hapus akunnya, karena riwayat
 absensinya harus tetap utuh.
 
-## 6. Menjalankan absensi harian
+## 6. Menjalankan kegiatan harian
 
 ### 6.1 Layar laboratorium
 
@@ -788,6 +788,88 @@ nama pencatatnya.
 Jalur ini sengaja dibuat merepotkan. Kalau ia mulai sering dipakai, yang perlu
 diperbaiki adalah jaringan atau layarnya — bukan menambah kenyamanan di sana.
 
+### 6.8 Piket
+
+Jadwalnya ada di **`data/jadwal-piket.csv`** — satu squad memegang satu hari
+kerja. Sabtu dan Minggu sengaja tidak dijadwalkan: piket yang dijadwalkan pada
+hari yang laboratoriumnya biasanya tutup hanya melahirkan catatan yang diisi
+asal-asalan pada Senin pagi. Hari tanpa jadwal **bukan** piket yang terlewat,
+dan halaman Piket menyebutkannya begitu.
+
+Checklistnya ada di **`data/checklist-piket.csv`**, delapan butir. Kolom `kode`
+dipakai sebagai kunci di basis data, jadi kode yang sudah pernah dipakai jangan
+diubah — catatan piket lama akan kehilangan artinya. Menambah butir, mengurangi,
+atau memperbaiki kalimatnya boleh kapan saja, dan catatan lama tetap terbaca:
+butir yang belum pernah ada terbaca sebagai belum dicentang, butir yang sudah
+dihapus tidak ditampilkan lagi.
+
+Dua hal yang **tidak** diminta dari petugas piket, dan keduanya disengaja:
+
+- **Centang delapan dari delapan tidak diwajibkan.** Butir yang belum sempat
+  dikerjakan dibiarkan kosong dan tercatat apa adanya. Catatan piket yang selalu
+  berbunyi 8 dari 8 tidak dapat dipakai memperbaiki apa pun.
+- **Jumlah alat yang belum kembali tidak diketik.** Ia dihitung sendiri dari
+  daftar peminjaman yang masih terbuka saat piket disimpan. Angka yang diketik
+  tangan pada akhir hari yang melelahkan selalu menjadi nol — dan nol yang salah
+  lebih buruk daripada tidak ada angka, karena ia ikut menghitung skor.
+
+Foto ruangan **sebelum** dan **sesudah** wajib. Satu catatan piket per squad per
+hari; percobaan kedua ditolak dengan pesan yang menyebutkan sebabnya.
+
+### 6.9 Logbook riset mingguan
+
+Satu entri per squad per pekan. Pekan dihitung mulai **Senin**, bukan mulai hari
+periode kebetulan dibuka: kalau periode dibuka hari Rabu dan pekan ikut dihitung
+Rabu–Selasa, penanda &ldquo;belum mengisi pekan ini&rdquo; akan menuduh squad
+yang sebenarnya sudah mengisi.
+
+Logbook **tidak dapat diisi untuk pekan yang belum tiba**. Kalau boleh, ia akan
+diisi sekaligus sebulan di muka pada malam sebelum penilaian, dan catatan riset
+mingguan kehilangan seluruh gunanya.
+
+Squad yang belum mengisi pekan berjalan tampil menonjol di dasbor Kepala
+Laboratorium dan para Koordinator, serta di bagian atas halaman Logbook. Anggota
+biasa tidak melihat daftar itu: pengingat untuk koordinator, bukan papan aib.
+
+Nomor pekan disimpan bersama **periodenya**. Tanpa itu, logbook pekan 1 semester
+depan akan ditolak karena bertabrakan dengan pekan 1 semester ini.
+
+### 6.10 Laporan insiden dan nyaris celaka
+
+Siapa pun boleh melapor, termasuk anggota. Formulirnya sependek mungkin dan
+tidak ada satu pun medan yang menuntut orang mengaku salah — laporan nyaris
+celaka hanya masuk kalau melapor lebih murah daripada diam, dan yang pertama
+hilang saat formulirnya merepotkan justru laporan yang paling berharga: yang
+belum menimbulkan korban.
+
+Foto **tidak** diwajibkan. Insiden yang perlu dilaporkan sering justru yang
+sudah dibereskan lebih dulu; memaksa foto berarti memaksa orang membiarkan
+keadaan berbahaya demi mengambil gambar.
+
+Laporan yang masuk **langsung tampil di paling atas dasbor** Kepala
+Laboratorium, dengan penanda terpisah untuk cedera dan kebakaran. Itulah bentuk
+notifikasinya: pesan WhatsApp dan bot memang tidak dibangun (SPEC bagian 10).
+
+**Tidak ada tombol hapus**, dan itu disengaja. Laporan insiden yang bisa dihapus
+akan dihapus persis pada saat ia paling perlu dibaca. Yang berubah hanya status
+tindak lanjutnya — Baru, Ditinjau, Ditangani, Selesai — dan hanya oleh Kepala
+Laboratorium serta Koordinator Operasional.
+
+### 6.11 Buku tamu
+
+Tamu, dosen lain, dan mahasiswa non-anggota masuk lewat sini, **bukan lewat
+absensi** (SPEC 6.4). Pemisahan itu bukan soal kerapian: catatan absensi adalah
+dasar Surat Keterangan Kontribusi, dan satu baris tamu yang menyelinap ke sana
+merusak angka yang dipakai menerbitkan surat resmi.
+
+Setiap tamu wajib punya **pendamping** dari anggota aktif. Tamu yang masuk tanpa
+ada yang bertanggung jawab menemaninya adalah persoalan keselamatan, bukan
+persoalan pencatatan.
+
+Jam pulang tidak pernah dikarang. Tamu yang terlanjur pulang tanpa dicatat tetap
+berakhir dengan jam pulang kosong — aturan yang sama dengan absensi anggota, dan
+karena alasan yang sama.
+
 ---
 
 ## 7. Skor kontribusi
@@ -972,6 +1054,11 @@ src/lib/absensi.ts        Aturan absensi (SPEC 6.4)
 src/lib/skor.ts           Mesin skor kontribusi (SPEC 6.1), murni dan teruji
 src/lib/kontribusi.ts     Pengumpul angka kontribusi dari basis data
 src/lib/lingkup.ts        Siapa boleh melihat data siapa
+src/lib/piket.ts          Checklist dan jadwal piket, murni dan teruji
+src/lib/logbook.ts        Penomoran pekan logbook, murni dan teruji
+src/lib/insiden.ts        Jenis insiden, status tindak lanjut, penanda mendesak
+src/lib/pemantauan.ts     Kueri penanda dasbor: logbook, piket, insiden
+src/lib/data-csv.ts       Pembaca data/*.csv saat aplikasi berjalan
 src/app/api/attendance/   Satu-satunya pintu pencatatan kehadiran
 src/app/display/          Layar laboratorium
 src/lib/rute.ts           Peta rute ke modul; dipakai middleware dan menu

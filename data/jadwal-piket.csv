@@ -1,0 +1,15 @@
+# Jadwal piket harian per squad.
+#
+# Satu squad memegang satu hari kerja. Sabtu dan Minggu sengaja tidak
+# dijadwalkan: piket yang dijadwalkan pada hari yang laboratoriumnya biasanya
+# tutup hanya akan melahirkan catatan piket yang diisi asal-asalan pada Senin
+# pagi. Hari libur nasional pun begitu — bila laboratorium tutup, tidak ada
+# yang perlu diisi, dan itu bukan pelanggaran.
+#
+# Kode hari mengikuti nomor hari JavaScript: 1 Senin sampai 5 Jumat.
+hari,nomor_hari,kode_squad
+Senin,1,VTOL
+Selasa,2,KKI
+Rabu,3,GROUND
+Kamis,4,ILMIAH
+Jumat,5,PRODUK

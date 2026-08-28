@@ -5,7 +5,9 @@ import { KartuSkor } from "@/components/kartu-skor";
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LABEL_JENIS_INSIDEN, mendesak } from "@/lib/insiden";
 import { periodeAktif, rekapKontribusi } from "@/lib/kontribusi";
+import { insidenMenunggu, piketHariIni, squadPadaPekan } from "@/lib/pemantauan";
 import { menuUntukPeran } from "@/lib/menu";
 import { saringanRekapKontribusi, wajibMasuk } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
@@ -41,12 +43,104 @@ export default async function Dasbor() {
 
   const menu = menuUntukPeran(pengguna.role);
 
+  // Penanda pemantauan hanya dihitung untuk yang memang mengurusnya. Anggota
+  // biasa tidak perlu melihat daftar squad yang tertinggal — itu urusan
+  // koordinator, dan menampilkannya kepada semua orang mengubah pengingat
+  // menjadi papan aib.
+  const lihatPemantauanLogbook = bolehBacaSemua(pengguna.role, "logbook");
+  const lihatPemantauanPiket = bolehBacaSemua(pengguna.role, "piket");
+  const lihatInsiden = bolehBacaSemua(pengguna.role, "insiden");
+
+  const [pekanLogbook, piket, insiden, insidenTerbaru] = await Promise.all([
+    lihatPemantauanLogbook && periode ? squadPadaPekan(periode) : Promise.resolve(null),
+    lihatPemantauanPiket ? piketHariIni() : Promise.resolve(null),
+    lihatInsiden ? insidenMenunggu() : Promise.resolve(null),
+    lihatInsiden
+      ? prisma.incident.findMany({
+          where: { statusTindakLanjut: { not: "SELESAI" } },
+          include: { pelapor: { select: { nama: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const squadBelumLogbook = pekanLogbook?.squad.filter((s) => !s.sudahMengisi) ?? [];
+
   return (
     <>
       <KepalaHalaman
         judul={`Selamat datang, ${pengguna.nama.split(" ")[0]}`}
         keterangan={`${LABEL_PERAN[pengguna.role]}${pengguna.squadNama ? ` · ${pengguna.squadNama}` : ""}`}
       />
+
+      {insiden && insiden.jumlah > 0 ? (
+        <Card className="mb-4 border-bahaya/50">
+          <CardHeader className="flex flex-wrap items-center gap-2">
+            <CardTitle className="mr-auto">
+              {insiden.jumlah} laporan insiden menunggu tindak lanjut
+            </CardTitle>
+            {insiden.mendesak > 0 ? (
+              <Badge variant="bahaya">{insiden.mendesak} mendesak</Badge>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {insidenTerbaru.map((laporan) => (
+              <p key={laporan.id} className={mendesak(laporan.jenis) ? "text-bahaya" : ""}>
+                <span className="font-semibold">{LABEL_JENIS_INSIDEN[laporan.jenis]}</span> ·{" "}
+                {laporan.lokasi} · dilaporkan {laporan.pelapor.nama}
+              </p>
+            ))}
+            <p>
+              <Link href="/insiden" className="text-utama underline underline-offset-4">
+                Buka Laporan Insiden
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {pekanLogbook && squadBelumLogbook.length > 0 ? (
+        <Card className="mb-4 border-peringatan/50">
+          <CardHeader>
+            <CardTitle>
+              {squadBelumLogbook.length} squad belum mengisi logbook pekan {pekanLogbook.mingguKe}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <ul className="flex flex-wrap gap-2">
+              {squadBelumLogbook.map((s) => (
+                <li key={s.id}>
+                  <Badge variant="peringatan">{s.nama}</Badge>
+                </li>
+              ))}
+            </ul>
+            <p>
+              <Link href="/logbook" className="text-utama underline underline-offset-4">
+                Buka Logbook Riset
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {piket && piket.kodeSquad !== null && !piket.sudahDiisi ? (
+        <Card className="mb-4 border-peringatan/50">
+          <CardHeader>
+            <CardTitle>Piket hari ini belum dicatat</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>
+              Giliran <span className="font-semibold">{piket.namaSquad ?? piket.kodeSquad}</span>.
+            </p>
+            <p>
+              <Link href="/piket" className="text-utama underline underline-offset-4">
+                Buka Piket
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>

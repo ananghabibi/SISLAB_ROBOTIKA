@@ -266,16 +266,81 @@ lembar label QR, dan tidak melihat tombol catat peminjaman.
 
 ---
 
-## ⬜ Milestone 5 — Piket, Logbook, dan Insiden
+## 🔵 Milestone 5 — Piket, Logbook, dan Insiden
 
-1. Jadwal piket per squad; checklist delapan butir dengan foto sebelum-sesudah.
-2. Logbook riset mingguan per squad; penanda squad yang belum mengisi pekan ini.
-3. Pelaporan insiden dan nyaris celaka, dapat diisi semua peran.
-4. Buku tamu.
+**Sudah dibangun, menunggu pengujian di peramban.** Uji otomatis bersih
+(`npm run typecheck`, `npm test` — 194 uji, `npm run build`), tetapi kriteria
+diterima di bawah belum diverifikasi ke basis data sungguhan. Milestone ini
+belum boleh ditandai ✅ sebelum itu dikerjakan.
+
+1. ✅ Jadwal piket per squad (`data/jadwal-piket.csv`); checklist delapan butir
+   (`data/checklist-piket.csv`) dengan foto sebelum-sesudah (`/piket`).
+2. ✅ Logbook riset mingguan per squad; penanda squad yang belum mengisi pekan
+   berjalan, di halaman `/logbook` dan di dasbor koordinator.
+3. ✅ Pelaporan insiden dan nyaris celaka, dapat diisi semua peran (`/insiden`).
+4. ✅ Buku tamu dengan pendamping wajib (`/tamu`).
 
 **Kriteria diterima:** squad yang belum mengisi logbook pekan ini tampil
 menonjol di dasbor koordinator; laporan insiden langsung memberi notifikasi ke
 Kepala Lab.
+
+### Yang perlu diuji sebelum milestone ini ditutup
+
+| Kriteria | Cara mengujinya |
+|---|---|
+| Squad yang belum mengisi logbook pekan ini menonjol di dasbor koordinator | Masuk sebagai KOORD_RISET dengan periode aktif terbuka. Dasbor harus memuat kartu "N squad belum mengisi logbook pekan X" di atas. Isi satu logbook, muat ulang: squad itu hilang dari daftar |
+| Laporan insiden langsung memberi notifikasi ke Kepala Lab | Masuk sebagai ANGGOTA, kirim satu laporan. Masuk sebagai KEPALA_LAB: kartu laporan menunggu harus berada di **paling atas** dasbor, dan cedera/kebakaran bertanda "mendesak" |
+| Satu logbook per squad per pekan | Kirim dua kali untuk squad dan pekan yang sama — yang kedua ditolak dengan kalimat, bukan halaman galat |
+| Logbook pekan yang belum tiba ditolak | Ubah `mingguKe` pada formulir lewat peralatan peramban menjadi pekan depan; peladen harus menolak |
+| Lingkup tulis SENDIRI benar-benar terbatas | Sebagai KETUA_SQUAD, ubah `squadId` pada formulir logbook atau piket menjadi squad lain; peladen harus menolak |
+| Satu catatan piket per squad per hari | Simpan dua kali pada hari yang sama; yang kedua ditolak |
+| `alatBelumKembali` terisi sendiri | Pinjam satu alat, lalu catat piket. Kartu piket harus menyebutkan "1 alat masih tercatat dipinjam" |
+| PENGAWAS tidak pernah bisa menulis | Sebagai PENGAWAS, keempat halaman terbuka tanpa satu pun formulir |
+| Tamu tidak masuk ke rekap absensi | Catat satu tamu, lalu buka Rekap Kontribusi — angkanya tidak berubah |
+
+Migrasi `20260828040000_logbook_periode` **belum pernah dijalankan** ke basis
+data mana pun. Jalankan `npm run db:migrate` (pengembangan) atau
+`npx prisma migrate deploy` (laboratorium) sebelum menguji.
+
+### Catatan keputusan
+
+- **Logbook memperoleh `periodId`, dan kekangan uniknya menjadi
+  (squad, periode, pekan).** Kekangan lama, (squad, pekan), memperlakukan nomor
+  pekan sebagai angka yang tidak pernah berulang — padahal pekan dihitung
+  terhadap awal periode dan kembali ke 1 setiap semester. Tanpa perubahan ini,
+  logbook pekan 1 semester depan ditolak karena bertabrakan dengan pekan 1
+  semester ini, dengan pesan yang tidak berarti apa-apa bagi yang mengisinya.
+  SPEC bagian 5 tidak menyebut medan ini; skema memang sudah pernah melampaui
+  daftar itu ketika `fotoIdentitasUrl` ditambahkan pada Milestone 4.
+- **Pekan dihitung mulai Senin, bukan mulai hari periode dibuka.** Kalau periode
+  dibuka hari Rabu dan pekan ikut Rabu–Selasa, penanda "belum mengisi pekan ini"
+  menuduh squad yang sebenarnya sudah mengisi. Perhitungannya di
+  `awalPekanWib()` dan `mingguKeDari()`, keduanya diuji termasuk untuk periode
+  yang dibuka di tengah pekan.
+- **Checklist piket boleh disimpan belum lengkap.** Memaksa 8 dari 8 tidak
+  membuat laboratorium lebih bersih; ia hanya memastikan seluruh catatan piket
+  berbunyi 8 dari 8, termasuk pada hari yang soldernya memang lupa dicabut.
+  Catatan yang selalu sempurna tidak dapat dipakai memperbaiki apa pun.
+- **`alatBelumKembali` dihitung, tidak diketik.** Angka yang diminta dari
+  petugas pada akhir hari yang melelahkan selalu menjadi nol, dan nol yang salah
+  lebih buruk daripada tidak ada angka — ia ikut menghitung skor kontribusi.
+- **Laporan insiden tidak dapat dihapus siapa pun.** Yang bisa dihapus akan
+  dihapus persis pada saat ia paling perlu dibaca. Yang berubah hanya status
+  tindak lanjutnya.
+- **Foto insiden tidak diwajibkan, foto piket diwajibkan.** Insiden yang perlu
+  dilaporkan sering justru yang sudah dibereskan lebih dulu; memaksa foto
+  berarti memaksa orang membiarkan keadaan berbahaya demi mengambil gambar.
+  Piket sebaliknya: sebelum-sesudah adalah seluruh isi buktinya.
+- **"Notifikasi ke Kepala Lab" diwujudkan di dalam sistem, bukan lewat pesan
+  keluar.** WhatsApp dan bot ada di daftar yang tidak dibangun (SPEC bagian 10),
+  jadi laporan yang menunggu ditaruh di kartu paling atas dasbor.
+- **Buku tamu memakai baris hak akses `insiden`.** SPEC 4.2 tidak memberinya
+  baris tersendiri, dan pola aksesnya sama persis: boleh diisi siapa pun yang
+  sedang berada di ruangan, dibaca seluruhnya oleh Kepala Lab dan Koordinator.
+- **Butir checklist dan jadwal piket tinggal di `data/*.csv`.** Keduanya berubah
+  karena keputusan pengurus, bukan karena perubahan perangkat lunak. Kode butir
+  dipakai sebagai kunci di basis data, sehingga butir yang dihapus tidak
+  merusak catatan lama dan butir baru terbaca sebagai belum dicentang.
 
 ---
 
