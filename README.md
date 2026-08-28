@@ -901,6 +901,33 @@ Rumus ini punya uji otomatisnya sendiri (`tests/skor.test.ts`), termasuk untuk
 skor sempurna, skor nol, potongan yang membuat hasil negatif, dan target nol.
 Jalankan `npm test` setiap kali rumusnya disentuh.
 
+### 7.1b Absensi berhasil tetapi rekapnya nol
+
+Hampir selalu satu sebab: **tanggal absensinya berada di luar rentang periode
+aktif**. Rekap hanya menghitung absensi yang tanggalnya berada di dalam periode,
+dan seeder membuka `Semester Ganjil TA 2026/2027` yang berjalan
+**1 September 2026 – 31 Januari 2027**. Mencoba sistem pada Agustus berarti
+seluruh absensi jatuh sebelum periode dimulai, dan rekap menunjukkan nol
+walaupun catatannya tersimpan utuh.
+
+Halaman Rekap dan Dasbor sekarang menyebutkan keadaan itu terang-terangan,
+berikut jumlah catatan yang berada di luar rentang. Perbaikannya di **Periode
+&amp; Target**: sesuaikan tanggal periode aktif sehingga mencakup hari ini, atau
+aktifkan periode yang benar. Catatan absensinya tidak perlu diulang — begitu
+rentangnya benar, semuanya langsung ikut terhitung.
+
+### 7.1c Sesi yang tidak diakhiri dengan pindai pulang
+
+**Tetap dihitung hadir.** Harinya tetap masuk rekap dan tetap menyumbang skor.
+Yang menjadi nol hanya durasinya (SPEC 6.4), dan skor kontribusi memang tidak
+memakai durasi sama sekali — komponennya hari hadir, sesi berbagi, piket,
+logbook, dan potongan alat belum kembali.
+
+Jam pulang **tidak pernah dikarang**. Yang tidak tercatat tetap kosong dan
+tertulis &ldquo;tidak diakhiri&rdquo; di riwayat. Menebak jam pulang akan
+membuat seluruh kolom jam kehilangan artinya, dan kolom itu dipakai
+menerangkan kontribusi seseorang kepada Program Studi.
+
 ### 7.2 Siapa melihat skor siapa
 
 | Peran | Yang terlihat |

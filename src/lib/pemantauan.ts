@@ -94,3 +94,22 @@ export async function insidenMenunggu(): Promise<{ jumlah: number; mendesak: num
   ]);
   return { jumlah, mendesak };
 }
+
+/**
+ * Banyaknya catatan absensi yang jatuh di LUAR rentang periode aktif.
+ *
+ * Dipakai menerangkan rekap yang menunjukkan nol padahal absensinya berhasil.
+ * Menyebut angkanya membuat sebabnya tidak perlu ditebak: bukan absensinya
+ * yang gagal tersimpan, melainkan tanggalnya yang berada di luar periode.
+ */
+export async function absensiDiLuarPeriode(periode: Period): Promise<number> {
+  return prisma.attendance.count({
+    where: {
+      dibatalkan: false,
+      OR: [
+        { tanggal: { lt: periode.tanggalMulai } },
+        { tanggal: { gt: periode.tanggalSelesai } },
+      ],
+    },
+  });
+}

@@ -129,6 +129,13 @@ export default async function HalamanAbsensi() {
             </table>
           </div>
         )}
+
+        <p className="border-t border-garis px-4 py-3 text-xs text-teks-redup">
+          Sesi yang <strong>tidak diakhiri</strong> dengan pindai pulang tetap dihitung{" "}
+          <strong>hadir</strong> — harinya tetap masuk rekap dan skor kontribusi. Yang menjadi nol
+          hanya durasinya, dan skor tidak memakai durasi sama sekali. Jam pulang tidak pernah
+          dikarang sistem; yang tidak tercatat tetap kosong.
+        </p>
       </Card>
     </>
   );

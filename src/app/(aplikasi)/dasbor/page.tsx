@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LABEL_JENIS_INSIDEN, mendesak } from "@/lib/insiden";
 import { periodeAktif, rekapKontribusi } from "@/lib/kontribusi";
-import { insidenMenunggu, piketHariIni, squadPadaPekan } from "@/lib/pemantauan";
+import { absensiDiLuarPeriode, insidenMenunggu, piketHariIni, squadPadaPekan } from "@/lib/pemantauan";
+import { keadaanPeriode, penjelasanPeriode } from "@/lib/periode";
 import { menuUntukPeran } from "@/lib/menu";
 import { saringanRekapKontribusi, wajibMasuk } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
@@ -66,6 +67,16 @@ export default async function Dasbor() {
   ]);
 
   const squadBelumLogbook = pekanLogbook?.squad.filter((s) => !s.sudahMengisi) ?? [];
+
+  // Absensi yang berhasil tetapi tidak muncul di rekap hampir selalu berarti
+  // tanggalnya di luar rentang periode aktif. Disebut di sini juga, karena
+  // dasbor adalah halaman yang pertama dibuka orang saat merasa ada yang
+  // tidak beres.
+  const keadaan = periode ? keadaanPeriode(periode) : null;
+  const penjelasanPeriodeIni =
+    periode && keadaan
+      ? penjelasanPeriode(keadaan, keadaan === "BERJALAN" ? 0 : await absensiDiLuarPeriode(periode))
+      : null;
 
   return (
     <>
@@ -151,6 +162,11 @@ export default async function Dasbor() {
             {periode ? (
               <>
                 <p className="font-semibold">{periode.nama}</p>
+                {penjelasanPeriodeIni ? (
+                  <p className="mt-2 rounded-lg bg-peringatan-lembut px-3 py-2 text-sm text-peringatan">
+                    {penjelasanPeriodeIni}
+                  </p>
+                ) : null}
                 <p className="mt-1 text-sm text-teks-redup">
                   {tanggalPendekWib(periode.tanggalMulai)} – {tanggalPendekWib(periode.tanggalSelesai)}
                 </p>

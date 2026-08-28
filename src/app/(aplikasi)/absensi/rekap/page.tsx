@@ -6,6 +6,8 @@ import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { periodeAktif, rekapKontribusi } from "@/lib/kontribusi";
+import { absensiDiLuarPeriode } from "@/lib/pemantauan";
+import { keadaanPeriode, penjelasanPeriode } from "@/lib/periode";
 import { saringanRekapKontribusi, wajibIzin } from "@/lib/penjaga";
 import { bolehBacaSemua } from "@/lib/rbac";
 import { tanggalPendekWib } from "@/lib/waktu";
@@ -42,6 +44,15 @@ export default async function HalamanRekap() {
   const milikSendiri = rekap.find((r) => r.user.id === pengguna.id);
   const lulus = rekap.filter((r) => r.rincian.lulus).length;
 
+  // Rekap yang menunjukkan nol padahal absensinya berhasil hampir selalu
+  // berarti tanggalnya di luar rentang periode aktif. Sebabnya disebutkan di
+  // sini, bukan dibiarkan ditebak.
+  const keadaan = keadaanPeriode(periode);
+  const penjelasan = penjelasanPeriode(
+    keadaan,
+    keadaan === "BERJALAN" ? 0 : await absensiDiLuarPeriode(periode),
+  );
+
   return (
     <>
       <KepalaHalaman
@@ -53,6 +64,30 @@ export default async function HalamanRekap() {
           </Link>
         }
       />
+
+      {penjelasan ? (
+        <Card className="mb-4 border-peringatan/50">
+          <CardHeader>
+            <CardTitle>Angka di halaman ini belum lengkap</CardTitle>
+            <CardDescription>
+              {periode.nama}: {tanggalPendekWib(periode.tanggalMulai)} –{" "}
+              {tanggalPendekWib(periode.tanggalSelesai)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>{penjelasan}</p>
+            <p className="text-teks-redup">
+              Perbaikannya ada di{" "}
+              <Link href="/periode" className="text-utama underline underline-offset-4">
+                Periode &amp; Target
+              </Link>
+              : sesuaikan tanggal periode aktif sehingga mencakup hari ini, atau aktifkan periode
+              yang benar. Catatan absensinya sendiri tersimpan utuh dan akan langsung ikut terhitung
+              begitu rentangnya benar.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {milikSendiri ? (
         <div className="mb-4">
