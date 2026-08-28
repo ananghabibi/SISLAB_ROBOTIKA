@@ -14,7 +14,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { bacaKodeAset } from "@/lib/aset";
-import { pesanGalatKamera } from "@/lib/kamera";
+import { peringatanKameraTidakAman, pesanGalatKamera } from "@/lib/kamera";
 
 export function PemindaiAset({
   nama = "kodeAset",
@@ -27,6 +27,8 @@ export function PemindaiAset({
   const [kode, setKode] = useState(awal);
   const [memindai, setMemindai] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
+  // Diisi sesudah komponen terpasang: `isSecureContext` tidak ada di peladen.
+  const [peringatan, setPeringatan] = useState<string | null>(null);
 
   const pemindaiRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
 
@@ -45,6 +47,8 @@ export function PemindaiAset({
 
   // Kamera wajib mati saat komponen dilepas, kalau tidak lampunya tetap menyala.
   useEffect(() => () => void hentikan(), [hentikan]);
+
+  useEffect(() => setPeringatan(peringatanKameraTidakAman()), []);
 
   async function mulai() {
     setGalat(null);
@@ -92,6 +96,12 @@ export function PemindaiAset({
           required
         />
       </Field>
+
+      {!memindai && peringatan ? (
+        <p role="status" className="rounded-lg bg-peringatan-lembut px-3 py-2 text-sm text-peringatan">
+          {peringatan} Kode asetnya tetap dapat diketik di kolom di atas.
+        </p>
+      ) : null}
 
       {!memindai ? (
         <Button type="button" variant="garis" className="w-full" onClick={mulai}>

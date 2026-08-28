@@ -8,7 +8,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 // Diimpor dari modul yang tidak menyentuh Prisma, supaya tidak ikut menyeret
 // klien basis data ke dalam berkas yang berjalan di peramban.
 import { PANJANG_KENDALA_MINIMAL, PANJANG_URAIAN_MINIMAL } from "@/lib/catatan-pulang";
-import { pesanGalatKamera } from "@/lib/kamera";
+import { peringatanKameraTidakAman, pesanGalatKamera } from "@/lib/kamera";
 
 type Tahap = "diam" | "memindai" | "konfirmasi" | "mengirim" | "selesai";
 
@@ -36,6 +36,8 @@ export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
   const [tanpaKendala, setTanpaKendala] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
   const [pesan, setPesan] = useState<string | null>(null);
+  // Diisi sesudah komponen terpasang: `isSecureContext` tidak ada di peladen.
+  const [peringatan, setPeringatan] = useState<string | null>(null);
 
   // Disimpan di ref, bukan state: instans pemindai tidak boleh ikut memicu render.
   const pemindaiRef = useRef<{ stop: () => Promise<void>; clear: () => void } | null>(null);
@@ -55,6 +57,8 @@ export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
   // Kamera wajib dimatikan saat komponen dilepas. Kalau tidak, lampu kamera
   // ponsel tetap menyala setelah pengguna berpindah halaman.
   useEffect(() => () => void hentikanPemindai(), [hentikanPemindai]);
+
+  useEffect(() => setPeringatan(peringatanKameraTidakAman()), []);
 
   async function mulaiPindai() {
     setGalat(null);
@@ -127,6 +131,12 @@ export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
 
   return (
     <div className="space-y-4">
+      {tahap === "diam" && peringatan ? (
+        <p role="status" className="rounded-lg bg-peringatan-lembut px-3 py-2 text-sm text-peringatan">
+          {peringatan}
+        </p>
+      ) : null}
+
       {tahap === "diam" ? (
         <Button size="besar" className="w-full" onClick={mulaiPindai}>
           {aksi === "masuk" ? "Pindai QR untuk absen masuk" : "Pindai QR untuk absen pulang"}

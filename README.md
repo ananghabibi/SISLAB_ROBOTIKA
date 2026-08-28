@@ -580,8 +580,16 @@ pada jaringan **Private**.
 **d. Kamera memerlukan https.** Ini yang paling sering menghentikan orang.
 Lewat `http://192.168.x.x:3000`, halamannya terbuka tetapi tombol
 &ldquo;Pindai QR&rdquo; **tidak akan membuka kamera** — peramban hanya
-mengizinkannya pada `https` atau `localhost`. Aplikasi menyebutkan hal ini apa
-adanya bila terjadi, jadi jangan tertukar dengan gangguan jaringan.
+mengizinkannya pada `https` atau `localhost`. Aplikasi memperingatkan hal ini
+di atas tombolnya, sebelum ditekan, jadi jangan tertukar dengan gangguan
+jaringan.
+
+Perhatikan bahwa syarat ini **tidak ada hubungannya dengan ponsel**: laptop pun
+kena bila halamannya dibuka lewat alamat WiFi. Di laptop yang menjalankan
+peladen, jalan keluarnya paling mudah — buka `http://localhost:3000`, yang
+sudah dianggap aman tanpa sertifikat apa pun. Jangan mengikat peladen ke satu
+alamat (`-H 172.16.15.117`) bila ingin memakai cara ini, karena `localhost`
+tidak ikut terlayani; `npm run dev` polos mendengarkan keduanya.
 
 `npm run dev:https` **tidak menolong untuk ponsel**: sertifikat yang dibuat
 Next.js hanya mencakup `localhost`, sehingga ponsel menolaknya sebelum sempat
