@@ -564,6 +564,14 @@ lewat PowerShell sebagai Administrator:
 Set-NetConnectionProfile -InterfaceAlias "Wi-Fi" -NetworkCategory Private
 ```
 
+Public sendiri belum tentu vonisnya. Yang sebenarnya memblokir adalah *tidak
+adanya aturan Allow untuk profil yang sedang aktif* — jadi bila aturan
+firewall Node.js Anda memang mencakup Public, ponsel tetap dapat masuk tanpa
+profilnya diubah. `npm run alamat` memeriksa keduanya dan menyebutkan yang
+mana yang berlaku. Ini penting di WiFi kampus, yang sering dikelola kebijakan
+jaringan sehingga pilihan Private-nya kelabu: di sana membuka porta untuk
+profil Public adalah jalan yang benar, bukan jalan pintas.
+
 **c. Izinkan lewat Windows Firewall.** Saat pertama kali dijalankan, Windows
 biasanya menanyakan izin — pilih **Allow**. Bila pertanyaannya sudah terlanjur
 ditolak, buka *Windows Defender Firewall* → *Allow an app* dan izinkan Node.js
@@ -704,6 +712,40 @@ sehingga jangkauannya berhenti di dinding. Mini PC tersambung ke situ, dan
 Bila untuk sementara terpaksa memakai WiFi kampus, sistemnya tetap berjalan —
 tetapi lapis 1 melemah, dan lapis 2 serta 3 yang menanggung sisanya. Catat
 keadaan itu, dan perbaiki begitu perangkatnya tersedia.
+
+**Cara mengisi `LAB_SUBNETS` setiap kali jaringannya berganti.** Berlaku sama
+untuk pindah dari laptop ke mini PC, dari WiFi kampus ke AP laboratorium, atau
+sekadar AP-nya diganti:
+
+1. Sambungkan **peladennya** — mini PC atau laptop yang menjalankan aplikasi —
+   ke jaringan itu.
+2. Jalankan `npm run alamat` di peladen tersebut, lalu salin blok pada kolom
+   `jaringan`, misalnya `jaringan 172.16.0.0/20`. Itulah nilai `LAB_SUBNETS`.
+3. Tulis di `.env`, dan pastikan bypass-nya mati:
+
+   ```
+   LAB_SUBNETS=172.16.0.0/20
+   LAB_NETWORK_BYPASS=false
+   ```
+
+4. Jalankan ulang aplikasinya — `.env` hanya dibaca saat peladen mulai. Pada
+   pemasangan Docker: `docker compose up -d --force-recreate app`.
+5. Uji dari ponsel yang tersambung ke jaringan itu, dan sekali lagi dari ponsel
+   yang **memakai data seluler** — yang kedua harus ditolak. Bila keduanya
+   diterima, lapis 1 tidak sedang menjaga apa pun.
+
+Yang perlu diperhatikan:
+
+- Isinya **blok jaringan**, bukan alamat satu perangkat. Alamat peladen boleh
+  berubah karena DHCP tanpa mengubah baris ini — tetapi alamat yang diketik
+  pengguna ikut berubah, jadi peladen sebaiknya diberi alamat tetap.
+- Boleh lebih dari satu blok, dipisah koma, bila laboratorium punya beberapa
+  jaringan (misalnya 2,4 GHz dan 5 GHz yang tersubnet sendiri-sendiri).
+- Menambahkan subnet WiFi kampus ke daftar ini di laboratorium sama dengan
+  mematikan lapis 1 — lihat alinea di atas. Saat mencoba di laptop boleh;
+  hapus lagi sebelum dipakai sungguhan.
+- Topeng yang lazim: `255.255.255.0` berarti `/24`, `255.255.240.0` berarti
+  `/20`, `255.255.0.0` berarti `/16`. `npm run alamat` sudah menghitungkannya.
 
 ---
 

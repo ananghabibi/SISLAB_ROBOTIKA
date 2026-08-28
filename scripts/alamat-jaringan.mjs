@@ -191,6 +191,16 @@ function periksaSubnetLab() {
   if (bypass) {
     console.log("  LAB_NETWORK_BYPASS=true — pemeriksaan jaringan sedang DILEWATI.");
     console.log("  Hanya boleh begini di laptop. Di laboratorium wajib false.");
+    console.log("");
+    console.log("  Selama dilewati, lapis 1 tidak sedang diuji sama sekali: absensi");
+    console.log("  akan diterima dari jaringan mana pun. Untuk mengujinya betulan dari");
+    console.log("  jaringan tempat Anda sekarang, tulis di .env:");
+    for (const a of nyata) {
+      const cidr = cidrDari(a.ip, a.topeng);
+      if (cidr) console.log(`    LAB_SUBNETS=${cidr}`);
+    }
+    console.log("    LAB_NETWORK_BYPASS=false");
+    console.log("  lalu jalankan ulang `npm run dev` — .env hanya dibaca saat mulai.");
     return;
   }
 
@@ -376,11 +386,16 @@ function periksaProfilWindows() {
   if (publik.length === 0) return kategori;
 
   console.log("\n  ---------------------------------------------------------------");
-  console.log("  INILAH SEBABNYA PONSEL TIDAK BISA MEMBUKA. Profil Public memblokir");
-  console.log("  seluruh sambungan masuk, jadi laptop tetap bisa membuka alamatnya");
-  console.log("  sendiri sementara ponsel tidak dapat menjangkaunya sama sekali.");
+  console.log("  PERLU DIPERIKSA. Profil Public menolak sambungan masuk yang tidak");
+  console.log("  punya aturan Allow untuk profil Public. Gejalanya: laptop bisa");
+  console.log("  membuka alamatnya sendiri, ponsel tidak sama sekali.");
   console.log("");
-  console.log("  Perbaiki lewat Pengaturan:");
+  console.log("  Tetapi Public sendiri BUKAN vonis. Bila ada aturan Allow yang");
+  console.log("  mencakup Public, ponsel tetap dapat masuk tanpa profilnya diubah.");
+  console.log("  Pemeriksaan firewall di bawah yang memutuskan — baca dulu sampai");
+  console.log("  sana sebelum mengubah apa pun di sini.");
+  console.log("");
+  console.log("  Bila memang perlu diubah, lewat Pengaturan:");
   console.log("    Pengaturan > Jaringan & Internet > WiFi > (jaringan Anda)");
   console.log("    > Jenis profil jaringan > pilih Pribadi (Private)");
   console.log("");
@@ -390,8 +405,8 @@ function periksaProfilWindows() {
   }
   console.log("");
   console.log("  Sebagian WiFi kampus tidak mengizinkan perubahan ini karena dikelola");
-  console.log("  kebijakan jaringan. Bila pilihannya kelabu, buka portanya saja untuk");
-  console.log("  profil Public — lihat pemeriksaan firewall di bawah.");
+  console.log("  kebijakan jaringan. Bila pilihannya kelabu, tidak apa-apa: membuka");
+  console.log("  porta untuk profil Public sama sahnya, dan itu yang diperiksa di bawah.");
   console.log("");
   console.log("  Windows dapat mengembalikannya ke Public sewaktu-waktu. Bila ponsel");
   console.log("  tiba-tiba tidak bisa membuka lagi, jalankan `npm run alamat` lebih");
@@ -593,6 +608,10 @@ function laporkanCakupanProfil(aturan, kategoriAktif) {
   if (tanpaIzin.length === 0) {
     console.log(`  Tidak ada aturan Block, dan profil aktif (${kategoriAktif.join(", ")}) diizinkan.`);
     console.log("  Firewall bukan penyebabnya.");
+    if (kategoriAktif.includes("Public")) {
+      console.log("  Peringatan profil Public di atas GUGUR: ada aturan Allow yang");
+      console.log("  mencakup Public, jadi profil jaringannya tidak perlu diubah.");
+    }
     return;
   }
 
