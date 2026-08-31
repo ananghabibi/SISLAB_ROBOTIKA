@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Select, TextArea } from "@/components/ui/field";
+import { PesanFormulir, useKosongkanSetelahBerhasil } from "@/components/ui/umpan-balik";
 import { JENIS_INSIDEN, LABEL_JENIS_INSIDEN } from "@/lib/insiden";
 import { UKURAN_MAKSIMAL_MB } from "@/lib/unggahan";
 import { laporkanInsiden, type KeadaanInsiden } from "./aksi";
@@ -20,10 +21,11 @@ function Tombol() {
 
 export function FormulirInsiden() {
   const [keadaan, kirim] = useActionState<KeadaanInsiden, FormData>(laporkanInsiden, {});
+  const acuanFormulir = useKosongkanSetelahBerhasil(keadaan.berhasil);
 
   return (
-    <form action={kirim} className="space-y-4">
-      <Field label="Jenis kejadian" htmlFor="jenis">
+    <form ref={acuanFormulir} action={kirim} className="space-y-4">
+      <Field label="Jenis kejadian" wajib htmlFor="jenis">
         <Select id="jenis" name="jenis" defaultValue="NYARIS_CELAKA" required>
           {JENIS_INSIDEN.map((j) => (
             <option key={j} value={j}>
@@ -35,6 +37,7 @@ export function FormulirInsiden() {
 
       <Field
         label="Lokasi"
+        wajib
         htmlFor="lokasi"
         petunjuk="Sedetail yang Anda ingat, mis. meja solder dekat jendela."
       >
@@ -43,26 +46,24 @@ export function FormulirInsiden() {
 
       <Field
         label="Kronologi"
+        wajib
         htmlFor="kronologi"
         petunjuk="Apa yang terjadi, berurutan. Minimal 20 karakter."
       >
-        <textarea id="kronologi" name="kronologi" rows={4} required />
+        <TextArea id="kronologi" name="kronologi" rows={4} required />
       </Field>
 
       <Field
         label="Tindakan yang sudah diambil"
+        wajib
         htmlFor="tindakan"
         petunjuk="Boleh diisi 'belum ada tindakan'. Yang penting jujur."
       >
-        <textarea id="tindakan" name="tindakan" rows={3} required />
+        <TextArea id="tindakan" name="tindakan" rows={3} required />
       </Field>
 
-      <Field
-        label="Saran pencegahan"
-        htmlFor="saran"
-        petunjuk="Boleh dikosongkan."
-      >
-        <textarea id="saran" name="saran" rows={2} />
+      <Field label="Saran pencegahan" htmlFor="saran" petunjuk="Boleh dikosongkan.">
+        <TextArea id="saran" name="saran" rows={2} />
       </Field>
 
       <Field
@@ -73,16 +74,7 @@ export function FormulirInsiden() {
         <Input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" />
       </Field>
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
 
       <Tombol />
     </form>

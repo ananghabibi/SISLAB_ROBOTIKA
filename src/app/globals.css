@@ -42,17 +42,38 @@
     line-height: 1.55;
   }
 
-  /* Sasaran sentuh minimal 44 piksel di seluruh kendali interaktif. */
+  /* Sasaran sentuh minimal 44 piksel di seluruh kendali interaktif.
+     Kotak centang dan tombol radio DIKECUALIKAN: aturan tinggi minimum
+     meregangkan kotak 20 piksel menjadi 20 x 44 dan bentuknya jadi lonjong.
+     Sasaran sentuhnya dipenuhi oleh label yang membungkusnya — lihat
+     komponen `Centang` — sehingga seluruh baris ikut dapat ditekan, bukan
+     hanya kotaknya. */
   button,
   a[role="button"],
-  input,
+  input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
     min-height: 44px;
   }
 
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    min-height: 0;
+    accent-color: var(--color-utama);
+    cursor: pointer;
+  }
+
   :focus-visible {
     outline: 3px solid var(--color-utama-terang);
     outline-offset: 2px;
+  }
+
+  /* Kolom wajib ditandai di labelnya, bukan hanya lewat atribut `required`
+     yang tak terlihat sampai formulirnya ditolak. */
+  [data-wajib]::after {
+    content: " *";
+    color: var(--color-bahaya);
   }
 }

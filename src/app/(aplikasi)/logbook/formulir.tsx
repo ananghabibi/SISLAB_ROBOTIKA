@@ -4,7 +4,8 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Centang, Field, Input, Select, TextArea } from "@/components/ui/field";
+import { PesanFormulir, useKosongkanSetelahBerhasil } from "@/components/ui/umpan-balik";
 import { UKURAN_MAKSIMAL_MB } from "@/lib/unggahan";
 import { simpanLogbook, type KeadaanLogbook } from "./aksi";
 
@@ -35,6 +36,7 @@ export function FormulirLogbook({
   keteranganPekan: string;
 }) {
   const [keadaan, kirim] = useActionState<KeadaanLogbook, FormData>(simpanLogbook, {});
+  const acuanFormulir = useKosongkanSetelahBerhasil(keadaan.berhasil);
 
   // Daftar anggota harus MENGIKUTI squad yang sedang dipilih, bukan squad
   // bawaan. Kepala Lab dan Koordinator Riset boleh mengisi untuk squad mana
@@ -47,7 +49,7 @@ export function FormulirLogbook({
   const terpilih = squad.find((s) => s.id === squadId) ?? squad[0];
 
   return (
-    <form action={kirim} className="space-y-4">
+    <form ref={acuanFormulir} action={kirim} className="space-y-4">
       <input type="hidden" name="mingguKe" value={mingguKe} />
 
       {squad.length > 1 ? (
@@ -74,19 +76,16 @@ export function FormulirLogbook({
         Pekan {mingguKe} · {keteranganPekan}
       </p>
 
-      <Field label="Anggota yang ikut bekerja" htmlFor="anggota-0">
+      <Field label="Anggota yang ikut bekerja" wajib htmlFor="anggota-0">
         <div className="space-y-2 rounded-lg border border-garis p-3">
           {(terpilih?.anggota ?? []).map((a, i) => (
-            <label key={`${squadId}-${a.id}`} className="flex min-h-11 items-center gap-3 text-sm">
-              <input
-                id={`anggota-${i}`}
-                type="checkbox"
-                name="anggota"
-                value={a.id}
-                className="size-5"
-              />
-              {a.nama}
-            </label>
+            <Centang
+              key={`${squadId}-${a.id}`}
+              id={`anggota-${i}`}
+              name="anggota"
+              value={a.id}
+              label={a.nama}
+            />
           ))}
           {(terpilih?.anggota ?? []).length === 0 ? (
             <p className="text-sm text-teks-redup">Squad ini belum punya anggota.</p>
@@ -94,24 +93,29 @@ export function FormulirLogbook({
         </div>
       </Field>
 
-      <Field label="Target pekan ini" htmlFor="target">
-        <textarea id="target" name="target" rows={2} required />
+      <Field label="Target pekan ini" wajib htmlFor="target">
+        <TextArea id="target" name="target" rows={2} required />
       </Field>
 
-      <Field label="Yang dikerjakan" htmlFor="dikerjakan">
-        <textarea id="dikerjakan" name="dikerjakan" rows={4} required />
+      <Field label="Yang dikerjakan" wajib htmlFor="dikerjakan">
+        <TextArea id="dikerjakan" name="dikerjakan" rows={4} required />
       </Field>
 
-      <Field label="Hasil" htmlFor="hasil" petunjuk="Termasuk hasil yang gagal — itu tetap hasil.">
-        <textarea id="hasil" name="hasil" rows={3} required />
+      <Field
+        label="Hasil"
+        wajib
+        htmlFor="hasil"
+        petunjuk="Termasuk hasil yang gagal — itu tetap hasil."
+      >
+        <TextArea id="hasil" name="hasil" rows={3} required />
       </Field>
 
       <Field label="Kendala" htmlFor="kendala" petunjuk="Boleh dikosongkan.">
-        <textarea id="kendala" name="kendala" rows={2} />
+        <TextArea id="kendala" name="kendala" rows={2} />
       </Field>
 
-      <Field label="Rencana pekan berikutnya" htmlFor="rencanaBerikutnya">
-        <textarea id="rencanaBerikutnya" name="rencanaBerikutnya" rows={2} required />
+      <Field label="Rencana pekan berikutnya" wajib htmlFor="rencanaBerikutnya">
+        <TextArea id="rencanaBerikutnya" name="rencanaBerikutnya" rows={2} required />
       </Field>
 
       <Field
@@ -122,16 +126,7 @@ export function FormulirLogbook({
         <Input id="bukti" name="bukti" type="file" accept="image/jpeg,image/png,image/webp" />
       </Field>
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
 
       <Tombol />
     </form>

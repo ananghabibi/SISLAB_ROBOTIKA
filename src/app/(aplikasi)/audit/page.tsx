@@ -2,6 +2,8 @@ import type { Prisma } from "@prisma/client";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
+import { Button, TautanTombol } from "@/components/ui/button";
+import { Field, Input, Select } from "@/components/ui/field";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { saringanAuditLog, wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
@@ -81,49 +83,47 @@ export default async function Halaman({
               supaya satu tautan cukup untuk menunjukkan hal yang sama kepada
               orang lain saat audit Program Studi. */}
           <form method="get" className="grid gap-3 sm:grid-cols-4">
-            <select
-              name="aksi"
-              defaultValue={saringan.aksi ?? ""}
-              className="min-h-11 rounded-lg border border-garis bg-permukaan px-3 py-2 text-base"
-            >
-              <option value="">Semua aksi</option>
-              {aksiTersedia.map((a) => (
-                <option key={a.aksi} value={a.aksi}>
-                  {a.aksi}
-                </option>
-              ))}
-            </select>
-            <select
-              name="entitas"
-              defaultValue={saringan.entitas ?? ""}
-              className="min-h-11 rounded-lg border border-garis bg-permukaan px-3 py-2 text-base"
-            >
-              <option value="">Semua entitas</option>
-              {entitasTersedia.map((e) => (
-                <option key={e.entitas} value={e.entitas}>
-                  {e.entitas}
-                </option>
-              ))}
-            </select>
-            <input
-              name="q"
-              defaultValue={saringan.q ?? ""}
-              placeholder="Nama pelaku atau id entitas"
-              className="min-h-11 rounded-lg border border-garis bg-permukaan px-3 py-2 text-base sm:col-span-2"
-            />
-            <div className="flex gap-2 sm:col-span-4">
-              <button
-                type="submit"
-                className="min-h-11 rounded-lg bg-utama px-4 text-white hover:bg-utama-terang"
-              >
-                Terapkan
-              </button>
-              <a
-                href="/audit"
-                className="flex min-h-11 items-center rounded-lg border border-garis px-4 hover:bg-utama-lembut"
-              >
-                Bersihkan
-              </a>
+            <Field label="Aksi" htmlFor="saringan-aksi">
+              <Select id="saringan-aksi" name="aksi" defaultValue={saringan.aksi ?? ""}>
+                <option value="">Semua aksi</option>
+                {aksiTersedia.map((a) => (
+                  <option key={a.aksi} value={a.aksi}>
+                    {a.aksi}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Entitas" htmlFor="saringan-entitas">
+              <Select id="saringan-entitas" name="entitas" defaultValue={saringan.entitas ?? ""}>
+                <option value="">Semua entitas</option>
+                {entitasTersedia.map((e) => (
+                  <option key={e.entitas} value={e.entitas}>
+                    {e.entitas}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <div className="sm:col-span-2">
+              <Field label="Cari" htmlFor="saringan-q" petunjuk="Nama pelaku atau id entitas.">
+                <Input
+                  id="saringan-q"
+                  name="q"
+                  type="search"
+                  defaultValue={saringan.q ?? ""}
+                  placeholder="mis. Anang, atau id catatan"
+                />
+              </Field>
+            </div>
+
+            <div className="flex flex-wrap gap-2 sm:col-span-4">
+              <Button type="submit">Terapkan</Button>
+              {saringan.aksi || saringan.entitas || saringan.q ? (
+                <TautanTombol href="/audit" variant="garis">
+                  Bersihkan saringan
+                </TautanTombol>
+              ) : null}
             </div>
           </form>
         </CardContent>
@@ -177,25 +177,23 @@ export default async function Halaman({
 
       {halamanTerakhir > 1 ? (
         <div className="mt-4 flex items-center justify-between text-sm">
-          <a
-            href={tautan({ hlm: String(Math.max(1, halaman - 1)) })}
-            className={halaman <= 1 ? "pointer-events-none text-teks-redup" : "text-utama underline"}
-          >
-            ← Sebelumnya
-          </a>
+          {halaman > 1 ? (
+            <TautanTombol href={tautan({ hlm: String(halaman - 1) })} variant="garis">
+              ← Sebelumnya
+            </TautanTombol>
+          ) : (
+            <span aria-hidden="true" />
+          )}
           <span className="text-teks-redup">
             Halaman {halaman} dari {halamanTerakhir}
           </span>
-          <a
-            href={tautan({ hlm: String(Math.min(halamanTerakhir, halaman + 1)) })}
-            className={
-              halaman >= halamanTerakhir
-                ? "pointer-events-none text-teks-redup"
-                : "text-utama underline"
-            }
-          >
-            Berikutnya →
-          </a>
+          {halaman < halamanTerakhir ? (
+            <TautanTombol href={tautan({ hlm: String(halaman + 1) })} variant="garis">
+              Berikutnya →
+            </TautanTombol>
+          ) : (
+            <span aria-hidden="true" />
+          )}
         </div>
       ) : null}
     </>

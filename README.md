@@ -1188,6 +1188,13 @@ src/lib/audit.ts          Penulisan audit log
 src/lib/npm.ts            Turunan prodi, angkatan, dan jenjang dari NPM
 src/lib/waktu.ts          Semua konversi UTC ke WIB terjadi di sini
 
+src/app/globals.css       Palet, ukuran teks, dan sasaran sentuh 44 piksel
+src/components/ui/field.tsx     Input, Select, TextArea, Centang, dan Field
+src/components/ui/umpan-balik.tsx  Pesan formulir dan pengosongan setelah berhasil
+src/app/(aplikasi)/error.tsx    Batas galat — menu tetap terlihat saat halaman gagal
+src/app/(aplikasi)/loading.tsx  Kerangka halaman selagi datanya disiapkan
+src/app/not-found.tsx     Halaman 404 berbahasa Indonesia
+
 scripts/set-sandi.ts      Utilitas memasang kata sandi dari peladen
 tests/                    Uji Vitest untuk kebijakan akses, jaringan, dan token
 tests/e2e/                Uji Playwright untuk alur absensi di peramban

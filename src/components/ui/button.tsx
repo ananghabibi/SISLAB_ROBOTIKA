@@ -35,4 +35,20 @@ export const Button = React.forwardRef<HTMLButtonElement, PropsTombol>(
 );
 Button.displayName = "Button";
 
+/**
+ * Tautan yang tampil sebagai tombol.
+ *
+ * Ada karena pola `<Link><Button/></Link>` menyarangkan <button> di dalam <a>.
+ * Peramban menerimanya, tetapi HTML-nya tidak sah dan hasilnya nyata: papan
+ * ketik berhenti dua kali pada satu kendali, dan pembaca layar mengumumkannya
+ * sebagai tombol di dalam tautan. Yang berpindah halaman seharusnya tautan.
+ */
+export const TautanTombol = React.forwardRef<
+  HTMLAnchorElement,
+  React.AnchorHTMLAttributes<HTMLAnchorElement> & VariantProps<typeof gayaTombol>
+>(({ className, variant, size, ...props }, ref) => (
+  <a ref={ref} className={cn(gayaTombol({ variant, size }), "px-4", className)} {...props} />
+));
+TautanTombol.displayName = "TautanTombol";
+
 export { gayaTombol };

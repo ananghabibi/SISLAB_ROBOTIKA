@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Select, TextArea } from "@/components/ui/field";
 import { KONDISI_ASET } from "@/lib/aset";
 import { UKURAN_MAKSIMAL_MB } from "@/lib/unggahan";
 import { catatKembali, type KeadaanPinjam } from "./aksi";
@@ -41,7 +41,7 @@ export function FormulirKembali({ pinjamanId }: { pinjamanId: string }) {
         htmlFor={id("catatan")}
         petunjuk="Wajib bila kondisinya bukan BAIK."
       >
-        <textarea
+        <TextArea
           id={id("catatan")}
           name="catatan"
           rows={2}

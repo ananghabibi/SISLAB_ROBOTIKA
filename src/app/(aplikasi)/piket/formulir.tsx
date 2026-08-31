@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Centang, Field, Input, Select } from "@/components/ui/field";
+import { PesanFormulir, useKosongkanSetelahBerhasil } from "@/components/ui/umpan-balik";
 import type { ButirPiket } from "@/lib/piket";
 import { UKURAN_MAKSIMAL_MB } from "@/lib/unggahan";
 import { simpanPiket, type KeadaanPiket } from "./aksi";
@@ -28,9 +29,10 @@ export function FormulirPiket({
   squadBawaan: string;
 }) {
   const [keadaan, kirim] = useActionState<KeadaanPiket, FormData>(simpanPiket, {});
+  const acuanFormulir = useKosongkanSetelahBerhasil(keadaan.berhasil);
 
   return (
-    <form action={kirim} className="space-y-4">
+    <form ref={acuanFormulir} action={kirim} className="space-y-4">
       {squad.length > 1 ? (
         <Field label="Squad yang piket" htmlFor="squadId">
           <Select id="squadId" name="squadId" defaultValue={squadBawaan} required>
@@ -48,24 +50,14 @@ export function FormulirPiket({
       <Field label={`Checklist ${butir.length} butir`} htmlFor="butir-0">
         <div className="space-y-1 rounded-lg border border-garis p-2">
           {butir.map((b, i) => (
-            <label
+            <Centang
               key={b.kode}
-              className="flex min-h-11 items-start gap-3 rounded-lg px-2 py-2 text-sm hover:bg-dasar"
-            >
-              <input
-                id={`butir-${i}`}
-                type="checkbox"
-                name="butir"
-                value={b.kode}
-                className="mt-0.5 size-5 shrink-0"
-              />
-              <span>
-                <span className="font-medium">{b.butir}</span>
-                {b.keterangan ? (
-                  <span className="block text-xs text-teks-redup">{b.keterangan}</span>
-                ) : null}
-              </span>
-            </label>
+              id={`butir-${i}`}
+              name="butir"
+              value={b.kode}
+              label={b.butir}
+              keterangan={b.keterangan || undefined}
+            />
           ))}
         </div>
       </Field>
@@ -77,6 +69,7 @@ export function FormulirPiket({
 
       <Field
         label="Foto ruangan sebelum piket"
+        wajib
         htmlFor="fotoSebelum"
         petunjuk={`Wajib. JPG, PNG, atau WEBP, maksimal ${UKURAN_MAKSIMAL_MB} MB.`}
       >
@@ -92,6 +85,7 @@ export function FormulirPiket({
 
       <Field
         label="Foto ruangan sesudah piket"
+        wajib
         htmlFor="fotoSesudah"
         petunjuk="Wajib. Ambil dari sudut yang sama dengan foto sebelum."
       >
@@ -105,16 +99,7 @@ export function FormulirPiket({
         />
       </Field>
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
 
       <Tombol />
     </form>

@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Select, TextArea } from "@/components/ui/field";
 import { catatAbsensiManual, type KeadaanManual } from "./aksi";
 
 const KEGIATAN = ["RISET", "PIKET", "RAPAT", "PELATIHAN", "PENGABDIAN", "ADMINISTRASI", "LAINNYA"];
@@ -59,7 +59,7 @@ export function FormulirManual({ anggota }: { anggota: { id: string; label: stri
         htmlFor="alasan"
         petunjuk="Minimal 25 karakter. Sebutkan apa yang rusak dan mengapa absensi biasa tidak bisa dipakai. Alasan ini dibaca Kepala Laboratorium saat menilai rekap."
       >
-        <textarea
+        <TextArea
           id="alasan"
           name="alasan"
           rows={3}

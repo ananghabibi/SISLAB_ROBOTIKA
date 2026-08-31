@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, gayaTombol } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
 import { saringanDaftarAnggota, wajibIzin } from "@/lib/penjaga";
@@ -67,8 +67,8 @@ export default async function DaftarAnggota({
         }
         aksi={
           bolehSunting ? (
-            <Link href="/anggota/baru">
-              <Button>Tambah anggota</Button>
+            <Link href="/anggota/baru" className={gayaTombol()}>
+              Tambah anggota
             </Link>
           ) : null
         }

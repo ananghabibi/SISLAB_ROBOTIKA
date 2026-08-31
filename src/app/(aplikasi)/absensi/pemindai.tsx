@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Select, TextArea } from "@/components/ui/field";
 // Diimpor dari modul yang tidak menyentuh Prisma, supaya tidak ikut menyeret
 // klien basis data ke dalam berkas yang berjalan di peramban.
 import { PANJANG_KENDALA_MINIMAL, PANJANG_URAIAN_MINIMAL } from "@/lib/catatan-pulang";
@@ -215,7 +215,7 @@ export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
                 htmlFor="uraian"
                 petunjuk={`Wajib diisi, sedikitnya ${PANJANG_URAIAN_MINIMAL} karakter. Inilah yang dibaca Kepala Laboratorium saat menilai kontribusi Anda.`}
               >
-                <textarea
+                <TextArea
                   id="uraian"
                   value={uraian}
                   onChange={(e) => setUraian(e.target.value)}
@@ -232,7 +232,7 @@ export function Pemindai({ aksi }: { aksi: "masuk" | "pulang" }) {
                 htmlFor="kendala"
                 petunjuk="Wajib dijawab. Bila memang tidak ada, centang kotak di bawah."
               >
-                <textarea
+                <TextArea
                   id="kendala"
                   value={kendala}
                   onChange={(e) => setKendala(e.target.value)}

@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Select, TextArea } from "@/components/ui/field";
+import { PesanFormulir, useKosongkanSetelahBerhasil } from "@/components/ui/umpan-balik";
 import { catatTamuMasuk, catatTamuKeluar, type KeadaanTamu } from "./aksi";
 
 function Tombol({ label, menunggu }: { label: string; menunggu: string }) {
@@ -24,23 +25,30 @@ export function FormulirTamu({
   pendampingBawaan: string;
 }) {
   const [keadaan, kirim] = useActionState<KeadaanTamu, FormData>(catatTamuMasuk, {});
+  const acuanFormulir = useKosongkanSetelahBerhasil(keadaan.berhasil);
 
   return (
-    <form action={kirim} className="space-y-4">
-      <Field label="Nama tamu" htmlFor="nama">
+    <form ref={acuanFormulir} action={kirim} className="space-y-4">
+      <Field label="Nama tamu" wajib htmlFor="nama">
         <Input id="nama" name="nama" required autoComplete="off" />
       </Field>
 
-      <Field label="Asal instansi" htmlFor="instansi" petunjuk="mis. Teknik Mesin UNISMA, SMKN 1 Malang">
+      <Field
+        label="Asal instansi"
+        wajib
+        htmlFor="instansi"
+        petunjuk="mis. Teknik Mesin UNISMA, SMKN 1 Malang"
+      >
         <Input id="instansi" name="instansi" required autoComplete="off" />
       </Field>
 
-      <Field label="Keperluan" htmlFor="keperluan">
-        <textarea id="keperluan" name="keperluan" rows={2} required />
+      <Field label="Keperluan" wajib htmlFor="keperluan">
+        <TextArea id="keperluan" name="keperluan" rows={2} required />
       </Field>
 
       <Field
         label="Didampingi"
+        wajib
         htmlFor="pendampingId"
         petunjuk="Anggota yang menemani tamu selama berada di laboratorium."
       >
@@ -53,16 +61,7 @@ export function FormulirTamu({
         </Select>
       </Field>
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
 
       <Tombol label="Catat tamu masuk" menunggu="Menyimpan…" />
     </form>
