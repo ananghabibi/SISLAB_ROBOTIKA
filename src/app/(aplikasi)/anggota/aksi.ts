@@ -15,6 +15,60 @@ import { sandiBawaan } from "@/lib/sandi";
 export interface KeadaanAnggota {
   galat?: string;
   berhasil?: string;
+  /**
+   * Nilai yang benar-benar tersimpan, dikembalikan supaya formulir dapat
+   * menampilkan keadaan basis data setelah menyimpan.
+   *
+   * React 19 mengosongkan ulang medan formulir tak terkendali begitu aksinya
+   * selesai — ia memulihkannya ke defaultValue, yaitu nilai LAMA saat formulir
+   * pertama dipasang. Akibatnya peran yang baru diubah tampak kembali seperti
+   * semula, padahal basis datanya sudah berubah. Nilai ini menjadi defaultValue
+   * yang baru, dan `token` memaksa medannya dipasang ulang tiap kali menyimpan.
+   */
+  tersimpan?: NilaiTersimpan;
+  token?: number;
+}
+
+export interface NilaiTersimpan {
+  nama: string;
+  npm: string;
+  email: string;
+  prodi: string;
+  fakultas: string;
+  angkatan: string;
+  semester: string;
+  squadId: string;
+  jenjang: string;
+  status: string;
+  role: string;
+}
+
+function nilaiDari(baris: {
+  nama: string;
+  npm: string | null;
+  email: string;
+  prodi: string;
+  fakultas: string;
+  angkatan: number | null;
+  semester: number | null;
+  squadId: string | null;
+  jenjang: string;
+  status: string;
+  role: string;
+}): NilaiTersimpan {
+  return {
+    nama: baris.nama,
+    npm: baris.npm ?? "",
+    email: baris.email,
+    prodi: baris.prodi,
+    fakultas: baris.fakultas,
+    angkatan: baris.angkatan?.toString() ?? "",
+    semester: baris.semester?.toString() ?? "",
+    squadId: baris.squadId ?? "",
+    jenjang: baris.jenjang,
+    status: baris.status,
+    role: baris.role,
+  };
 }
 
 const PERAN = [
@@ -146,7 +200,7 @@ export async function simpanAnggota(
 
   revalidatePath("/anggota");
   revalidatePath(`/anggota/${idAnggota}`);
-  return { berhasil: "Perubahan tersimpan." };
+  return { berhasil: "Perubahan tersimpan.", tersimpan: nilaiDari(baru), token: Date.now() };
 }
 
 export async function buatAnggota(

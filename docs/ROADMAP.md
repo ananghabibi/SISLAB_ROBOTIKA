@@ -671,6 +671,28 @@ punya tempat bertanya.
 
 ---
 
+### Perubahan peran tampak tidak tersimpan padahal tersimpan
+
+Temuan Kepala Laboratorium: mengubah peran seseorang di halaman anggota, menekan
+Simpan, dan dropdown-nya kembali ke peran semula.
+
+Direproduksi di atas PostgreSQL sungguhan dengan Playwright, dan hasilnya
+mengejutkan: basis datanya BENAR berubah — muat ulang halaman menunjukkan peran
+baru. Yang keliru hanyalah tampilannya. React 19 mengosongkan ulang medan
+formulir tak terkendali begitu aksi formulir selesai, memulihkannya ke
+defaultValue, yaitu nilai LAMA saat formulir pertama dipasang. Bukan cuma peran:
+setiap medan yang diubah ikut tampak kembali seperti semula sesaat setelah
+disimpan.
+
+`simpanAnggota` sekarang mengembalikan nilai yang benar-benar tersimpan beserta
+sebuah token, dan formulir memakainya sebagai defaultValue yang baru sambil
+memasang ulang medannya tiap kali menyimpan. Pesan "Perubahan tersimpan." tetap
+tampil karena berada di luar bagian yang dipasang ulang.
+
+Diverifikasi ujung ke ujung: sebelum perbaikan, dropdown kembali ke peran lama
+setelah simpan; sesudahnya, ia menampilkan peran baru, pesannya tetap muncul,
+dan simpan kedua kali pun ikut benar.
+
 ## Aturan yang berlaku di seluruh milestone
 
 - Setiap milestone **wajib memperbarui README**: cara menjalankan, cara
