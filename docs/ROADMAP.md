@@ -693,6 +693,31 @@ Diverifikasi ujung ke ujung: sebelum perbaikan, dropdown kembali ke peran lama
 setelah simpan; sesudahnya, ia menampilkan peran baru, pesannya tetap muncul,
 dan simpan kedua kali pun ikut benar.
 
+### Menyisir bug tampilan yang sama di seluruh menu
+
+Setelah temuan peran, seluruh formulir yang memakai aksi React 19 disisir. Yang
+rentan hanya SATU pola: formulir SUNTINGAN yang isinya diisi dari sebuah catatan
+dan TETAP terpasang setelah menyimpan. Formulir penambahan (piket, logbook,
+insiden, buku tamu, peminjaman, absensi manual) tidak terkena — pengosongan
+setelah berhasil memang yang diinginkan di sana, dan halaman /anggota/baru serta
+/peminjaman/baru mengalihkan halaman setelah berhasil.
+
+Tiga formulir suntingan yang tersisa diperbaiki dengan pola pemasangan-ulang
+berkunci: medannya dibungkus Fragment yang berkunci pada nilai dari peladen,
+sehingga begitu props menyegar (revalidatePath) setelah simpan, medannya
+dipasang ulang membaca nilai baru. Pesan keberhasilan berada di luar Fragment
+sehingga tetap tampil, dan mode penambahan tidak terpengaruh karena nilai
+awalnya tetap.
+
+- `inventaris/formulir.tsx` — kartu "Ubah aset" pada tiap baris.
+- `periode/formulir.tsx` — penyuntingan periode pada daftar.
+- `insiden/status.tsx` — pengubah status tindak lanjut.
+
+Diverifikasi ujung ke ujung dengan Playwright terhadap build produksi: lokasi
+aset yang disunting kini menampilkan nilai baru setelah simpan (bukan kembali ke
+lama), nama periode pun demikian, dan mode penambahan aset tetap mengosong
+seperti semula.
+
 ## Aturan yang berlaku di seluruh milestone
 
 - Setiap milestone **wajib memperbarui README**: cara menjalankan, cara

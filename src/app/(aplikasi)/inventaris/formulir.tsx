@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { Fragment, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
@@ -51,8 +51,15 @@ export function FormulirAset({
   // isinya.
   const ref = useKosongkanSetelahBerhasil(nilai.id ? undefined : keadaan.berhasil);
 
+  // Kunci ini berganti hanya ketika nilai dari peladen berubah — yaitu setelah
+  // menyimpan suntingan. Saat itu medan tak terkendali di dalamnya dipasang
+  // ulang, sehingga menampilkan keadaan tersimpan, bukan nilai lama yang
+  // dipulihkan React 19 begitu aksi formulir selesai.
+  const kunciMedan = JSON.stringify(nilai);
+
   return (
     <form ref={ref} action={jalankan} className="space-y-4">
+      <Fragment key={kunciMedan}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Kode aset"
@@ -128,6 +135,7 @@ export function FormulirAset({
         label="Boleh dipinjam keluar dari rak"
         keterangan="Matikan untuk alat yang hanya boleh dipakai di dalam laboratorium."
       />
+      </Fragment>
 
       <TombolSimpan label={nilai.id ? "Simpan perubahan" : "Tambah aset"} />
 

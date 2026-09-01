@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { Fragment, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
@@ -34,8 +34,13 @@ export function FormulirPeriode({ nilai }: { nilai: NilaiPeriode }) {
   const aksi = simpanPeriode.bind(null, nilai.id);
   const [keadaan, jalankan] = useActionState<KeadaanPeriode, FormData>(aksi, {});
 
+  // Lihat FormulirAset: kunci ini memasang ulang medan setelah props menyegar,
+  // supaya suntingan tersimpan tidak tampak kembali ke nilai lama.
+  const kunciMedan = JSON.stringify(nilai);
+
   return (
     <form action={jalankan} className="space-y-4">
+      <Fragment key={kunciMedan}>
       <Field label="Nama periode" htmlFor={`nama-${nilai.id ?? "baru"}`}>
         <Input
           id={`nama-${nilai.id ?? "baru"}`}
@@ -136,6 +141,8 @@ export function FormulirPeriode({ nilai }: { nilai: NilaiPeriode }) {
         Target nol berarti komponen itu tidak disyaratkan pada periode ini, dan dianggap terpenuhi —
         bukan dihitung nol.
       </p>
+
+      </Fragment>
 
       <TombolSimpan label={nilai.id ? "Simpan perubahan" : "Buat periode"} />
 
