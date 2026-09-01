@@ -1,11 +1,17 @@
+import type { Prisma } from "@prisma/client";
+
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input, Select } from "@/components/ui/field";
+import { DaftarKosong, PanelSaringan } from "@/components/ui/panel-saringan";
 import {
   LABEL_JENIS_INSIDEN,
   LABEL_STATUS_TINDAK_LANJUT,
   mendesak,
   ragamStatus,
+  STATUS_TINDAK_LANJUT,
+  statusTindakLanjutSah,
 } from "@/lib/insiden";
 import { saringanInsiden, wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
@@ -17,13 +23,38 @@ import { UbahStatus } from "./status";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Laporan Insiden" };
 
-export default async function Halaman() {
+export default async function Halaman({
+  searchParams,
+}: {
+  searchParams: Promise<{ cari?: string; status?: string }>;
+}) {
   const { pengguna, izin } = await wajibIzin("insiden", "baca");
   const bolehMelapor = bolehTulis(pengguna.role, "insiden");
   const bolehMenindaklanjuti = izin.tulis === "SEMUA";
 
+  const filter = await searchParams;
+  const cari = (filter.cari ?? "").trim();
+  const status = statusTindakLanjutSah(filter.status) ? filter.status : "";
+  const jumlahSaringan = [cari, status].filter(Boolean).length;
+
+  const where: Prisma.IncidentWhereInput = {
+    ...saringanInsiden(pengguna),
+    ...(status ? { statusTindakLanjut: status } : {}),
+    ...(cari
+      ? {
+          OR: [
+            { lokasi: { contains: cari, mode: "insensitive" } },
+            { kronologi: { contains: cari, mode: "insensitive" } },
+            { tindakan: { contains: cari, mode: "insensitive" } },
+            { saran: { contains: cari, mode: "insensitive" } },
+            { pelapor: { is: { nama: { contains: cari, mode: "insensitive" } } } },
+          ],
+        }
+      : {}),
+  };
+
   const daftar = await prisma.incident.findMany({
-    where: saringanInsiden(pengguna),
+    where,
     include: { pelapor: { select: { nama: true } } },
     orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
     take: 100,
@@ -58,13 +89,30 @@ export default async function Halaman() {
         </Card>
       ) : null}
 
+      <PanelSaringan jalur="/insiden" jumlahAktif={jumlahSaringan}>
+        <Input
+          name="cari"
+          placeholder="Cari lokasi, kronologi, atau pelapor"
+          defaultValue={cari}
+          aria-label="Cari laporan insiden"
+        />
+        <Select name="status" defaultValue={status} aria-label="Status tindak lanjut">
+          <option value="">Semua status</option>
+          {STATUS_TINDAK_LANJUT.map((st) => (
+            <option key={st} value={st}>
+              {LABEL_STATUS_TINDAK_LANJUT[st]}
+            </option>
+          ))}
+        </Select>
+      </PanelSaringan>
+
       <div className="space-y-3">
         {daftar.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-teks-redup">
-              Belum ada laporan.
-            </CardContent>
-          </Card>
+          <DaftarKosong
+            jalur="/insiden"
+            adaSaringan={jumlahSaringan > 0}
+            pesan={jumlahSaringan ? "Tidak ada laporan yang cocok dengan saringan." : "Belum ada laporan."}
+          />
         ) : null}
 
         {daftar.map((insiden) => (

@@ -5,6 +5,8 @@ import { KartuSkor } from "@/components/kartu-skor";
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/field";
+import { PanelSaringan } from "@/components/ui/panel-saringan";
 import { periodeAktif, rekapKontribusi } from "@/lib/kontribusi";
 import { absensiDiLuarPeriode } from "@/lib/pemantauan";
 import { keadaanPeriode, penjelasanPeriode } from "@/lib/periode";
@@ -15,9 +17,14 @@ import { tanggalPendekWib } from "@/lib/waktu";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Rekap Kontribusi" };
 
-export default async function HalamanRekap() {
+export default async function HalamanRekap({
+  searchParams,
+}: {
+  searchParams: Promise<{ cari?: string }>;
+}) {
   const { pengguna } = await wajibIzin("rekap_absensi", "baca");
   const periode = await periodeAktif();
+  const cari = (await searchParams).cari?.trim() ?? "";
 
   if (!periode) {
     return (
@@ -40,6 +47,15 @@ export default async function HalamanRekap() {
   const lingkup = saringanRekapKontribusi(pengguna) as Prisma.UserWhereInput;
   const rekap = await rekapKontribusi(periode, lingkup);
   const lihatSemua = bolehBacaSemua(pengguna.role, "rekap_absensi");
+
+  const kunci = cari.toLowerCase();
+  const rekapTampil = kunci
+    ? rekap.filter(
+        (r) =>
+          r.user.nama.toLowerCase().includes(kunci) ||
+          (r.user.squad?.kode ?? "").toLowerCase().includes(kunci),
+      )
+    : rekap;
 
   const milikSendiri = rekap.find((r) => r.user.id === pengguna.id);
   const lulus = rekap.filter((r) => r.rincian.lulus).length;
@@ -107,6 +123,21 @@ export default async function HalamanRekap() {
               tidak dibuat.
             </CardDescription>
           </CardHeader>
+          <CardContent className="pb-0">
+            <PanelSaringan jalur="/absensi/rekap" jumlahAktif={cari ? 1 : 0}>
+              <Input
+                name="cari"
+                placeholder="Cari nama atau kode squad"
+                defaultValue={cari}
+                aria-label="Cari anggota di rekap"
+              />
+            </PanelSaringan>
+          </CardContent>
+          {rekapTampil.length === 0 ? (
+            <CardContent className="py-6 text-center text-sm text-teks-redup">
+              Tidak ada anggota yang cocok dengan saringan.
+            </CardContent>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b border-garis bg-dasar text-left">
@@ -123,7 +154,7 @@ export default async function HalamanRekap() {
                 </tr>
               </thead>
               <tbody>
-                {rekap.map((r) => (
+                {rekapTampil.map((r) => (
                   <tr key={r.user.id} className="border-b border-garis last:border-0">
                     <td className="px-4 py-2">
                       <p className="font-medium">{r.user.nama}</p>
@@ -165,6 +196,7 @@ export default async function HalamanRekap() {
               </tbody>
             </table>
           </div>
+          )}
           <CardContent>
             <p className="text-xs text-teks-redup">
               Sesi berbagi dihitung dari absensi berjenis PELATIHAN. Piket dan logbook baru terisi

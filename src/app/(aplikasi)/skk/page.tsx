@@ -3,6 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input, Select } from "@/components/ui/field";
+import { DaftarKosong, PanelSaringan } from "@/components/ui/panel-saringan";
 import { periodeAktif } from "@/lib/kontribusi";
 import { saringanRekapKontribusi, wajibIzin } from "@/lib/penjaga";
 import { bolehMenerbitkanSkk } from "@/lib/rbac";
@@ -13,9 +15,18 @@ import { FormulirTerbit } from "./formulir";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Surat Kontribusi" };
 
-export default async function Halaman() {
+export default async function Halaman({
+  searchParams,
+}: {
+  searchParams: Promise<{ cari?: string; saring?: string }>;
+}) {
   const { pengguna, izin } = await wajibIzin("skk", "baca");
   const periode = await periodeAktif();
+  const filter = await searchParams;
+  const cari = (filter.cari ?? "").trim();
+  const saring = ["layak", "belum", "terbit"].includes(filter.saring ?? "")
+    ? (filter.saring as "layak" | "belum" | "terbit")
+    : "";
 
   if (!periode) {
     return (
@@ -40,6 +51,26 @@ export default async function Halaman() {
   const bolehTerbit = bolehMenerbitkanSkk(pengguna.role);
   const layak = kandidat.filter((k) => k.layak).length;
   const terbit = kandidat.filter((k) => k.sudahTerbit).length;
+
+  // Kandidat sudah dihitung di memori; saringannya pun di memori.
+  const kunci = cari.toLowerCase();
+  const kandidatTampil = kandidat.filter((k) => {
+    const cocokTeks =
+      !kunci ||
+      k.rekap.user.nama.toLowerCase().includes(kunci) ||
+      (k.rekap.user.npm ?? "").toLowerCase().includes(kunci) ||
+      (k.rekap.user.squad?.nama ?? "").toLowerCase().includes(kunci);
+    const cocokSaring =
+      saring === ""
+        ? true
+        : saring === "terbit"
+          ? Boolean(k.sudahTerbit)
+          : saring === "layak"
+            ? k.layak && !k.sudahTerbit
+            : !k.layak && !k.sudahTerbit;
+    return cocokTeks && cocokSaring;
+  });
+  const jumlahSaringan = [cari, saring].filter(Boolean).length;
 
   return (
     <>
@@ -66,16 +97,35 @@ export default async function Halaman() {
         </Card>
       ) : null}
 
+      <PanelSaringan jalur="/skk" jumlahAktif={jumlahSaringan}>
+        <Input
+          name="cari"
+          placeholder="Cari nama, NPM, atau squad"
+          defaultValue={cari}
+          aria-label="Cari kandidat SKK"
+        />
+        <Select name="saring" defaultValue={saring} aria-label="Saring kelayakan">
+          <option value="">Semua kandidat</option>
+          <option value="layak">Memenuhi syarat, belum terbit</option>
+          <option value="belum">Belum memenuhi syarat</option>
+          <option value="terbit">Sudah terbit</option>
+        </Select>
+      </PanelSaringan>
+
       <div className="space-y-3">
-        {kandidat.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-teks-redup">
-              Belum ada anggota pada periode ini.
-            </CardContent>
-          </Card>
+        {kandidatTampil.length === 0 ? (
+          <DaftarKosong
+            jalur="/skk"
+            adaSaringan={jumlahSaringan > 0}
+            pesan={
+              jumlahSaringan
+                ? "Tidak ada kandidat yang cocok dengan saringan."
+                : "Belum ada anggota pada periode ini."
+            }
+          />
         ) : null}
 
-        {kandidat.map((k) => {
+        {kandidatTampil.map((k) => {
           const kurang = k.syarat.filter((s) => s.terpenuhi !== true);
           return (
             <Card key={k.rekap.user.id}>

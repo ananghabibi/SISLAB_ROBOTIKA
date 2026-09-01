@@ -718,6 +718,37 @@ aset yang disunting kini menampilkan nilai baru setelah simpan (bukan kembali ke
 lama), nama periode pun demikian, dan mode penambahan aset tetap mengosong
 seperti semula.
 
+### Pencarian di setiap menu berisi daftar
+
+Diminta Kepala Laboratorium. Tiga menu sudah punya saringan (Anggota,
+Inventaris, Audit); pencarian ditambahkan ke sisa menu yang menampilkan daftar,
+memakai komponen `PanelSaringan` yang sama supaya seragam dan dapat ditautkan
+lewat URL (`?cari=`).
+
+- Absensi Saya — riwayat pribadi, disaring di memori.
+- Rekap Kontribusi — nama atau kode squad, disaring di memori.
+- Logbook — squad, penulis, atau isi catatan.
+- Piket — squad atau petugas.
+- Laporan Insiden — lokasi, kronologi, tindakan, saran, pelapor, plus saringan
+  status tindak lanjut.
+- Buku Tamu — nama, instansi, keperluan, atau pendamping (pada riwayat).
+- Peminjaman — alat, kode, peminjam, atau keperluan.
+- Surat Kontribusi — nama, NPM, atau squad, plus saringan kelayakan
+  (memenuhi/belum/sudah terbit).
+
+Menu yang bukan daftar sengaja tidak diberi pencarian: Dasbor, Peran & Hak Akses
+(matriks), Periode & Target (penyunting, sedikit baris), dan Ekspor Data.
+
+Pencarian dijalankan di dalam kueri basis data tempat datanya memang dibaca dari
+sana (insiden, tamu, piket, logbook, peminjaman), dan di memori tempat datanya
+memang dihitung di memori (rekap, SKK, riwayat absensi pribadi). Keduanya tetap
+menghormati lingkup hak akses: seorang anggota hanya mencari di dalam data yang
+memang boleh dilihatnya.
+
+Diverifikasi dengan Playwright terhadap build produksi: pencarian teks insiden
+menyisakan hanya yang cocok, saringan status bekerja, dan seluruh menu daftar
+memuat dengan kotak pencariannya.
+
 ## Aturan yang berlaku di seluruh milestone
 
 - Setiap milestone **wajib memperbarui README**: cara menjalankan, cara

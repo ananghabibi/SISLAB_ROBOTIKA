@@ -1,6 +1,10 @@
+import type { Prisma } from "@prisma/client";
+
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/field";
+import { PanelSaringan } from "@/components/ui/panel-saringan";
 import { piketHariIni } from "@/lib/pemantauan";
 import { saringanPiket, wajibIzin } from "@/lib/penjaga";
 import {
@@ -16,10 +20,15 @@ import { FormulirPiket } from "./formulir";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Piket" };
 
-export default async function Halaman() {
+export default async function Halaman({
+  searchParams,
+}: {
+  searchParams: Promise<{ cari?: string }>;
+}) {
   const { pengguna, izin } = await wajibIzin("piket", "baca");
   const butir = butirPiket();
   const bolehMencatat = izin.tulis !== "TIDAK";
+  const cari = (await searchParams).cari?.trim() ?? "";
 
   const [jadwalHariIni, squad, daftar] = await Promise.all([
     piketHariIni(),
@@ -31,7 +40,17 @@ export default async function Halaman() {
         })
       : Promise.resolve([]),
     prisma.piketLog.findMany({
-      where: saringanPiket(pengguna),
+      where: {
+        ...saringanPiket(pengguna),
+        ...(cari
+          ? {
+              OR: [
+                { squad: { is: { nama: { contains: cari, mode: "insensitive" } } } },
+                { pengisi: { is: { nama: { contains: cari, mode: "insensitive" } } } },
+              ] satisfies Prisma.PiketLogWhereInput["OR"],
+            }
+          : {}),
+      },
       include: {
         squad: { select: { nama: true } },
         pengisi: { select: { nama: true } },
@@ -92,10 +111,18 @@ export default async function Halaman() {
         ) : null}
 
         <div className="space-y-3">
+          <PanelSaringan jalur="/piket" jumlahAktif={cari ? 1 : 0}>
+            <Input
+              name="cari"
+              placeholder="Cari squad atau petugas piket"
+              defaultValue={cari}
+              aria-label="Cari catatan piket"
+            />
+          </PanelSaringan>
           {daftar.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-sm text-teks-redup">
-                Belum ada catatan piket.
+                {cari ? "Tidak ada catatan piket yang cocok dengan saringan." : "Belum ada catatan piket."}
               </CardContent>
             </Card>
           ) : null}

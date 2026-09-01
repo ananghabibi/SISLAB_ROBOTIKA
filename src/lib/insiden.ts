@@ -44,6 +44,11 @@ export const LABEL_STATUS_TINDAK_LANJUT: Record<StatusTindakLanjut, string> = {
   SELESAI: "Selesai",
 };
 
+/** Benar bila teks ini salah satu status tindak lanjut yang sah. */
+export function statusTindakLanjutSah(nilai: unknown): nilai is StatusTindakLanjut {
+  return typeof nilai === "string" && STATUS_TINDAK_LANJUT.includes(nilai as StatusTindakLanjut);
+}
+
 /**
  * Jenis yang menuntut Kepala Laboratorium tahu hari itu juga.
  *

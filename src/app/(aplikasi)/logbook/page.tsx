@@ -1,6 +1,10 @@
+import type { Prisma } from "@prisma/client";
+
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/field";
+import { PanelSaringan } from "@/components/ui/panel-saringan";
 import { periodeAktif } from "@/lib/kontribusi";
 import { bacaAnggotaTerlibat, pekanDapatDiisi, rentangPekan } from "@/lib/logbook";
 import { squadPadaPekan } from "@/lib/pemantauan";
@@ -13,9 +17,14 @@ import { FormulirLogbook, type PilihanSquad } from "./formulir";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Logbook Riset" };
 
-export default async function Halaman() {
+export default async function Halaman({
+  searchParams,
+}: {
+  searchParams: Promise<{ cari?: string }>;
+}) {
   const { pengguna, izin } = await wajibIzin("logbook", "baca");
   const periode = await periodeAktif();
+  const cari = (await searchParams).cari?.trim() ?? "";
 
   if (!periode) {
     return (
@@ -56,7 +65,23 @@ export default async function Halaman() {
         })
       : Promise.resolve([]),
     prisma.logbook.findMany({
-      where: { periodId: periode.id, ...saringanLogbook(pengguna) },
+      where: {
+        periodId: periode.id,
+        ...saringanLogbook(pengguna),
+        ...(cari
+          ? {
+              OR: [
+                { target: { contains: cari, mode: "insensitive" } },
+                { dikerjakan: { contains: cari, mode: "insensitive" } },
+                { hasil: { contains: cari, mode: "insensitive" } },
+                { kendala: { contains: cari, mode: "insensitive" } },
+                { rencanaBerikutnya: { contains: cari, mode: "insensitive" } },
+                { squad: { is: { nama: { contains: cari, mode: "insensitive" } } } },
+                { dibuatOleh: { is: { nama: { contains: cari, mode: "insensitive" } } } },
+              ] satisfies Prisma.LogbookWhereInput["OR"],
+            }
+          : {}),
+      },
       include: {
         squad: { select: { nama: true } },
         dibuatOleh: { select: { nama: true } },
@@ -144,10 +169,20 @@ export default async function Halaman() {
         ) : null}
 
         <div className="space-y-3">
+          <PanelSaringan jalur="/logbook" jumlahAktif={cari ? 1 : 0}>
+            <Input
+              name="cari"
+              placeholder="Cari squad, penulis, atau isi catatan"
+              defaultValue={cari}
+              aria-label="Cari logbook"
+            />
+          </PanelSaringan>
           {daftar.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-sm text-teks-redup">
-                Belum ada logbook pada periode ini.
+                {cari
+                  ? "Tidak ada logbook yang cocok dengan saringan."
+                  : "Belum ada logbook pada periode ini."}
               </CardContent>
             </Card>
           ) : null}
