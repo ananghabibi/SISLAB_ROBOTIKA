@@ -78,15 +78,43 @@ function jalankan(argumen) {
   });
 }
 
+const PINTU_DARURAT = "LEWATI_PERIKSA_MIGRASI=1";
+
+/**
+ * Pemeriksaan ini berdiri di depan `npm run dev`, dan itu menempatkannya pada
+ * posisi yang berbahaya: kalau ia sendiri yang rusak, peladen tidak akan pernah
+ * menyala dan pemasangan berhenti total. Karena itu ia hanya boleh menahan
+ * peladen untuk dua keadaan yang memang dikenalinya dan ada jalan keluarnya.
+ * Apa pun di luar itu — npx yang tidak dapat dijalankan, berkas yang tidak
+ * terbaca, kejutan yang belum terpikirkan — diperingatkan lalu dibiarkan lewat.
+ *
+ * Alat bantu yang menghalangi pekerjaan lebih buruk daripada tidak ada alat
+ * bantu sama sekali.
+ */
+function lewat(pesan, saran) {
+  console.warn(`${KUNING}${pesan}${MATI}`);
+  if (saran) console.warn(`${KUNING}${saran}${MATI}`);
+  console.warn("");
+  process.exit(0);
+}
+
+function main() {
 if (klienKetinggalan()) {
   console.log(`${KUNING}Prisma Client dibuat dari skema yang lama. Membuat ulang…${MATI}`);
   const hasil = jalankan(["generate"]);
+  if (hasil.error) {
+    lewat(
+      `npx tidak dapat dijalankan (${hasil.error.message}), pemeriksaan dilewati.`,
+      "Bila halaman nanti gagal dengan PrismaClientValidationError, jalankan: npm run db:migrate",
+    );
+  }
   if (hasil.status !== 0) {
     console.error(`${MERAH}Gagal membuat ulang Prisma Client.${MATI}`);
     console.error(hasil.stderr || hasil.stdout || "");
     console.error(
       "\nBila galatnya EPERM pada query_engine, ada `npm run dev` lain yang masih menyala.\n" +
-        "Tutup jendelanya lebih dulu, lalu ulangi.",
+        "Tutup jendelanya lebih dulu, lalu ulangi.\n\n" +
+        `Kalau harus jalan sekarang juga, lewati pemeriksaan ini: set ${PINTU_DARURAT}`,
     );
     process.exit(1);
   }
@@ -94,6 +122,12 @@ if (klienKetinggalan()) {
 }
 
 const status = jalankan(["migrate", "status"]);
+if (status.error) {
+  lewat(
+    `npx tidak dapat dijalankan (${status.error.message}), migrasi belum diperiksa.`,
+    "Pastikan sendiri dengan: npx prisma migrate status",
+  );
+}
 const keluaran = `${status.stdout ?? ""}${status.stderr ?? ""}`;
 
 // Basis data belum menyala. Bukan kesalahan yang perlu menghentikan peladen —
@@ -101,17 +135,25 @@ const keluaran = `${status.stdout ?? ""}${status.stderr ?? ""}`;
 // yang menolak menyala hanya karena basis datanya belum sempat dihidupkan
 // justru menghalangi urutan kerja yang wajar.
 if (/P1001|Can't reach database server/i.test(keluaran)) {
-  console.warn(`${KUNING}Basis data belum dapat dihubungi, migrasi belum diperiksa.${MATI}`);
-  console.warn(`${KUNING}Nyalakan basis datanya, lalu jalankan: npm run db:migrate${MATI}\n`);
-  process.exit(0);
+  lewat(
+    "Basis data belum dapat dihubungi, migrasi belum diperiksa.",
+    "Nyalakan basis datanya, lalu jalankan: npm run db:migrate",
+  );
 }
 
 // Berkas .env belum ada atau belum lengkap. Ditangani tersendiri karena
 // pesannya berbeda dan penyelesaiannya pun berbeda.
 if (/P1012|Environment variable not found/i.test(keluaran)) {
-  console.warn(`${KUNING}DATABASE_URL belum disetel, migrasi belum diperiksa.${MATI}`);
-  console.warn(`${KUNING}Jalankan: node scripts/siapkan-env.mjs${MATI}\n`);
-  process.exit(0);
+  lewat("DATABASE_URL belum disetel, migrasi belum diperiksa.", "Jalankan: node scripts/siapkan-env.mjs");
+}
+
+// Kata sandi basis data keliru. Bukan urusan migrasi, dan menahan peladen di
+// sini hanya menutupi pesan Prisma yang justru sudah menyebutkan sebabnya.
+if (/P1000|Authentication failed/i.test(keluaran)) {
+  lewat(
+    "Kata sandi basis data ditolak, migrasi belum diperiksa.",
+    "Perbaiki dengan: node scripts/siapkan-env.mjs --sandi-db <kata-sandi-postgres>",
+  );
 }
 
 const adaTertunda =
@@ -135,5 +177,25 @@ if (adaTertunda) {
   console.error(`${KUNING}Keluaran prisma migrate status:${MATI}`);
   console.error(keluaran.trim().replace(/^/gm, "    "));
   console.error("");
+  console.error(`Kalau harus jalan sekarang juga, lewati pemeriksaan ini: set ${PINTU_DARURAT}`);
+  console.error("");
   process.exit(1);
+}
+}
+
+// Pintu darurat dibaca lebih dulu supaya siapa pun yang tertahan oleh
+// pemeriksaan ini punya jalan keluar tanpa harus menyunting package.json.
+if (process.env.LEWATI_PERIKSA_MIGRASI === "1") {
+  console.warn(`${KUNING}${PINTU_DARURAT} — pemeriksaan migrasi dilewati.${MATI}\n`);
+  process.exit(0);
+}
+
+try {
+  main();
+} catch (galat) {
+  // Kegagalan yang tidak terduga tidak boleh menahan peladen. Pemeriksaan ini
+  // alat bantu, bukan syarat menjalankan aplikasi.
+  console.warn(`${KUNING}Pemeriksaan migrasi gagal dijalankan, dilewati.${MATI}`);
+  console.warn(`${KUNING}${galat instanceof Error ? galat.message : galat}${MATI}\n`);
+  process.exit(0);
 }

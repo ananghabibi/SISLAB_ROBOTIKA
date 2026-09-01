@@ -597,6 +597,27 @@ Dijalankan pada PostgreSQL 16 sementara, bukan disimpulkan dari kode:
 - seeder yang dijalankan ulang **tidak** menimpa kata sandi yang sudah dipilih,
   dan benderanya tetap turun.
 
+### Pemeriksaan itu sendiri tidak boleh menjadi penghalang
+
+`predev` berdiri di depan `npm run dev`, dan itu menempatkannya pada posisi
+berbahaya: kalau ia sendiri yang rusak, peladen tidak akan pernah menyala dan
+pemasangan berhenti total. Versi pertamanya keluar dengan kode 1 setiap kali
+`prisma generate` gagal — termasuk saat `npx` tidak dapat dijalankan sama
+sekali.
+
+Sekarang ia hanya menahan peladen untuk satu keadaan yang memang dikenalinya
+dan ada jalan keluarnya: migrasi tertunda. Basis data yang belum menyala,
+`.env` yang belum dibuat, kata sandi basis data yang ditolak (P1000), `npx`
+yang tidak dapat dijalankan, dan galat apa pun yang belum terpikirkan —
+semuanya diperingatkan lalu dibiarkan lewat. Pintu darurat
+`LEWATI_PERIKSA_MIGRASI=1` disebutkan pada setiap pesan yang menahan.
+
+Alat bantu yang menghalangi pekerjaan lebih buruk daripada tidak ada alat bantu
+sama sekali.
+
+Diuji: migrasi tertunda menahan dengan kode 1, pintu daruratnya melewati
+tahanan itu, `npx` yang hilang tidak menahan, dan keadaan bersih lolos diam.
+
 ### `.env` yang sudah ada ikut menerima baris baru
 
 Ditemukan saat pemasangan di mini PC laboratorium. `siapkan-env.mjs` dulu

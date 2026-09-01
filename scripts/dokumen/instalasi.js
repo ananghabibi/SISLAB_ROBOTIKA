@@ -104,6 +104,7 @@ const isi = [
   ...kode("git pull", "npm install", "npm run db:migrate", "npm run dev"),
   p("npm run db:migrate melakukan dua hal sekaligus: menerapkan migrasi basis data yang baru, dan membuat ulang Prisma Client supaya kode mengenal kolom yang baru ditambahkan. Untuk memastikan basis datanya sudah sejajar, jalankan npx prisma migrate status — jawabannya harus \"Database schema is up to date!\"."),
   p("Kalau langkah itu terlewat, npm run dev menolak menyala dan menyebutkan migrasi mana yang tertunda. Pemeriksaannya berjalan sendiri sebelum peladen dinyalakan, dan Prisma Client yang ketinggalan dibuat ulang di sana — sebelum peladen sempat memegang berkas mesinnya."),
+  p("Pemeriksaan itu hanya menahan peladen untuk keadaan yang memang dikenalinya. Basis data yang belum menyala, .env yang belum dibuat, kata sandi basis data yang ditolak, npx yang tidak dapat dijalankan — semuanya diperingatkan lalu dibiarkan lewat. Bila toh Anda tertahan dan perlu jalan sekarang juga, jalankan set LEWATI_PERIKSA_MIGRASI=1 lebih dulu."),
   catatan("Urutan penting.", "Migrasi yang dijalankan SEBELUM git pull akan menjawab \"Already in sync\" dengan benar, karena berkas migrasinya memang belum ada. Sesudah itu halaman gagal dengan PrismaClientValidationError dan galat kolom yang tidak dikenal. Artinya selalu sama: kode sudah baru, basis data atau Prisma Client masih lama."),
 
   // ---------------------------------------------------------------------------

@@ -311,6 +311,16 @@ migrasi mana yang tertunda — pemeriksaannya berjalan sendiri sebelum peladen
 dinyalakan (`scripts/periksa-migrasi.mjs`). Prisma Client yang ketinggalan
 dibuat ulang otomatis di sana, sebelum peladen sempat memegang berkas mesinnya.
 
+Pemeriksaan itu hanya menahan peladen untuk keadaan yang memang dikenalinya.
+Basis data yang belum menyala, `.env` yang belum dibuat, kata sandi basis data
+yang ditolak, `npx` yang tidak dapat dijalankan — semuanya diperingatkan lalu
+dibiarkan lewat. Bila toh Anda tertahan dan perlu jalan sekarang juga:
+
+```cmd
+set LEWATI_PERIKSA_MIGRASI=1
+npm run dev
+```
+
 Melewatinya, atau menjalankannya sebelum `git pull`, menghasilkan galat yang
 tampak menakutkan tetapi sebenarnya sederhana:
 
