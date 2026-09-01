@@ -266,7 +266,45 @@ juga mengetik langsung alamat `http://localhost:3000/peran` sebagai Anggota:
 hasilnya 403, karena penolakan terjadi di peladen, bukan sekadar menyembunyikan
 menu.
 
-### 3.8 Kalau ada yang gagal
+### 3.8 Memperbarui pemasangan yang sudah jalan
+
+Setiap kali menarik perubahan baru, **urutannya tidak boleh terbalik**:
+
+```cmd
+:: 1. Hentikan npm run dev lebih dulu — tekan Ctrl+C di jendelanya.
+::    Di Windows, peladen yang masih menyala memegang berkas mesin Prisma,
+::    dan pembuatan ulang klien akan gagal dengan galat EPERM.
+
+git pull
+npm install
+npm run db:migrate
+npm run dev
+```
+
+`npm run db:migrate` melakukan dua hal sekaligus: menerapkan migrasi basis data
+yang baru, dan **membuat ulang Prisma Client** supaya kode mengenal kolom yang
+baru ditambahkan.
+
+Melewatinya, atau menjalankannya sebelum `git pull`, menghasilkan galat yang
+tampak menakutkan tetapi sebenarnya sederhana:
+
+```
+PrismaClientValidationError
+Invalid `prisma.user.findUnique()` invocation
+Unknown argument `wajibGantiSandi`
+```
+
+Artinya selalu sama: **kode sudah baru, basis data atau Prisma Client masih
+lama.** Jalankan ulang urutan di atas dari awal. Untuk memastikan basis datanya
+sudah sejajar:
+
+```cmd
+npx prisma migrate status
+```
+
+Jawabannya harus `Database schema is up to date!`.
+
+### 3.9 Kalau ada yang gagal
 
 | Pesan | Artinya | Yang harus dilakukan |
 |---|---|---|
@@ -288,13 +326,15 @@ menu.
 | HP memuat terus padahal peladen berjalan | Skema tidak cocok — peladen `http` tetapi ponsel mencoba `https` (atau sebaliknya) karena mengingat kunjungan sebelumnya | Buka tab penyamaran dan ketik alamat lengkap dengan `http://` atau `https://` sesuai perintah yang sedang dijalankan |
 | HP memuat terus lalu gagal di alamat WiFi yang benar | Windows Firewall menutup port 3000 | Command Prompt sebagai Administrator: `netsh advfirewall firewall add rule name="SILAB dev 3000" dir=in action=allow protocol=TCP localport=3000` |
 | `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
+| `PrismaClientValidationError` / `Unknown argument` pada sebuah kolom | Kode sudah baru, basis data atau Prisma Client masih lama | Ikuti urutan pada bagian 3.8: hentikan `npm run dev`, `git pull`, `npm run db:migrate`, jalankan lagi |
+| `EPERM: operation not permitted, rename ... query_engine-windows.dll.node` | `npm run dev` masih menyala dan memegang berkas mesin Prisma | Hentikan `npm run dev` lebih dulu, baru jalankan `npm run db:migrate` atau `npm run build` |
 | `We detected multiple lockfiles` | Ada `package-lock.json` nyasar di folder rumah Anda, biasanya karena `npm install` pernah dijalankan di sana | Sekadar peringatan, boleh diabaikan. Bila ingin bersih: hapus `%USERPROFILE%\package-lock.json` |
 | `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SANDI_BAWAAN_ANGGOTA` di `.env`, atau setel ulang lewat **Anggota → Akses masuk** |
 | Sudah masuk, tetapi tiap menu memantul ke Profil | Akun masih memakai kata sandi bawaan | Ganti kata sandi di **Profil → Keamanan akun** |
 | `Konfigurasi autentikasi belum lengkap` | `.env` belum dibuat, atau `AUTH_SECRET` masih kosong | `node scripts/siapkan-env.mjs` |
 | `.env` tidak kelihatan di File Explorer | Wajar — namanya diawali titik | `dir /a` untuk memastikan, `notepad .env` untuk membuka |
 
-### 3.9 Perintah lain yang berguna
+### 3.10 Perintah lain yang berguna
 
 | Perintah | Kegunaan |
 |---|---|

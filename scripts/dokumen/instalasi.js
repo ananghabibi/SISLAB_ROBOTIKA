@@ -97,7 +97,11 @@ const isi = [
   j1("6. Membuat tabel dan mengisi data awal"),
   ...kode("npx prisma migrate deploy", "npx prisma db seed"),
   p("Baris pertama membuat seluruh tabel. Baris kedua memasukkan 6 squad, 39 anggota, dan 1 periode aktif — hasilnya tercetak di layar dan diakhiri Selesai."),
-  catatan("Urutan penting.", "Setiap kali Anda menarik pembaruan kode (git pull), jalankan npm run db:migrate SESUDAHNYA, bukan sebelumnya. Migrasi yang dijalankan sebelum kodenya ditarik akan menjawab \"Already in sync\" dengan benar, lalu halaman gagal dengan galat kolom yang tidak dikenal."),
+  j2("Memperbarui pemasangan yang sudah jalan"),
+  p("Setiap kali menarik pembaruan kode, jalankan empat perintah ini berurutan. Hentikan npm run dev lebih dulu dengan Ctrl+C: di Windows, peladen yang masih menyala memegang berkas mesin Prisma dan pembuatan ulang klien akan gagal."),
+  ...kode("git pull", "npm install", "npm run db:migrate", "npm run dev"),
+  p("npm run db:migrate melakukan dua hal sekaligus: menerapkan migrasi basis data yang baru, dan membuat ulang Prisma Client supaya kode mengenal kolom yang baru ditambahkan. Untuk memastikan basis datanya sudah sejajar, jalankan npx prisma migrate status — jawabannya harus \"Database schema is up to date!\"."),
+  catatan("Urutan penting.", "Migrasi yang dijalankan SEBELUM git pull akan menjawab \"Already in sync\" dengan benar, karena berkas migrasinya memang belum ada. Sesudah itu halaman gagal dengan PrismaClientValidationError dan galat kolom yang tidak dikenal. Artinya selalu sama: kode sudah baru, basis data atau Prisma Client masih lama."),
 
   // ---------------------------------------------------------------------------
   j1("7. Menjalankan dan masuk pertama kali"),
@@ -198,7 +202,8 @@ const isi = [
       ["Can't reach database server at localhost:5432", "Basis data belum menyala, atau DATABASE_URL salah", "Nyalakan basis data; periksa baris DATABASE_URL di .env"],
       ["EADDRINUSE :3000 atau \"Port 3000 is in use\"", "Ada npm run dev lain yang masih hidup", "Tutup yang lama; jangan biarkan dua peladen berjalan bersamaan"],
       ["EPERM ... query_engine-windows.dll.node", "npm run dev masih hidup dan mengunci berkasnya", "Hentikan npm run dev dulu, baru jalankan migrasi atau build"],
-      ["Unknown argument pada nama kolom", "Kode sudah ditarik tetapi migrasinya belum dijalankan", "Hentikan peladen, jalankan npm run db:migrate, jalankan lagi"],
+      ["PrismaClientValidationError, atau Unknown argument pada nama kolom", "Kode sudah ditarik tetapi migrasinya belum dijalankan", "Hentikan peladen, jalankan npm run db:migrate, jalankan lagi"],
+      ["EPERM ... query_engine-windows.dll.node", "npm run dev masih menyala dan memegang berkas mesin Prisma", "Hentikan npm run dev lebih dulu, baru jalankan db:migrate atau build"],
       ["localhost:3000 kosong padahal alamat IP bisa dibuka", "Windows menerjemahkan localhost ke IPv6", "Pakai http://127.0.0.1:3000"],
       ["Halaman rintisan padahal fiturnya sudah ada", "Cabang git yang dibuka bukan cabang yang berisi pekerjaannya", "git branch --show-current, lalu pindah ke cabang yang benar"],
     ],
