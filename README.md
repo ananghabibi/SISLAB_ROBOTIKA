@@ -28,6 +28,25 @@ memasang dan merawat peladennya.
 
 ---
 
+## 0. Dokumen cetak
+
+Dua berkas Word di folder `docs/`, untuk dicetak atau dibagikan kepada anggota
+yang tidak membaca repositori ini:
+
+| Berkas | Isi |
+|---|---|
+| `docs/Panduan-Instalasi-SILAB.docx` | Pemasangan langkah demi langkah, untuk laptop maupun mini PC laboratorium, berikut daftar periksa dan tabel gejala–sebab–tindakan |
+| `docs/Tutorial-Menu-SILAB.docx` | Tutorial ke-18 menu: siapa yang boleh, untuk apa, langkahnya, dan yang perlu diketahui |
+
+Keduanya berbahasa Indonesia dan berdiri sendiri — tidak menuntut pembacanya
+membuka README ini. Sesudah dibuka di Word, tekan **Ctrl + A** lalu **F9** untuk
+memunculkan nomor halaman pada daftar isinya.
+
+Berkasnya dibuat ulang dengan skrip di `scripts/dokumen/`; ubah skripnya, bukan
+berkas Word-nya, supaya perubahan tidak hilang pada pembuatan berikutnya.
+
+---
+
 ## 1. Mengapa server ini harus berada di dalam laboratorium
 
 Sistem dijalankan pada **satu mini PC atau laptop bekas yang menyala terus di
