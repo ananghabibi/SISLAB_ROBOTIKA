@@ -1,5 +1,6 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -9,6 +10,7 @@ import { npmValid, prodiDariNpm, angkatanDariNpm, jenjangDariAngkatan } from "@/
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
 import { bolehTulis } from "@/lib/rbac";
+import { sandiBawaan } from "@/lib/sandi";
 
 export interface KeadaanAnggota {
   galat?: string;
@@ -173,6 +175,9 @@ export async function buatAnggota(
   const turunan = npm ? prodiDariNpm(npm) : null;
   const angkatan = masukan.angkatan ?? (npm ? angkatanDariNpm(npm) : null);
 
+  // Akun lahir langsung dengan kata sandi bawaan, sehingga menambah anggota
+  // benar-benar selesai di halaman ini. Benderanya menyala: sampai sandinya
+  // diganti sendiri, akun ini hanya membuka Dasbor dan Profil.
   const baru = await prisma.user.create({
     data: {
       nama: masukan.nama,
@@ -186,6 +191,8 @@ export async function buatAnggota(
       jenjang: masukan.jenjang ?? jenjangDariAngkatan(angkatan),
       status: masukan.status,
       role: masukan.role,
+      passwordHash: await bcrypt.hash(sandiBawaan(), 12),
+      wajibGantiSandi: true,
     },
   });
 
@@ -199,6 +206,48 @@ export async function buatAnggota(
 
   revalidatePath("/anggota");
   redirect(`/anggota/${baru.id}`);
+}
+
+/**
+ * Mengembalikan sebuah akun ke kata sandi bawaan.
+ *
+ * Jalur pemulihan untuk anggota yang lupa sandinya. Sebelum ini satu-satunya
+ * caranya adalah `npm run sandi` di mesin peladen, yang berarti hanya orang
+ * dengan akses shell yang dapat menolong — dan orang itu tidak selalu ada di
+ * laboratorium saat dibutuhkan.
+ *
+ * Aman diberikan kepada pengelola master anggota karena kata sandi bawaan
+ * tidak membuka apa pun: benderanya ikut menyala kembali, sehingga akunnya
+ * hanya dapat dipakai untuk memilih kata sandi baru.
+ */
+export async function setelUlangSandi(
+  idAnggota: string,
+  _keadaan: KeadaanAnggota,
+  _data: FormData,
+): Promise<KeadaanAnggota> {
+  const { pengguna } = await wajibIzin("master_anggota", "tulis");
+
+  const anggota = await prisma.user.findUnique({
+    where: { id: idAnggota },
+    select: { id: true, nama: true },
+  });
+  if (!anggota) return { galat: "Anggota tidak ditemukan." };
+
+  await prisma.user.update({
+    where: { id: idAnggota },
+    data: { passwordHash: await bcrypt.hash(sandiBawaan(), 12), wajibGantiSandi: true },
+  });
+
+  // Isi kata sandi tidak pernah masuk audit log; hanya faktanya yang dicatat.
+  await catatAudit({
+    userId: pengguna.id,
+    aksi: "SETEL_ULANG_KATA_SANDI",
+    entitas: "User",
+    entitasId: idAnggota,
+  });
+
+  revalidatePath(`/anggota/${idAnggota}`);
+  return { berhasil: `Kata sandi ${anggota.nama} dikembalikan ke kata sandi bawaan.` };
 }
 
 /**

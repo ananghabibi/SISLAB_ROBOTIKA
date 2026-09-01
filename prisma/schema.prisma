@@ -111,8 +111,19 @@ model User {
   status    StatusAnggota @default(AKTIF)
   avatarUrl String?
 
-  // Hanya dipakai akun dosen (Credentials). Anggota mahasiswa memakai Google kampus.
+  // Setiap akun punya kata sandi sejak dibuat: yang lewat Google kampus pun,
+  // supaya ada satu jalur masuk cadangan ketika Google sedang tidak dapat
+  // dihubungi dari dalam laboratorium.
   passwordHash String?
+
+  // Akun yang masih memakai kata sandi bawaan. Selama benderanya menyala,
+  // penjagaan di `src/lib/penjaga.ts` hanya mengizinkan Dasbor dan Profil.
+  //
+  // Ini bukan kenyamanan, melainkan bagian dari anti titip absen: satu kata
+  // sandi bawaan yang sama untuk semua orang berarti siapa pun yang tahu kata
+  // itu dapat masuk sebagai orang lain dan menekan tombol hadir atas namanya.
+  // Karena itu kata sandi bawaan hanya cukup untuk satu hal — menggantinya.
+  wajibGantiSandi Boolean @default(false)
 
   squad Squad? @relation("AnggotaSquad", fields: [squadId], references: [id], onDelete: SetNull)
 

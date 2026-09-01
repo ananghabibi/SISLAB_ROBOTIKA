@@ -10,6 +10,7 @@ import Link from "next/link";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
+import { gayaTombol } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { pinjamanBerjalan, riwayatPinjaman, sudahLewatTenggat } from "@/lib/inventaris";
 import { saringanPeminjaman, wajibIzin } from "@/lib/penjaga";
@@ -57,11 +58,8 @@ export default async function HalamanPeminjaman() {
         }
         aksi={
           bolehCatat ? (
-            <Link
-              href="/peminjaman/baru"
-              className="inline-flex min-h-11 items-center rounded-lg bg-utama px-4 text-sm font-semibold text-white hover:opacity-90"
-            >
-              Catat peminjaman
+            <Link href="/peminjaman/baru" className={gayaTombol()}>
+              + Catat peminjaman
             </Link>
           ) : null
         }

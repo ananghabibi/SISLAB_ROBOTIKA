@@ -161,7 +161,9 @@ node scripts/siapkan-env.mjs
 > ke versi mayor berikutnya mengubah perilaku yang belum pernah diuji di sini.
 
 `siapkan-env.mjs` membuat berkas `.env` beserta seluruh kunci rahasianya, lalu
-**menampilkan kata sandi untuk masuk pertama kali**. Catat kata sandi itu.
+**menampilkan kata sandi untuk masuk pertama kali** dan **kata sandi bawaan
+setiap anggota baru**. Catat keduanya. Kata sandi bawaan itu dibangkitkan acak
+untuk pemasangan ini saja, jadi tidak sama dengan laboratorium lain.
 
 Perintah ini aman dijalankan berulang kali: nilai yang sudah ada tidak pernah
 ditimpa, hanya baris yang masih kosong yang diisi. Jalankan lagi kapan pun Anda
@@ -245,10 +247,12 @@ setiap laptop dihidupkan.
 
 ### 3.7 Mencoba peran lain
 
-Seeder hanya memberi kata sandi kepada akun dosen; anggota mahasiswa memakai
-Google. Supaya perbedaan menu antarperan bisa dicoba sekarang, pasang kata
-sandi sementara. Buka Command Prompt **kedua** di folder yang sama (biarkan
-`npm run dev` tetap berjalan di jendela pertama):
+Seluruh akun hasil seeder memakai kata sandi bawaan yang sama, dan akun yang
+masih memakainya hanya membuka Dasbor dan Profil. Supaya perbedaan menu
+antarperan bisa dicoba sekarang tanpa mengganti sandinya satu per satu lewat
+halaman Profil, pasang kata sandi sementara dari baris perintah. Buka Command
+Prompt **kedua** di folder yang sama (biarkan `npm run dev` tetap berjalan di
+jendela pertama):
 
 ```cmd
 npm run sandi -- 22301053005@student.unisma.ac.id KataSandiUji2026
@@ -285,7 +289,8 @@ menu.
 | HP memuat terus lalu gagal di alamat WiFi yang benar | Windows Firewall menutup port 3000 | Command Prompt sebagai Administrator: `netsh advfirewall firewall add rule name="SILAB dev 3000" dir=in action=allow protocol=TCP localport=3000` |
 | `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
 | `We detected multiple lockfiles` | Ada `package-lock.json` nyasar di folder rumah Anda, biasanya karena `npm install` pernah dijalankan di sana | Sekadar peringatan, boleh diabaikan. Bila ingin bersih: hapus `%USERPROFILE%\package-lock.json` |
-| `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SEED_KEPALA_LAB_PASSWORD` di `.env`, atau pakai `npm run sandi` |
+| `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SANDI_BAWAAN_ANGGOTA` di `.env`, atau setel ulang lewat **Anggota → Akses masuk** |
+| Sudah masuk, tetapi tiap menu memantul ke Profil | Akun masih memakai kata sandi bawaan | Ganti kata sandi di **Profil → Keamanan akun** |
 | `Konfigurasi autentikasi belum lengkap` | `.env` belum dibuat, atau `AUTH_SECRET` masih kosong | `node scripts/siapkan-env.mjs` |
 | `.env` tidak kelihatan di File Explorer | Wajar — namanya diawali titik | `dir /a` untuk memastikan, `notepad .env` untuk membuka |
 
@@ -328,7 +333,8 @@ pemeriksaan subnet dilewati. **Nilai ini wajib `false` di laboratorium.**
 | `QR_TOKEN_SECRET` | ya | Kunci HMAC token QR berputar |
 | `QR_ROTATE_SECONDS`, `QR_MAX_AGE_SECONDS` | — | Bawaan 60 dan 90 detik |
 | `CRON_SECRET` | ya | Melindungi endpoint terjadwal |
-| `SEED_KEPALA_LAB_PASSWORD` | — | Kata sandi awal akun dosen |
+| `SANDI_BAWAAN_ANGGOTA` | — | Kata sandi bawaan setiap akun baru. Minimal 10 karakter; yang lebih pendek diabaikan |
+| `SEED_KEPALA_LAB_PASSWORD` | — | Kata sandi awal akun dosen. Kosong = ikut `SANDI_BAWAAN_ANGGOTA` |
 | `TZ` | — | `Asia/Jakarta` |
 
 ---
@@ -339,25 +345,38 @@ Ada dua jalur, dan keduanya tunduk pada aturan yang sama: **surel harus sudah
 terdaftar sebagai anggota.** Sistem tidak pernah membuat akun dari hasil login —
 daftar anggota berasal dari SK Keanggotaan.
 
-### Jalur 1 — surel + kata sandi (akun dosen)
+### Jalur 1 — surel + kata sandi
 
 Jalur ini tidak memerlukan kredensial Google, jadi inilah cara tercepat untuk
 masuk pertama kali dan untuk menguji sistem.
 
-Seeder memasang kata sandi bagi akun berperan `KEPALA_LAB` dan `PENGAWAS`,
-diambil dari `SEED_KEPALA_LAB_PASSWORD` di `.env` (bawaan:
-`ubah-setelah-login-pertama`).
+**Setiap akun punya kata sandi sejak dibuat**, baik yang dibuat seeder maupun
+yang ditambahkan lewat halaman **Anggota → Tambah anggota**. Kata sandi awalnya
+diambil dari `SANDI_BAWAAN_ANGGOTA` di `.env`; akun berperan `KEPALA_LAB` dan
+`PENGAWAS` memakai `SEED_KEPALA_LAB_PASSWORD` bila variabel itu diisi.
 
 | Kolom | Nilai bawaan hasil seeder |
 |---|---|
 | Surel | `anang.habibi@unisma.ac.id` — kolom `email` baris pertama `data/seed-data.csv` |
-| Kata sandi | isi `SEED_KEPALA_LAB_PASSWORD` |
+| Kata sandi | isi `SEED_KEPALA_LAB_PASSWORD`, atau `SANDI_BAWAAN_ANGGOTA` bila kosong |
 
 Kalau surel di CSV sudah diganti ke surel yang sebenarnya, pakai yang itu —
 sistem mencocokkannya **persis**.
 
-**Segera setelah berhasil masuk:** buka **Profil → Keamanan akun** dan ganti
-kata sandi bawaan.
+#### Kata sandi bawaan hanya cukup untuk menggantinya
+
+Akun yang masih memakai kata sandi bawaan ditandai `wajibGantiSandi`, dan selama
+tandanya menyala **hanya Dasbor dan Profil yang terbuka**. Absensi, logbook,
+piket, inventaris — semuanya memantulkan orangnya kembali ke Profil.
+
+Itu bukan kerewelan. Kata sandi bawaan sama untuk setiap akun baru, jadi ia
+tidak dapat membuktikan bahwa yang menekan tombol hadir memang pemilik akun.
+Membiarkannya cukup untuk mengisi absensi sama saja dengan membuka pintu titip
+absen yang seluruh sistem ini dibangun untuk menutupnya.
+
+Jadi langkah pertama setiap orang, tanpa kecuali: **Profil → Keamanan akun**,
+isi kata sandi bawaan pada kolom "Kata sandi lama", lalu pilih kata sandi
+sendiri. Sesudah itu seluruh menu terbuka.
 
 ### Jalur 2 — Google kampus (anggota mahasiswa)
 
@@ -374,9 +393,10 @@ belum terdaftar sebagai anggota. Pesan galatnya menjelaskan yang mana.
 
 ### Akun uji untuk semua peran sekaligus
 
-Seeder hanya memberi kata sandi kepada akun dosen; anggota mahasiswa memakai
-Google. Untuk mencoba perbedaan menu dan penolakan hak akses antarperan tanpa
-menyiapkan kredensial Google lebih dulu:
+Seluruh akun hasil seeder memakai kata sandi bawaan yang sama, dan karena itu
+semuanya terkunci pada Dasbor dan Profil sampai sandinya diganti. Untuk mencoba
+perbedaan menu dan penolakan hak akses antarperan tanpa mengganti enam kata
+sandi satu per satu:
 
 ```cmd
 npm run sandi:uji -- KataSandiUji2026
@@ -403,9 +423,13 @@ satu anggota lewat halaman **Anggota**, lalu jalankan ulang perintah di atas.
 
 ### Memasang kata sandi anggota lain
 
-Peran selain dosen tidak diberi kata sandi oleh seeder — mereka memakai Google.
-Untuk memulihkan kata sandi dosen yang lupa, atau untuk **menguji perbedaan
-menu antarperan sebelum Google OAuth disiapkan**, pakai utilitas berikut:
+Cara yang paling mudah: buka **Anggota → pilih orangnya → Akses masuk →
+"Setel ulang ke kata sandi bawaan"**. Akunnya kembali ke kata sandi bawaan dan
+kembali terkunci pada Dasbor dan Profil sampai pemiliknya memilih kata sandi
+baru. Tidak perlu akses shell, dan penyetelan ulang tercatat di audit log.
+
+Bila perlu memasang kata sandi tertentu dari mesin peladen — misalnya untuk
+menguji perbedaan menu antarperan — pakai utilitas berikut:
 
 ```bash
 # pengembangan
@@ -415,8 +439,11 @@ npm run sandi -- 22301053005@student.unisma.ac.id KataSandiUji2026
 docker compose exec app npx tsx scripts/set-sandi.ts <surel> <kata-sandi>
 ```
 
-Kata sandi minimal 10 karakter. Setiap pemasangan tercatat di audit log; isi
-kata sandinya sendiri tidak pernah ikut tercatat.
+Kata sandi minimal 10 karakter dan tidak boleh sama dengan kata sandi bawaan.
+Berbeda dengan penyetelan ulang lewat halaman Anggota, kata sandi yang dipasang
+di sini dianggap sudah dipilih, sehingga akunnya langsung terbuka penuh. Setiap
+pemasangan tercatat di audit log; isi kata sandinya sendiri tidak pernah ikut
+tercatat.
 
 Surel tiap peran dapat dilihat di `data/seed-data.csv`, atau lewat:
 

@@ -41,7 +41,8 @@ const isi = [
   poin([tebal("Anggota mahasiswa"), biasa(" — tombol Masuk dengan Google, memakai surel kampus.")]),
   poin([tebal("Dosen"), biasa(" — formulir surel dan kata sandi di bagian bawah halaman.")]),
   p("Sesudah masuk, menu di sisi kiri (atau tombol Menu di ponsel) hanya menampilkan halaman yang menjadi hak akses Anda. Menu yang tidak terlihat memang tidak dapat dibuka — mengetik alamatnya langsung pun tetap ditolak peladen."),
-  catatan("Percobaan masuk dibatasi.", "Lima kali salah kata sandi pada satu akun akan menahannya selama sepuluh menit. Bila lupa kata sandi, minta Koordinator Operasional memasang ulang — jangan menebak berkali-kali."),
+  catatan("Percobaan masuk dibatasi.", "Lima kali salah kata sandi pada satu akun akan menahannya selama sepuluh menit. Bila lupa kata sandi, minta Koordinator Operasional menyetel ulang lewat menu Anggota — jangan menebak berkali-kali."),
+  catatan("Masuk pertama kali selalu berakhir di Profil.", "Akun baru memakai kata sandi bawaan yang sama untuk semua orang. Selama masih terpasang, hanya Dasbor dan Profil yang terbuka. Ganti kata sandinya lebih dulu di Profil, barulah menu lain dapat dipakai."),
 
   j2("Peran dan apa yang terlihat"),
   tabel(
@@ -197,10 +198,19 @@ const isi = [
   }),
 
   ...menu("9. Anggota", {
-    siapa: "Kepala Laboratorium menambah, mengubah, dan menghapus; Koordinator Operasional menambah dan mengubah; sisanya membaca sesuai lingkupnya.",
+    siapa: "Kepala Laboratorium menambah, mengubah, dan menghapus; Koordinator Operasional dan Koordinator Pengembangan menambah dan mengubah; sisanya membaca sesuai lingkupnya.",
     untukApa: "Daftar anggota laboratorium beserta NPM, prodi, angkatan, jenjang, squad, dan statusnya.",
+    langkahLangkah: [
+      "Tekan tombol Tambah anggota di kanan atas halaman.",
+      "Isi nama, surel, dan NPM. Prodi, fakultas, dan angkatan boleh dikosongkan — keduanya diturunkan dari NPM.",
+      "Simpan. Akunnya langsung terbentuk beserta kata sandi bawaan.",
+      "Pada halaman anggota yang baru tersimpan, buka bagian Akses masuk dan serahkan kata sandi bawaan yang tertera kepada yang bersangkutan.",
+    ],
     perluTahu: [
       "Prodi, angkatan, dan jenjang diturunkan otomatis dari NPM — tidak perlu diketik.",
+      "Memberi peran selain Anggota hanya dapat dilakukan Kepala Laboratorium. Bagi peran lain, pilihan perannya tampil nonaktif.",
+      "Akun baru masih memakai kata sandi bawaan, dan selama itu ia hanya dapat membuka Dasbor dan Profil. Absensi belum bisa dicatat sampai yang bersangkutan memilih kata sandi sendiri.",
+      "Untuk anggota yang lupa kata sandinya, pakai tombol Setel ulang ke kata sandi bawaan pada bagian Akses masuk. Tidak perlu membuka peladen, dan penyetelan ulang tercatat di audit log.",
       "Anggota yang lulus atau berhenti diubah statusnya, bukan dihapus. Menghapusnya akan menghilangkan riwayat kontribusinya.",
       "Anggota berstatus tidak aktif tidak dapat masuk lagi, dan perubahan itu berlaku paling lama lima menit sesudahnya.",
       "Penambahan banyak anggota sekaligus pada awal periode lebih mudah lewat berkas CSV — lihat Panduan Instalasi.",
@@ -308,9 +318,17 @@ const isi = [
 
   ...menu("18. Profil", {
     siapa: "Semua peran, untuk dirinya sendiri.",
-    untukApa: "Melihat data diri dan mengganti kata sandi bagi yang masuk lewat surel dan kata sandi.",
+    untukApa: "Melihat data diri dan mengganti kata sandi.",
+    langkahLangkah: [
+      "Buka Profil, lalu bagian Keamanan akun.",
+      "Isikan kata sandi bawaan yang Anda terima pada kolom Kata sandi lama.",
+      "Pilih kata sandi sendiri, minimal 10 karakter, lalu ulangi pada kolom ketiga.",
+      "Simpan. Seluruh menu terbuka seketika.",
+    ],
     perluTahu: [
-      "Yang masuk lewat Google kampus tidak memiliki kata sandi di sistem ini, dan tidak perlu menggantinya.",
+      "Selama akun masih memakai kata sandi bawaan, seluruh menu selain Dasbor dan Profil akan memantulkan Anda kembali ke halaman ini. Itu bukan kerusakan.",
+      "Kata sandi bawaan sama untuk setiap akun baru, jadi ia tidak dapat membuktikan bahwa yang menekan tombol hadir memang Anda. Itulah sebabnya ia hanya cukup untuk menggantinya.",
+      "Kata sandi baru tidak boleh sama dengan kata sandi bawaan.",
       "Penggantian kata sandi menuntut kata sandi lama, dan dibatasi lima percobaan tiap sepuluh menit.",
     ],
   }),

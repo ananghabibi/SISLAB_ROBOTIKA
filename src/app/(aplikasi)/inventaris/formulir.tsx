@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Centang, Field, Input, Select, TextArea } from "@/components/ui/field";
+import { PesanFormulir, useKosongkanSetelahBerhasil } from "@/components/ui/umpan-balik";
 import { KONDISI_ASET } from "@/lib/aset";
 import { simpanAset, type KeadaanAset } from "./aksi";
 
@@ -44,12 +45,19 @@ export function FormulirAset({
   const [keadaan, jalankan] = useActionState<KeadaanAset, FormData>(aksi, {});
   const p = (nama: string) => `${nama}-${nilai.id ?? "baru"}`;
 
+  // Hanya formulir penambahan yang dikosongkan setelah berhasil, supaya alat
+  // kedua dan ketiga dapat langsung diketikkan. Pada formulir penyuntingan,
+  // pengosongan justru membuat kartu yang baru saja diubah tampak kehilangan
+  // isinya.
+  const ref = useKosongkanSetelahBerhasil(nilai.id ? undefined : keadaan.berhasil);
+
   return (
-    <form action={jalankan} className="space-y-4">
+    <form ref={ref} action={jalankan} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Kode aset"
           htmlFor={p("kodeAset")}
+          wajib
           petunjuk="Dicetak pada label QR. Huruf, angka, dan tanda hubung."
         >
           <Input
@@ -60,10 +68,10 @@ export function FormulirAset({
             required
           />
         </Field>
-        <Field label="Nama aset" htmlFor={p("nama")}>
+        <Field label="Nama aset" htmlFor={p("nama")} wajib>
           <Input id={p("nama")} name="nama" defaultValue={nilai.nama} required />
         </Field>
-        <Field label="Kategori" htmlFor={p("kategori")}>
+        <Field label="Kategori" htmlFor={p("kategori")} wajib>
           <Input id={p("kategori")} name="kategori" defaultValue={nilai.kategori} required />
         </Field>
         <Field label="Merk (opsional)" htmlFor={p("merk")}>
@@ -84,7 +92,7 @@ export function FormulirAset({
             ))}
           </Select>
         </Field>
-        <Field label="Lokasi" htmlFor={p("lokasi")}>
+        <Field label="Lokasi" htmlFor={p("lokasi")} wajib>
           <Input id={p("lokasi")} name="lokasi" defaultValue={nilai.lokasi} required />
         </Field>
         <Field label="Tahun perolehan (opsional)" htmlFor={p("tahun")}>
@@ -110,32 +118,20 @@ export function FormulirAset({
       </div>
 
       <Field label="Keterangan (opsional)" htmlFor={p("ket")}>
-        <Input id={p("ket")} name="keterangan" defaultValue={nilai.keterangan} />
+        <TextArea id={p("ket")} name="keterangan" defaultValue={nilai.keterangan} rows={2} />
       </Field>
 
-      <label className="flex items-center gap-3 text-sm">
-        <input
-          type="checkbox"
-          name="bolehDipinjam"
-          value="ya"
-          defaultChecked={nilai.bolehDipinjam}
-          className="h-5 min-h-0 w-5 shrink-0"
-        />
-        Boleh dipinjam keluar dari rak
-      </label>
+      <Centang
+        name="bolehDipinjam"
+        value="ya"
+        defaultChecked={nilai.bolehDipinjam}
+        label="Boleh dipinjam keluar dari rak"
+        keterangan="Matikan untuk alat yang hanya boleh dipakai di dalam laboratorium."
+      />
 
       <TombolSimpan label={nilai.id ? "Simpan perubahan" : "Tambah aset"} />
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
     </form>
   );
 }

@@ -110,10 +110,19 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
     PENGAWAS: tidak,
   },
   master_anggota: {
+    // MENYIMPANG DARI SPEC 4.2, yang memberi Koordinator Pengembangan "B"
+    // (baca saja). Diubah atas permintaan Kepala Laboratorium: pendaftaran
+    // anggota baru datang bersamaan dengan pembinaan kaderisasi, dan yang
+    // menjalankannya adalah Koordinator Pengembangan. Menahan haknya hanya
+    // melahirkan pendaftaran titipan lewat akun orang lain.
+    //
+    // Batasnya tetap: memberi peran selain ANGGOTA adalah modul
+    // `peran_hak_akses`, dan modul itu masih milik Kepala Laboratorium
+    // seorang. Hapus juga tetap tertutup.
     KEPALA_LAB: tulisHapus,
     KOORD_OPERASIONAL: tulisSemua,
     KOORD_RISET: bacaSemua,
-    KOORD_PENGEMBANGAN: bacaSemua,
+    KOORD_PENGEMBANGAN: tulisSemua,
     KETUA_SQUAD: bacaSendiri,
     ANGGOTA: bacaSendiri,
     PENGAWAS: bacaSemua,

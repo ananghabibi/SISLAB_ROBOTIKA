@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { wajibMasuk } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
 import { LABEL_PERAN } from "@/lib/rbac";
+import { cn } from "@/lib/utils";
 import { tanggalDanJamWib } from "@/lib/waktu";
 import { FormulirSandi } from "./formulir-sandi";
 
@@ -28,15 +29,31 @@ export default async function Profil() {
 
   const punyaSandi = Boolean(anggota.passwordHash);
   const luarTeknik = anggota.fakultas !== "Teknik";
+  const masihBawaan = anggota.wajibGantiSandi;
 
   return (
     <>
       <KepalaHalaman
         judul="Profil saya"
-        keterangan="Data ini berasal dari SK Keanggotaan. Perubahan hanya dapat dilakukan Kepala Laboratorium atau Koordinator Operasional."
+        keterangan="Data ini berasal dari SK Keanggotaan. Perubahan hanya dapat dilakukan Kepala Laboratorium, Koordinator Operasional, atau Koordinator Pengembangan."
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {masihBawaan ? (
+        <Card className="mb-4 border-peringatan/50 bg-peringatan-lembut/50">
+          <CardHeader className="border-peringatan/30">
+            <CardTitle className="text-peringatan">Ganti kata sandi bawaan dulu</CardTitle>
+            <CardDescription className="text-peringatan">
+              Akun ini masih memakai kata sandi bawaan, dan kata sandi itu sama untuk setiap akun
+              baru. Selama masih terpasang, hanya Dasbor dan halaman ini yang terbuka — absensi dan
+              seluruh menu lain menunggu sampai Anda memilih kata sandi sendiri di bawah.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : null}
+
+      {/* Saat kata sandi bawaan masih terpasang, kartu keamanan naik ke atas:
+          satu-satunya hal yang dapat dilakukan di halaman ini adalah menggantinya. */}
+      <div className={cn("grid gap-4 lg:grid-cols-2", masihBawaan && "[&>*:last-child]:order-first")}>
         <Card>
           <CardHeader>
             <CardTitle>{anggota.nama}</CardTitle>
@@ -84,9 +101,11 @@ export default async function Profil() {
           <CardHeader>
             <CardTitle>Keamanan akun</CardTitle>
             <CardDescription>
-              {punyaSandi
-                ? "Akun ini memakai kata sandi. Ganti kata sandi bawaan seeder sebelum dipakai sehari-hari."
-                : "Akun ini masuk lewat Google kampus, sehingga tidak memiliki kata sandi sendiri."}
+              {!punyaSandi
+                ? "Akun ini masuk lewat Google kampus, sehingga tidak memiliki kata sandi sendiri."
+                : masihBawaan
+                  ? "Pilih kata sandi Anda sendiri. Isikan kata sandi bawaan yang Anda terima pada kolom pertama."
+                  : "Kata sandi hanya diketahui Anda sendiri. Gantilah bila pernah diketikkan di komputer bersama."}
             </CardDescription>
           </CardHeader>
           <CardContent>

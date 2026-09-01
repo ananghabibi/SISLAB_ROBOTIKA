@@ -127,4 +127,18 @@ describe("penyimpangan yang disengaja dari SPEC 4.2", () => {
       expect(izinUntuk("PENGAWAS", modul).tulis).toBe("TIDAK");
     }
   });
+
+  it("KOORD_PENGEMBANGAN dapat mendaftarkan anggota baru", () => {
+    // Diminta Kepala Laboratorium: pendaftaran anggota datang bersamaan dengan
+    // pembinaan kaderisasi, dan yang menjalankannya Koordinator Pengembangan.
+    expect(izinUntuk("KOORD_PENGEMBANGAN", "master_anggota").tulis).toBe("SEMUA");
+  });
+
+  it("hak mendaftarkan anggota tidak ikut membuka pemberian peran maupun hapus", () => {
+    // Batas penyimpangannya: memberi peran selain ANGGOTA tetap milik Kepala
+    // Laboratorium seorang, dan menghapus anggota pun tidak ikut terbuka.
+    expect(izinUntuk("KOORD_PENGEMBANGAN", "peran_hak_akses").tulis).toBe("TIDAK");
+    expect(izinUntuk("KOORD_PENGEMBANGAN", "master_anggota").hapus).toBe(false);
+    expect(izinUntuk("KOORD_OPERASIONAL", "master_anggota").hapus).toBe(false);
+  });
 });

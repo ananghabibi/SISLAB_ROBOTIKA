@@ -41,11 +41,22 @@ const pembangkit = {
   QR_TOKEN_SECRET: () => randomBytes(32).toString("hex"),
   CRON_SECRET: () => randomBytes(32).toString("hex"),
   SEED_KEPALA_LAB_PASSWORD: () => `lab-${randomBytes(4).toString("hex")}`,
+  // Dibangkitkan acak, bukan dibiarkan memakai nilai contoh: kata sandi bawaan
+  // yang sama di setiap pemasangan berarti siapa pun yang pernah membaca
+  // panduan ini tahu kata sandi awal setiap anggota baru di laboratorium mana
+  // pun. Nilainya tampil sendiri di halaman Anggota saat perlu diserahkan.
+  SANDI_BAWAAN_ANGGOTA: () => `silab-${randomBytes(5).toString("hex")}`,
   POSTGRES_PASSWORD: () => randomBytes(12).toString("hex"),
 };
 
 /** Nilai bawaan .env.example yang sebenarnya berarti "belum diisi". */
-const NILAI_KOSONG = new Set(["", '""', "ubah-kata-sandi-ini", "ubah-setelah-login-pertama"]);
+const NILAI_KOSONG = new Set([
+  "",
+  '""',
+  "ubah-kata-sandi-ini",
+  "ubah-setelah-login-pertama",
+  "silab-ganti-sandi-saya",
+]);
 
 function bacaNilai(baris) {
   const cocok = baris.match(/^([A-Z_]+)=(.*)$/);
@@ -91,9 +102,12 @@ if (sandiUntukUrl) {
 
 writeFileSync(berkasEnv, hasil, "utf8");
 
-const sandiMasuk = bacaNilai(
-  hasil.split(/\r?\n/).find((b) => b.startsWith("SEED_KEPALA_LAB_PASSWORD=")) ?? "",
-)?.nilai;
+function nilaiEnv(kunci) {
+  return bacaNilai(hasil.split(/\r?\n/).find((b) => b.startsWith(`${kunci}=`)) ?? "")?.nilai;
+}
+
+const sandiMasuk = nilaiEnv("SEED_KEPALA_LAB_PASSWORD");
+const sandiBawaanAnggota = nilaiEnv("SANDI_BAWAAN_ANGGOTA");
 
 console.log(sudahAda ? "Berkas .env diperbarui." : "Berkas .env berhasil dibuat.");
 console.log(
@@ -103,5 +117,8 @@ console.log("\nKata sandi masuk pertama kali sebagai Kepala Laboratorium:");
 console.log("  Surel      : anang.habibi@unisma.ac.id");
 console.log(`  Kata sandi : ${sandiMasuk}`);
 console.log("\nKata sandi itu juga tersimpan di .env pada baris SEED_KEPALA_LAB_PASSWORD.");
+console.log("\nKata sandi bawaan setiap anggota baru:");
+console.log(`  ${sandiBawaanAnggota}`);
+console.log("Akun yang masih memakainya hanya membuka Dasbor dan Profil sampai diganti sendiri.");
 console.log("Bila seeder sudah pernah dijalankan sebelum baris ini terisi, jalankan ulang:");
 console.log("  npx prisma db seed");

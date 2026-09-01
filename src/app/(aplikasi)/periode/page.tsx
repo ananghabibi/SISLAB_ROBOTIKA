@@ -1,6 +1,8 @@
+import Link from "next/link";
+
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, gayaTombol } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
@@ -24,13 +26,16 @@ export default async function HalamanPeriode() {
     include: { _count: { select: { snapshots: true, skk: true } } },
   });
 
-  const tahunIni = new Date().getUTCFullYear();
-
   return (
     <>
       <KepalaHalaman
         judul="Periode & Target"
         keterangan="Mengubah target berarti mengubah skor seluruh anggota sekaligus. Setiap perubahan tercatat di audit log."
+        aksi={
+          <Link href="/periode/baru" className={gayaTombol()}>
+            + Periode baru
+          </Link>
+        }
       />
 
       <Card className="mb-4 border-utama/30 bg-utama-lembut/40">
@@ -85,30 +90,6 @@ export default async function HalamanPeriode() {
         </Card>
       ))}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Buat periode baru</CardTitle>
-          <CardDescription>
-            Biasanya sekali tiap semester, bersamaan dengan pemuatan daftar anggota baru.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormulirPeriode
-            nilai={{
-              id: null,
-              nama: "",
-              tanggalMulai: `${tahunIni}-09-01`,
-              tanggalSelesai: `${tahunIni + 1}-01-31`,
-              targetHadir: 48,
-              targetSesiBerbagi: 2,
-              targetPiket: 8,
-              targetLogbook: 12,
-              ambangLulus: 70,
-              aktif: false,
-            }}
-          />
-        </CardContent>
-      </Card>
     </>
   );
 }

@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
+import { PesanFormulir } from "@/components/ui/umpan-balik";
 import type { KeadaanAnggota } from "./aksi";
 
 export interface NilaiAnggota {
@@ -53,7 +54,7 @@ export function FormulirAnggota({
   return (
     <form action={jalankan} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Nama lengkap" htmlFor="nama">
+        <Field label="Nama lengkap" htmlFor="nama" wajib>
           <Input id="nama" name="nama" defaultValue={nilai.nama} required />
         </Field>
         <Field
@@ -66,16 +67,18 @@ export function FormulirAnggota({
         <Field
           label="Surel"
           htmlFor="email"
+          wajib
           petunjuk="Harus persis sama dengan surel Google kampus yang dipakai masuk."
         >
           <Input id="email" name="email" type="email" defaultValue={nilai.email} required />
         </Field>
-        <Field label="Program studi" htmlFor="prodi">
+        <Field label="Program studi" htmlFor="prodi" wajib>
           <Input id="prodi" name="prodi" defaultValue={nilai.prodi} required />
         </Field>
         <Field
           label="Fakultas"
           htmlFor="fakultas"
+          wajib
           petunjuk='Selain "Teknik" ditandai sebagai Anggota Afiliasi.'
         >
           <Input id="fakultas" name="fakultas" defaultValue={nilai.fakultas} required />
@@ -141,16 +144,7 @@ export function FormulirAnggota({
 
       <TombolSimpan label={labelTombol} />
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
     </form>
   );
 }

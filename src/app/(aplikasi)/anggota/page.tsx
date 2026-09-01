@@ -3,9 +3,10 @@ import type { Prisma } from "@prisma/client";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
-import { Button, gayaTombol } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { gayaTombol } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
+import { DaftarKosong, PanelSaringan } from "@/components/ui/panel-saringan";
 import { saringanDaftarAnggota, wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
 import { bolehBacaSemua, bolehTulis, LABEL_PERAN } from "@/lib/rbac";
@@ -55,6 +56,9 @@ export default async function DaftarAnggota({
 
   const lihatSemua = bolehBacaSemua(pengguna.role, "master_anggota");
   const bolehSunting = bolehTulis(pengguna.role, "master_anggota");
+  const jumlahSaringan = [filter.cari, filter.squad, filter.peran, filter.status].filter(
+    Boolean,
+  ).length;
 
   return (
     <>
@@ -68,55 +72,55 @@ export default async function DaftarAnggota({
         aksi={
           bolehSunting ? (
             <Link href="/anggota/baru" className={gayaTombol()}>
-              Tambah anggota
+              + Tambah anggota
             </Link>
           ) : null
         }
       />
 
-      <Card className="mb-4">
-        <CardContent>
-          <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Input name="cari" placeholder="Cari nama, NPM, atau surel" defaultValue={filter.cari} />
-            <Select name="squad" defaultValue={filter.squad ?? ""}>
-              <option value="">Semua squad</option>
-              {squad.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nama}
-                </option>
-              ))}
-            </Select>
-            <Select name="peran" defaultValue={filter.peran ?? ""}>
-              <option value="">Semua peran</option>
-              {Object.entries(LABEL_PERAN).map(([nilai, label]) => (
-                <option key={nilai} value={nilai}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-            <div className="flex gap-2">
-              <Select name="status" defaultValue={filter.status ?? ""} className="flex-1">
-                <option value="">Semua status</option>
-                {["AKTIF", "CUTI", "NONAKTIF", "LULUS"].map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </Select>
-              <Button type="submit" variant="garis">
-                Saring
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <PanelSaringan jalur="/anggota" jumlahAktif={jumlahSaringan}>
+        <Input
+          name="cari"
+          placeholder="Cari nama, NPM, atau surel"
+          defaultValue={filter.cari}
+          aria-label="Cari anggota"
+        />
+        <Select name="squad" defaultValue={filter.squad ?? ""} aria-label="Squad">
+          <option value="">Semua squad</option>
+          {squad.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.nama}
+            </option>
+          ))}
+        </Select>
+        <Select name="peran" defaultValue={filter.peran ?? ""} aria-label="Peran">
+          <option value="">Semua peran</option>
+          {Object.entries(LABEL_PERAN).map(([nilai, label]) => (
+            <option key={nilai} value={nilai}>
+              {label}
+            </option>
+          ))}
+        </Select>
+        <Select name="status" defaultValue={filter.status ?? ""} aria-label="Status keanggotaan">
+          <option value="">Semua status</option>
+          {["AKTIF", "CUTI", "NONAKTIF", "LULUS"].map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </Select>
+      </PanelSaringan>
 
       {anggota.length === 0 ? (
-        <Card>
-          <CardContent>
-            <p className="text-sm text-teks-redup">Tidak ada anggota yang cocok dengan saringan.</p>
-          </CardContent>
-        </Card>
+        <DaftarKosong
+          jalur="/anggota"
+          adaSaringan={jumlahSaringan > 0}
+          pesan={
+            jumlahSaringan
+              ? "Tidak ada anggota yang cocok dengan saringan."
+              : "Belum ada anggota tercatat."
+          }
+        />
       ) : (
         <Card>
           <div className="overflow-x-auto">
@@ -144,6 +148,15 @@ export default async function DaftarAnggota({
                       <p className="text-xs text-teks-redup">
                         {a.prodi}
                         {a.fakultas !== "Teknik" ? ` · ${a.fakultas}` : ""}
+                      </p>
+                      {/* Di ponsel kolom Squad, Peran, dan Jenjang disembunyikan
+                          demi lebar layar. Keterangannya dipindahkan ke sini,
+                          bukan dihilangkan: tanpanya daftar di ponsel hanya
+                          berisi nama dan status, dan justru peran serta squad
+                          itulah yang dicari orang saat membuka halaman ini. */}
+                      <p className="text-xs text-teks-redup md:hidden">
+                        {LABEL_PERAN[a.role]}
+                        {a.squad ? ` · ${a.squad.nama}` : ""}
                       </p>
                     </td>
                     <td className="px-4 py-2 font-mono text-xs">{a.npm ?? "—"}</td>

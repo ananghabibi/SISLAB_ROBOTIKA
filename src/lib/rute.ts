@@ -28,6 +28,7 @@ export const ATURAN_RUTE: AturanRute[] = [
   { awalan: "/absensi/manual", modul: "absensi_manual", butuh: "tulis" },
   { awalan: "/absensi/rekap", modul: "rekap_absensi", butuh: "baca" },
   { awalan: "/absensi", modul: "absensi_sendiri", butuh: "baca" },
+  { awalan: "/inventaris/baru", modul: "inventaris", butuh: "tulis" },
   { awalan: "/inventaris", modul: "inventaris", butuh: "baca" },
   { awalan: "/peminjaman", modul: "peminjaman", butuh: "baca" },
   { awalan: "/piket", modul: "piket", butuh: "baca" },

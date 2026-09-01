@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { PesanFormulir } from "@/components/ui/umpan-balik";
 import { simpanPeriode, type KeadaanPeriode } from "./aksi";
 
 export interface NilaiPeriode {
@@ -138,16 +139,7 @@ export function FormulirPeriode({ nilai }: { nilai: NilaiPeriode }) {
 
       <TombolSimpan label={nilai.id ? "Simpan perubahan" : "Buat periode"} />
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
     </form>
   );
 }

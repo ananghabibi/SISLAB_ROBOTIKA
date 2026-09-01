@@ -483,6 +483,71 @@ urusan pengawasan manusia.
 
 ---
 
+## Akun dengan kata sandi bawaan, dan perapian antarmuka
+
+Diminta Kepala Laboratorium sesudah pengerasan keamanan di atas.
+
+### Hak akses
+
+`KOORD_PENGEMBANGAN` kini boleh mendaftarkan anggota baru (`master_anggota`,
+tulis). Menyimpang dari SPEC 4.2 yang memberinya "B"; alasannya ditulis di
+`src/lib/rbac.ts` dan dikunci dua uji. Batasnya tetap: memberi peran selain
+ANGGOTA masih milik Kepala Laboratorium seorang, dan hapus tidak ikut terbuka.
+
+### Akun langsung terbentuk dengan kata sandi
+
+Sebelumnya `buatAnggota` tidak memasang kata sandi sama sekali, sehingga
+menambah dosen lewat web selalu berakhir buntu: akunnya ada, tetapi masuknya
+mustahil tanpa `npm run sandi` di mesin peladen. Sekarang setiap akun — lewat
+formulir maupun lewat seeder — lahir dengan kata sandi dari
+`SANDI_BAWAAN_ANGGOTA`.
+
+Kata sandi bawaan itu sama untuk semua orang, dan justru karena itu ia dibuat
+**hanya cukup untuk menggantinya**. Akunnya ditandai `wajibGantiSandi`, dan
+selama tandanya menyala `wajibIzin()` memantulkan orangnya ke `/profil`. Dasbor
+dan Profil tetap terbuka supaya penolakannya dapat dibaca, bukan tampak seperti
+aplikasi rusak.
+
+Alasannya bukan kerapian: satu kata sandi bawaan yang berlaku penuh berarti
+siapa pun yang membaca panduan instalasi dapat masuk sebagai anggota mana pun
+dan menekan tombol hadir atas namanya — persis lubang yang tiga lapis anti titip
+absen dibangun untuk menutupnya.
+
+Pemulihan kata sandi yang lupa tidak lagi menuntut akses shell: **Anggota →
+Akses masuk → Setel ulang ke kata sandi bawaan**, tercatat di audit log.
+
+Migrasi `20260901120000_wajib_ganti_sandi` menambah kolomnya dengan bawaan
+`false`, sehingga akun yang sudah ada tidak ikut terkunci saat diterapkan.
+
+### Perapian antarmuka
+
+Keluhannya satu kalimat — "letak tambah aset di bawah membuat bingung" — tetapi
+penyakitnya ada di beberapa halaman sekaligus:
+
+- **Aksi utama selalu di kepala halaman.** Formulir "Tambah aset" dan "Buat
+  periode baru" yang dulu duduk di kaki halaman, di bawah seluruh daftar,
+  dipindahkan ke halaman tersendiri (`/inventaris/baru`, `/periode/baru`) yang
+  dibuka tombol di kepala. Halaman berisi daftar tidak punya kaki yang dapat
+  diramalkan panjangnya.
+- **Satu panel saringan bersama** (`PanelSaringan`) untuk Inventaris, Anggota,
+  dan Audit: tertutup selama tidak ada saringan menyala, terbuka sendiri bila
+  ada, jumlahnya tertulis di kepalanya, dan selalu ada tombol "Bersihkan".
+  Sebelumnya panel yang selalu terbuka memakan setengah layar pertama ponsel,
+  dan saringan hanya dapat dibatalkan kolom demi kolom.
+- **Daftar kosong selalu punya jalan keluar** (`DaftarKosong`).
+- **Umpan balik formulir seragam.** Tiga formulir terakhir yang masih menulis
+  kotak pesannya sendiri — absensi manual, anggota, periode — dipindahkan ke
+  `PesanFormulir` yang menggulir ke pandangan dan memindahkan fokus.
+- **Tautan kembali seragam** lewat `KepalaHalaman kembali=`.
+- **Di ponsel, daftar anggota kini menyebut peran dan squad** pada baris
+  keterangan; sebelumnya ketiga kolom itu disembunyikan dan yang tersisa hanya
+  nama dan status.
+
+Jalur darurat absensi manual sengaja **tidak** ikut dipernyaman: pernyataan
+berkotak centang dan alasan minimal 25 karakternya dibiarkan apa adanya.
+
+---
+
 ## Aturan yang berlaku di seluruh milestone
 
 - Setiap milestone **wajib memperbarui README**: cara menjalankan, cara

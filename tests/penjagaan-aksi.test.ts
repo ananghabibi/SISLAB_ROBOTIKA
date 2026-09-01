@@ -180,4 +180,35 @@ describe("aturan rumah yang tidak boleh dilanggar", () => {
     }
     expect(melanggar).toEqual([]);
   });
+
+  it("akun yang lahir dengan kata sandi bawaan selalu ikut ditandai", () => {
+    // Kata sandi bawaan sama untuk semua orang. Sebuah akun yang menerimanya
+    // tanpa penandaan `wajibGantiSandi` dapat langsung dipakai siapa pun yang
+    // tahu kata itu — termasuk untuk menekan tombol hadir atas nama orang lain.
+    // Keduanya harus selalu berjalan bersama.
+    const sumber = ["src/app/(aplikasi)/anggota/aksi.ts", "prisma/seed.ts"];
+    for (const p of sumber) {
+      const isi = readFileSync(path.join(AKAR, p), "utf8");
+      expect(isi, `${p} memakai kata sandi bawaan`).toMatch(/sandiBawaan\(\)/);
+      expect(isi, `${p} menandai akunnya`).toMatch(/wajibGantiSandi:\s*true/);
+    }
+  });
+
+  it("penjagaan modul memeriksa kata sandi bawaan sebelum meloloskan siapa pun", () => {
+    // Kalau pemeriksaan ini lepas dari `wajibIzin`, seluruh akun bawaan
+    // langsung terbuka penuh tanpa satu pun galat yang terlihat.
+    const isi = readFileSync(path.join(AKAR, "src/lib/penjaga.ts"), "utf8");
+    const badan = badanFungsi(isi, isi.indexOf("export async function wajibIzin("));
+    expect(badan).toContain("wajibSandiSendiri(");
+  });
+
+  it("rute absensi menolak akun yang masih memakai kata sandi bawaan", () => {
+    // Rute ini sengaja TIDAK melewati `wajibIzin` — ia dijaga lapis jaringan,
+    // kode harian, dan token QR. Karena itu pemeriksaan kata sandi bawaan harus
+    // ada di sini secara tersendiri: tanpa itu, halaman /absensi memang tertutup
+    // tetapi permintaan langsung ke rutenya tetap lolos, dan seseorang yang tahu
+    // kata sandi bawaan dapat mengabsenkan orang lain dari dalam laboratorium.
+    const isi = readFileSync(path.join(AKAR, "src/app/api/attendance/route.ts"), "utf8");
+    expect(isi).toMatch(/wajibGantiSandi/);
+  });
 });

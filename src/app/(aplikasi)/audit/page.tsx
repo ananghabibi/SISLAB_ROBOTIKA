@@ -2,9 +2,10 @@ import type { Prisma } from "@prisma/client";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
-import { Button, TautanTombol } from "@/components/ui/button";
+import { TautanTombol } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { PanelSaringan } from "@/components/ui/panel-saringan";
 import { saringanAuditLog, wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
 import { tanggalDanJamWib } from "@/lib/waktu";
@@ -67,6 +68,8 @@ export default async function Halaman({
     return teks ? `/audit?${teks}` : "/audit";
   };
 
+  const jumlahSaringan = [saringan.aksi, saringan.entitas, saringan.q].filter(Boolean).length;
+
   return (
     <>
       <KepalaHalaman
@@ -74,60 +77,44 @@ export default async function Halaman({
         keterangan={`${jumlah} jejak tercatat${pengguna.role === "KEPALA_LAB" ? "" : " (tindakan Anda sendiri)"}`}
       />
 
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Saringan</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Formulir GET biasa: jejak audit harus dapat ditautkan apa adanya,
-              supaya satu tautan cukup untuk menunjukkan hal yang sama kepada
-              orang lain saat audit Program Studi. */}
-          <form method="get" className="grid gap-3 sm:grid-cols-4">
-            <Field label="Aksi" htmlFor="saringan-aksi">
-              <Select id="saringan-aksi" name="aksi" defaultValue={saringan.aksi ?? ""}>
-                <option value="">Semua aksi</option>
-                {aksiTersedia.map((a) => (
-                  <option key={a.aksi} value={a.aksi}>
-                    {a.aksi}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+      {/* Formulir GET biasa: jejak audit harus dapat ditautkan apa adanya,
+          supaya satu tautan cukup untuk menunjukkan hal yang sama kepada orang
+          lain saat audit Program Studi. */}
+      <PanelSaringan jalur="/audit" jumlahAktif={jumlahSaringan}>
+        <Field label="Aksi" htmlFor="saringan-aksi">
+          <Select id="saringan-aksi" name="aksi" defaultValue={saringan.aksi ?? ""}>
+            <option value="">Semua aksi</option>
+            {aksiTersedia.map((a) => (
+              <option key={a.aksi} value={a.aksi}>
+                {a.aksi}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-            <Field label="Entitas" htmlFor="saringan-entitas">
-              <Select id="saringan-entitas" name="entitas" defaultValue={saringan.entitas ?? ""}>
-                <option value="">Semua entitas</option>
-                {entitasTersedia.map((e) => (
-                  <option key={e.entitas} value={e.entitas}>
-                    {e.entitas}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+        <Field label="Entitas" htmlFor="saringan-entitas">
+          <Select id="saringan-entitas" name="entitas" defaultValue={saringan.entitas ?? ""}>
+            <option value="">Semua entitas</option>
+            {entitasTersedia.map((e) => (
+              <option key={e.entitas} value={e.entitas}>
+                {e.entitas}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-            <div className="sm:col-span-2">
-              <Field label="Cari" htmlFor="saringan-q" petunjuk="Nama pelaku atau id entitas.">
-                <Input
-                  id="saringan-q"
-                  name="q"
-                  type="search"
-                  defaultValue={saringan.q ?? ""}
-                  placeholder="mis. Anang, atau id catatan"
-                />
-              </Field>
-            </div>
-
-            <div className="flex flex-wrap gap-2 sm:col-span-4">
-              <Button type="submit">Terapkan</Button>
-              {saringan.aksi || saringan.entitas || saringan.q ? (
-                <TautanTombol href="/audit" variant="garis">
-                  Bersihkan saringan
-                </TautanTombol>
-              ) : null}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="sm:col-span-2 lg:col-span-1">
+          <Field label="Cari" htmlFor="saringan-q" petunjuk="Nama pelaku atau id entitas.">
+            <Input
+              id="saringan-q"
+              name="q"
+              type="search"
+              defaultValue={saringan.q ?? ""}
+              placeholder="mis. Anang, atau id catatan"
+            />
+          </Field>
+        </div>
+      </PanelSaringan>
 
       <Card>
         <CardContent className="p-0">

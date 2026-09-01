@@ -5,8 +5,6 @@
 // aset yang sudah terisi, tanpa mengetik ulang kodenya.
 // -----------------------------------------------------------------------------
 
-import Link from "next/link";
-
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Card, CardContent } from "@/components/ui/card";
 import { bacaKodeAset } from "@/lib/aset";
@@ -41,11 +39,7 @@ export default async function HalamanPinjamBaru({
       <KepalaHalaman
         judul="Catat peminjaman"
         keterangan="Yang mencatat adalah petugas; nama Anda tersimpan sebagai penyerah alat."
-        aksi={
-          <Link href="/peminjaman" className="inline-flex min-h-11 items-center text-sm font-semibold text-utama">
-            Kembali
-          </Link>
-        }
+        kembali={{ href: "/peminjaman", label: "Kembali ke peminjaman" }}
       />
 
       <Card>
