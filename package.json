@@ -4,7 +4,9 @@
   "private": true,
   "description": "SILAB — Sistem Informasi Laboratorium Robotika FT UNISMA",
   "scripts": {
+    "predev": "node scripts/periksa-migrasi.mjs",
     "dev": "next dev",
+    "predev:https": "node scripts/periksa-migrasi.mjs",
     "dev:https": "next dev --experimental-https",
     "alamat": "node scripts/alamat-jaringan.mjs",
     "postinstall": "prisma generate",
@@ -24,7 +26,8 @@
     "db:reset": "prisma migrate reset",
     "impor:absensi": "tsx scripts/impor-absensi.ts",
     "sandi": "tsx scripts/set-sandi.ts",
-    "sandi:uji": "tsx scripts/sandi-uji.ts"
+    "sandi:uji": "tsx scripts/sandi-uji.ts",
+    "periksa:migrasi": "node scripts/periksa-migrasi.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

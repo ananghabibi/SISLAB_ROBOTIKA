@@ -546,6 +546,57 @@ penyakitnya ada di beberapa halaman sekaligus:
 Jalur darurat absensi manual sengaja **tidak** ikut dipernyaman: pernyataan
 berkotak centang dan alasan minimal 25 karakternya dibiarkan apa adanya.
 
+### `npm run dev` menolak menyala di atas basis data yang ketinggalan
+
+Galat yang sama muncul tiga kali berturut-turut sesudah menarik migrasi baru —
+`periodId`, lalu `wajibGantiSandi` dua kali:
+
+```
+PrismaClientValidationError
+Invalid `prisma.user.findUnique()` invocation
+```
+
+Galat itu tidak menyebutkan sebabnya sama sekali. Ia muncul jauh dari akarnya,
+di tengah halaman yang sedang dibuka, dengan jejak tumpukan yang menunjuk berkas
+yang tidak salah apa-apa — sehingga terbaca seperti kerusakan kode. Artinya
+selalu satu hal: kode sudah baru, Prisma Client atau basis datanya masih lama.
+
+Menuliskan aturannya di dokumentasi ternyata tidak cukup; aturan yang hanya
+tertulis akan terlewat persis pada saat ia paling dibutuhkan. Karena itu
+`scripts/periksa-migrasi.mjs` berjalan sendiri lewat `predev`:
+
+1. Membandingkan `prisma/schema.prisma` dengan salinan yang disimpan Prisma di
+   dalam folder kliennya. Berbeda berarti klien ketinggalan, dan klien dibuat
+   ulang di tempat — aman karena peladen belum menyala. Ditunda sampai peladen
+   jalan, Windows menolaknya dengan EPERM.
+2. Menjalankan `prisma migrate status`. Ada migrasi tertunda berarti peladen
+   **tidak** dinyalakan, dan perintah yang harus dijalankan dicetak apa adanya.
+
+Basis data yang belum menyala atau `.env` yang belum dibuat hanya diperingatkan,
+tidak menggagalkan: peladen yang menolak jalan karena basis datanya belum sempat
+dihidupkan justru menghalangi urutan kerja yang wajar.
+
+Perbandingan skemanya menyamakan spasi lebih dulu. Prisma merapikan sendiri
+skema yang disalinnya — kolomnya diluruskan ulang — sehingga perbandingan mentah
+selalu menyatakan berbeda dan klien dibuat ulang tiap kali `npm run dev`.
+
+Ketiga cabangnya diuji sungguhan, bukan diasumsikan: klien yang sengaja dibuat
+ketinggalan memang memicu pembuatan ulang, migrasi yang ditahan memang
+menggagalkan `predev` dengan kode keluar 1 dan menyebutkan namanya, dan
+sesudah `migrate deploy` pemeriksaannya lolos diam-diam.
+
+### Verifikasi kata sandi bawaan di atas basis data sungguhan
+
+Dijalankan pada PostgreSQL 16 sementara, bukan disimpulkan dari kode:
+
+- migrasi `20260901120000_wajib_ganti_sandi` diterapkan bersih;
+- seluruh 39 akun hasil seeder punya `passwordHash` dan `wajibGantiSandi` menyala;
+- kata sandi bawaannya benar-benar cocok dengan `SANDI_BAWAAN_ANGGOTA`;
+- `npm run sandi` menolak memasang kembali kata sandi bawaan;
+- kata sandi pilihan sendiri menurunkan benderanya;
+- seeder yang dijalankan ulang **tidak** menimpa kata sandi yang sudah dipilih,
+  dan benderanya tetap turun.
+
 ---
 
 ## Aturan yang berlaku di seluruh milestone

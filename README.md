@@ -285,6 +285,11 @@ npm run dev
 yang baru, dan **membuat ulang Prisma Client** supaya kode mengenal kolom yang
 baru ditambahkan.
 
+Kalau langkah itu terlewat, `npm run dev` **menolak menyala** dan menyebutkan
+migrasi mana yang tertunda — pemeriksaannya berjalan sendiri sebelum peladen
+dinyalakan (`scripts/periksa-migrasi.mjs`). Prisma Client yang ketinggalan
+dibuat ulang otomatis di sana, sebelum peladen sempat memegang berkas mesinnya.
+
 Melewatinya, atau menjalankannya sebelum `git pull`, menghasilkan galat yang
 tampak menakutkan tetapi sebenarnya sederhana:
 
@@ -347,6 +352,7 @@ Jawabannya harus `Database schema is up to date!`.
 | `npm run build` | Build produksi |
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
 | `npm run db:migrate` | Buat dan terapkan migrasi baru |
+| `npm run periksa:migrasi` | Periksa migrasi tertunda dan kesegaran Prisma Client (berjalan sendiri sebelum `npm run dev`) |
 | `npm run sandi -- <surel> <sandi>` | Pasang kata sandi seorang anggota |
 | `npm run impor:absensi -- <berkas.csv>` | Periksa berkas absensi lama, tanpa menulis |
 | `npm run impor:absensi -- <berkas.csv> --tulis` | Simpan hasil impornya |

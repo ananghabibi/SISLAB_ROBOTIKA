@@ -101,6 +101,7 @@ const isi = [
   p("Setiap kali menarik pembaruan kode, jalankan empat perintah ini berurutan. Hentikan npm run dev lebih dulu dengan Ctrl+C: di Windows, peladen yang masih menyala memegang berkas mesin Prisma dan pembuatan ulang klien akan gagal."),
   ...kode("git pull", "npm install", "npm run db:migrate", "npm run dev"),
   p("npm run db:migrate melakukan dua hal sekaligus: menerapkan migrasi basis data yang baru, dan membuat ulang Prisma Client supaya kode mengenal kolom yang baru ditambahkan. Untuk memastikan basis datanya sudah sejajar, jalankan npx prisma migrate status — jawabannya harus \"Database schema is up to date!\"."),
+  p("Kalau langkah itu terlewat, npm run dev menolak menyala dan menyebutkan migrasi mana yang tertunda. Pemeriksaannya berjalan sendiri sebelum peladen dinyalakan, dan Prisma Client yang ketinggalan dibuat ulang di sana — sebelum peladen sempat memegang berkas mesinnya."),
   catatan("Urutan penting.", "Migrasi yang dijalankan SEBELUM git pull akan menjawab \"Already in sync\" dengan benar, karena berkas migrasinya memang belum ada. Sesudah itu halaman gagal dengan PrismaClientValidationError dan galat kolom yang tidak dikenal. Artinya selalu sama: kode sudah baru, basis data atau Prisma Client masih lama."),
 
   // ---------------------------------------------------------------------------
@@ -219,6 +220,7 @@ const isi = [
       ["npm run alamat", "Cari alamat WiFi laptop untuk dibuka dari ponsel"],
       ["npm run alamat -- <ip-ponsel>", "Sama, sekalian menguji apakah ponsel itu sejaringan"],
       ["npm run db:migrate", "Terapkan migrasi basis data yang tertunda"],
+      ["npm run periksa:migrasi", "Periksa migrasi tertunda; berjalan sendiri sebelum npm run dev"],
       ["npm run db:seed", "Isi ulang data awal"],
       ["npm run db:studio", "Jelajahi isi basis data lewat peramban"],
       ["npm run typecheck", "Periksa tipe TypeScript"],
