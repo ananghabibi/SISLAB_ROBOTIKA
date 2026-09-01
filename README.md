@@ -511,6 +511,15 @@ docker compose logs cron | tail -20     # memastikan penjadwalnya hidup
 `localhost` di ponsel berarti ponsel itu sendiri, bukan laptop Anda. Ada tiga
 hal yang harus beres, dan ketiganya wajib — bukan pilihan.
 
+> **Alamat peladen kini tertulis di layarnya sendiri.** Halaman `/display` — yang
+> memang sudah dilihat setiap orang sebelum absen — menampilkan **Buka di
+> ponsel** beserta alamat yang berlaku saat itu juga, dan halaman masuk
+> menyebutkannya di kaki halaman. Alamat WiFi berubah sendiri setiap kali laptop
+> menyambung ulang; dengan begini yang berdiri di pintu tidak perlu bertanya
+> lagi. Sumbernya header `Host` permintaan bila bukan localhost, sehingga di
+> laboratorium ia menampilkan alamat mini PC yang sebenarnya walau aplikasinya
+> berjalan di dalam kontainer.
+
 **a. Pakai alamat WiFi laptop, bukan localhost.** Cara tercepat menemukannya:
 
 ```cmd

@@ -13,6 +13,7 @@
 import { headers } from "next/headers";
 
 import { sedangDiLab } from "@/lib/absensi";
+import { alamatUntukPonsel } from "@/lib/alamat-peladen";
 import { periksaJaringan } from "@/lib/jaringan";
 import { pastikanKodeHariIni } from "@/lib/kode-harian";
 import { detikPutaran } from "@/lib/token-qr";
@@ -26,7 +27,8 @@ export const metadata = {
 };
 
 export default async function HalamanDisplay() {
-  const jaringan = periksaJaringan(await headers());
+  const kepala = await headers();
+  const jaringan = periksaJaringan(kepala);
 
   if (!jaringan.diizinkan) {
     return (
@@ -60,6 +62,7 @@ export default async function HalamanDisplay() {
       kodeHarian={kodeHarian}
       detikPutaran={detikPutaran()}
       pesanGangguan={pesanGangguan}
+      alamatPonsel={alamatUntukPonsel(kepala)}
       orangAwal={orangAwal.map((o) => ({
         nama: o.user.nama,
         squad: o.user.squad?.kode ?? null,

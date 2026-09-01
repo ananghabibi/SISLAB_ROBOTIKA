@@ -1,6 +1,8 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { alamatUntukPonsel } from "@/lib/alamat-peladen";
 import { FormulirMasuk } from "./formulir";
 
 export const metadata = { title: "Masuk" };
@@ -24,6 +26,7 @@ export default async function HalamanMasuk({
 }) {
   const sesi = await auth();
   const { galat, error, lanjut } = await searchParams;
+  const alamatPonsel = alamatUntukPonsel(await headers());
 
   if (sesi?.user?.id) redirect(lanjut ?? "/dasbor");
 
@@ -56,6 +59,17 @@ export default async function HalamanMasuk({
       <p className="text-center text-xs text-teks-redup">
         Absensi harian hanya dapat dilakukan dari dalam jaringan WiFi laboratorium.
       </p>
+
+      {/* Alamat peladen disebutkan apa adanya. Pada laptop pengembangan
+          alamatnya berubah setiap kali WiFi menyambung ulang, dan yang membuka
+          halaman ini di laptop dapat langsung membacakannya kepada yang
+          memegang ponsel. */}
+      {alamatPonsel ? (
+        <p className="text-center text-xs text-teks-redup">
+          Alamat peladen saat ini:{" "}
+          <span className="font-mono font-semibold text-teks">{alamatPonsel}</span>
+        </p>
+      ) : null}
     </main>
   );
 }
