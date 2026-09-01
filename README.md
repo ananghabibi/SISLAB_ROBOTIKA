@@ -169,6 +169,11 @@ Perintah ini aman dijalankan berulang kali: nilai yang sudah ada tidak pernah
 ditimpa, hanya baris yang masih kosong yang diisi. Jalankan lagi kapan pun Anda
 lupa kata sandi masuk — ia akan mencetaknya lagi.
 
+Bila `.env` sudah ada, perintah ini juga **menambahkan baris baru yang muncul di
+`.env.example`** — misalnya `SANDI_BAWAAN_ANGGOTA` yang lahir belakangan.
+Salinan berkas lamanya disimpan sebagai `.env.bak` sebelum apa pun ditulis, dan
+kunci buatan sendiri yang tidak dikenal `.env.example` ikut dipertahankan.
+
 > **Berkas `.env` tidak terlihat di File Explorer** karena namanya diawali
 > titik. Itu normal; berkasnya ada. Untuk memastikan dan membukanya:
 >
@@ -208,9 +213,25 @@ Jangan dilawan — langsung pakai Pilihan B.
    node scripts/siapkan-env.mjs --sandi-db KATASANDIANDA
    ```
 
-   Ganti `KATASANDIANDA` dengan kata sandi langkah 2. Perintah ini menulis
-   ulang baris `DATABASE_URL` di `.env` untuk Anda, jadi berkasnya tidak perlu
-   dibuka sendiri. Tanda baca di dalam kata sandi ditangani otomatis.
+   > **`KATASANDIANDA` bukan kata sandi.** Itu tempat kosong yang harus Anda
+   > ganti dengan kata sandi `postgres` yang Anda ketik sendiri pada langkah 2.
+   > Menyalin baris di atas apa adanya membuat `.env` berisi kata sandi
+   > `KATASANDIANDA`, dan langkah berikutnya gagal dengan
+   > `P1000: Authentication failed`. Kalau itu terjadi, jalankan ulang perintah
+   > ini dengan kata sandi yang benar — `DATABASE_URL` ditulis ulang, tidak
+   > perlu memperbaiki `.env` dengan tangan.
+
+   Perintah ini menulis ulang baris `DATABASE_URL` di `.env` untuk Anda, jadi
+   berkasnya tidak perlu dibuka sendiri. Tanda baca di dalam kata sandi
+   ditangani otomatis.
+
+   Lupa kata sandi `postgres`-nya? Ujilah dengan:
+
+   ```cmd
+   "C:\Program Files\PostgreSQL\16\bin\psql" -U postgres -h localhost -c "select 1"
+   ```
+
+   Ia akan menanyakan kata sandi. Yang diterima psql itulah yang benar.
 
 Basis data bernama `silab` tidak perlu dibuat sendiri — langkah berikutnya
 membuatnya otomatis.
@@ -318,6 +339,7 @@ Jawabannya harus `Database schema is up to date!`.
 | `error during connect` / `docker daemon is not running` | Docker Desktop belum menyala | Jalankan Docker Desktop, tunggu sampai siap |
 | `failed to resolve reference "docker.io/..."` / `dialing auth.docker.io:443` | Jaringan Anda memblokir Docker Hub | Pakai Pilihan B pada bagian 3.4 — pasang PostgreSQL langsung |
 | `password authentication failed for user "postgres"` | Kata sandi pada `DATABASE_URL` keliru | Perbaiki baris `DATABASE_URL` di `.env` |
+| `P1000: Authentication failed against database server` | Biasanya karena `--sandi-db KATASANDIANDA` disalin apa adanya — `KATASANDIANDA` itu tempat kosong, bukan kata sandi | `node scripts/siapkan-env.mjs --sandi-db <kata-sandi-postgres-yang-sebenarnya>` |
 | `Can't reach database server at localhost:5432` | Basis data belum menyala, atau `DATABASE_URL` salah | `docker compose -f docker-compose.dev.yml up -d` |
 | `port is already allocated` | Ada PostgreSQL lain memakai port 5432 | Hentikan yang lain, atau ikuti bagian 3.5 |
 | `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |

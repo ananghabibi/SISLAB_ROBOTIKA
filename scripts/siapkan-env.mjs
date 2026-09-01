@@ -69,7 +69,60 @@ if (!existsSync(berkasContoh)) {
 }
 
 const sudahAda = existsSync(berkasEnv);
-const sumber = readFileSync(sudahAda ? berkasEnv : berkasContoh, "utf8");
+
+/**
+ * Menggabungkan .env yang sudah ada dengan .env.example.
+ *
+ * Sebelumnya berkas .env yang sudah ada dipakai apa adanya, dan akibatnya
+ * baris BARU yang muncul di .env.example tidak pernah sampai ke pemasangan
+ * yang sudah berjalan. Diamnya berbahaya: aplikasi lalu memakai nilai cadangan
+ * yang tertulis di dalam kode — sama untuk setiap laboratorium — padahal
+ * pengelolanya mengira sudah menjalankan penyiapan dengan benar.
+ *
+ * Nilai yang sudah diisi tidak pernah disentuh. Yang ditambahkan hanyalah
+ * kunci yang memang belum ada, beserta komentar penjelasnya dari .env.example.
+ * Kunci buatan sendiri yang tidak dikenal .env.example ikut dipertahankan di
+ * bagian bawah, supaya penyesuaian setempat tidak hilang.
+ */
+function gabungkan(isiEnv, isiContoh) {
+  const lama = new Map();
+  for (const baris of isiEnv.split(/\r?\n/)) {
+    const terurai = bacaNilai(baris);
+    if (terurai) lama.set(terurai.kunci, baris);
+  }
+
+  const dipakai = new Set();
+  const hasil = isiContoh.split(/\r?\n/).map((baris) => {
+    const terurai = bacaNilai(baris);
+    if (!terurai) return baris;
+    if (lama.has(terurai.kunci)) {
+      dipakai.add(terurai.kunci);
+      return lama.get(terurai.kunci);
+    }
+    ditambahkan.push(terurai.kunci);
+    return baris;
+  });
+
+  const asing = [...lama.keys()].filter((k) => !dipakai.has(k));
+  if (asing.length > 0) {
+    hasil.push("", "# --- Baris tambahan yang tidak ada di .env.example ---");
+    for (const kunci of asing) hasil.push(lama.get(kunci));
+  }
+
+  return hasil.join("\n");
+}
+
+const ditambahkan = [];
+const sumber = sudahAda
+  ? gabungkan(readFileSync(berkasEnv, "utf8"), readFileSync(berkasContoh, "utf8"))
+  : readFileSync(berkasContoh, "utf8");
+
+// Salinan pengaman dibuat SEBELUM apa pun ditulis. Berkas .env memuat kunci
+// rahasia yang tidak dapat dibuat ulang dari mana pun; kehilangannya karena
+// skrip penyiapan akan jauh lebih mahal daripada satu berkas cadangan.
+if (sudahAda) {
+  writeFileSync(`${berkasEnv}.bak`, readFileSync(berkasEnv, "utf8"), "utf8");
+}
 
 const diisi = [];
 let hasil = sumber
@@ -110,6 +163,10 @@ const sandiMasuk = nilaiEnv("SEED_KEPALA_LAB_PASSWORD");
 const sandiBawaanAnggota = nilaiEnv("SANDI_BAWAAN_ANGGOTA");
 
 console.log(sudahAda ? "Berkas .env diperbarui." : "Berkas .env berhasil dibuat.");
+if (sudahAda) console.log("  Salinan yang lama: .env.bak");
+if (ditambahkan.length > 0) {
+  console.log(`  Baris baru dari .env.example: ${ditambahkan.join(", ")}`);
+}
 console.log(
   diisi.length > 0 ? `  Baris yang diisi: ${diisi.join(", ")}` : "  Tidak ada yang perlu diisi.",
 );

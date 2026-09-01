@@ -597,6 +597,40 @@ Dijalankan pada PostgreSQL 16 sementara, bukan disimpulkan dari kode:
 - seeder yang dijalankan ulang **tidak** menimpa kata sandi yang sudah dipilih,
   dan benderanya tetap turun.
 
+### `.env` yang sudah ada ikut menerima baris baru
+
+Ditemukan saat pemasangan di mini PC laboratorium. `siapkan-env.mjs` dulu
+membaca `.env` yang sudah ada sebagai satu-satunya sumber, sehingga baris BARU
+yang muncul di `.env.example` tidak pernah sampai ke pemasangan yang sudah
+berjalan.
+
+Diamnya berbahaya. `SANDI_BAWAAN_ANGGOTA` yang tidak ikut tertulis membuat
+aplikasi jatuh ke nilai cadangan di dalam `src/lib/sandi.ts` — nilai yang sama
+untuk setiap laboratorium dan tertulis di dalam kode yang dapat dibaca siapa
+pun — padahal pengelolanya sudah menjalankan penyiapan dan mengira selesai.
+
+Sekarang berkasnya digabungkan: nilai yang sudah diisi tidak pernah disentuh,
+kunci yang belum ada ditambahkan beserta komentar penjelasnya, dan kunci buatan
+sendiri yang tidak dikenal `.env.example` dipertahankan di bagian bawah. Salinan
+berkas lama disimpan sebagai `.env.bak` sebelum apa pun ditulis — dan `.env.bak`
+ikut masuk `.gitignore`, karena isinya sama rahasianya dengan `.env` sendiri.
+
+Diuji: nilai lama utuh, kunci asing selamat, kunci baru terisi, jalan kedua kali
+tidak mengubah apa-apa, dan pemasangan dari nol tetap seperti semula.
+
+### `--sandi-db KATASANDIANDA` disalin apa adanya
+
+`KATASANDIANDA` di README adalah tempat kosong, tetapi ia terbaca seperti
+perintah yang siap disalin — dan memang disalin, sehingga `.env` berisi kata
+sandi `KATASANDIANDA` dan `prisma migrate deploy` gagal dengan
+`P1000: Authentication failed`.
+
+Peringatannya kini berupa blok kutipan tersendiri di README dan kotak catatan di
+panduan Word, bukan satu kalimat di tengah paragraf; tabel galat keduanya
+bertambah baris P1000 beserta cara memperbaikinya. Termasuk cara menguji kata
+sandi `postgres` yang benar lewat `psql`, karena yang lupa kata sandinya tidak
+punya tempat bertanya.
+
 ---
 
 ## Aturan yang berlaku di seluruh milestone

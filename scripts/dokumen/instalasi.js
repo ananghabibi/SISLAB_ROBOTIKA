@@ -73,6 +73,7 @@ const isi = [
   catatan("Pakai npm ci, bukan npm install.", "Keduanya sama-sama memasang pustaka, tetapi npm ci memasang persis versi yang tercatat di package-lock.json. npm install boleh menaikkan versi tanpa diminta, dan proyek ini diuji pada Next.js 15.5.24."),
   p([tebal("siapkan-env.mjs"), biasa(" membuat berkas .env beserta seluruh kunci rahasianya, lalu menampilkan dua kata sandi: kata sandi untuk masuk pertama kali sebagai Kepala Laboratorium, dan kata sandi bawaan setiap anggota baru. Catat keduanya. Kata sandi bawaan itu dibangkitkan acak untuk pemasangan ini saja.")]),
   p("Perintah ini aman dijalankan berulang kali: nilai yang sudah ada tidak pernah ditimpa, hanya baris yang masih kosong yang diisi. Jalankan lagi kapan pun Anda lupa kata sandi masuk — ia akan mencetaknya lagi."),
+  p("Bila .env sudah ada, perintah ini juga menambahkan baris baru yang muncul di .env.example. Salinan berkas lamanya disimpan sebagai .env.bak sebelum apa pun ditulis, dan kunci buatan sendiri yang tidak dikenal .env.example ikut dipertahankan."),
   p([tebal("Berkas .env tidak terlihat di File Explorer"), biasa(" karena namanya diawali titik. Itu normal. Untuk memastikan dan membukanya:")]),
   ...kode("dir /a", "notepad .env"),
 
@@ -90,7 +91,8 @@ const isi = [
   langkah([biasa("Jalankan pemasangnya. Tekan Next terus, dengan dua catatan: "), tebal("Password"), biasa(" untuk pengguna postgres — catat baik-baik; dan "), tebal("Port"), biasa(" biarkan 5432. Stack Builder di akhir boleh dilewati.")]),
   langkah("Beri tahu aplikasi kata sandi itu dengan perintah di bawah."),
   ...kode("node scripts/siapkan-env.mjs --sandi-db KATASANDIANDA"),
-  p("Ganti KATASANDIANDA dengan kata sandi langkah 2. Perintah ini menulis ulang baris DATABASE_URL di .env untuk Anda, jadi berkasnya tidak perlu dibuka sendiri. Tanda baca di dalam kata sandi ditangani otomatis."),
+  catatan("KATASANDIANDA bukan kata sandi.", "Itu tempat kosong yang harus diganti dengan kata sandi postgres yang Anda ketik sendiri pada langkah sebelumnya. Menyalin barisnya apa adanya membuat .env berisi kata sandi KATASANDIANDA, dan langkah berikutnya gagal dengan P1000: Authentication failed. Kalau itu terjadi, jalankan ulang perintahnya dengan kata sandi yang benar — DATABASE_URL ditulis ulang, tidak perlu memperbaiki .env dengan tangan."),
+  p("Perintah ini menulis ulang baris DATABASE_URL di .env untuk Anda, jadi berkasnya tidak perlu dibuka sendiri. Tanda baca di dalam kata sandi ditangani otomatis."),
   p("Basis data bernama silab tidak perlu dibuat sendiri — langkah berikutnya membuatnya otomatis."),
 
   // ---------------------------------------------------------------------------
@@ -205,6 +207,7 @@ const isi = [
       ["EPERM ... query_engine-windows.dll.node", "npm run dev masih hidup dan mengunci berkasnya", "Hentikan npm run dev dulu, baru jalankan migrasi atau build"],
       ["PrismaClientValidationError, atau Unknown argument pada nama kolom", "Kode sudah ditarik tetapi migrasinya belum dijalankan", "Hentikan peladen, jalankan npm run db:migrate, jalankan lagi"],
       ["EPERM ... query_engine-windows.dll.node", "npm run dev masih menyala dan memegang berkas mesin Prisma", "Hentikan npm run dev lebih dulu, baru jalankan db:migrate atau build"],
+      ["P1000: Authentication failed against database server", "Biasanya --sandi-db KATASANDIANDA disalin apa adanya; itu tempat kosong, bukan kata sandi", "Jalankan ulang siapkan-env.mjs dengan kata sandi postgres yang sebenarnya"],
       ["localhost:3000 kosong padahal alamat IP bisa dibuka", "Windows menerjemahkan localhost ke IPv6", "Pakai http://127.0.0.1:3000"],
       ["Halaman rintisan padahal fiturnya sudah ada", "Cabang git yang dibuka bukan cabang yang berisi pekerjaannya", "git branch --show-current, lalu pindah ke cabang yang benar"],
     ],
