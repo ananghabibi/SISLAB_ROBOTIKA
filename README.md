@@ -1194,6 +1194,8 @@ src/components/ui/umpan-balik.tsx  Pesan formulir dan pengosongan setelah berhas
 src/app/(aplikasi)/error.tsx    Batas galat — menu tetap terlihat saat halaman gagal
 src/app/(aplikasi)/loading.tsx  Kerangka halaman selagi datanya disiapkan
 src/app/not-found.tsx     Halaman 404 berbahasa Indonesia
+src/lib/pembatas-laju.ts  Pembatas percobaan absensi, masuk, dan ganti sandi
+tests/penjagaan-aksi.test.ts  Uji struktural: tiada aksi tanpa penjagaan
 
 scripts/set-sandi.ts      Utilitas memasang kata sandi dari peladen
 tests/                    Uji Vitest untuk kebijakan akses, jaringan, dan token
@@ -1207,6 +1209,52 @@ menu, dan penjagaan halaman membaca tabel yang sama, jadi ketiganya ikut
 berubah bersama. Jalankan `npm test` sesudahnya — `tests/rbac.test.ts` menjaga
 aturan yang tidak boleh dilanggar (Pengawas tidak pernah menulis, hanya Kepala
 Lab yang menerbitkan surat, tidak ada yang boleh menghapus absensi).
+
+---
+
+## 10b. Mengapa curang tidak terbayar
+
+Pertanyaan yang wajar ditanyakan anggota: kalau halamannya bisa dibuka
+peralatan pengembang peramban, bukankah angkanya bisa diubah? Jawabannya
+tidak, dan alasannya perlu diketahui semua orang — bukan dirahasiakan.
+
+**Yang dikirim peramban tidak pernah dipercaya.** Setiap Server Action dan
+setiap rute API memanggil penjagaan hak akses di peladen, dan `tests/penjagaan-aksi.test.ts`
+membaca seluruh berkas sumber untuk memastikan tidak ada satu pun yang
+terlewat. Mengganti nilai kolom tersembunyi lewat peralatan pengembang —
+`squadId`, `mingguKe`, `userId`, `role` — hanya menghasilkan penolakan, karena
+peladen membandingkannya lagi dengan sesi dan matriks hak akses. Menyembunyikan
+tombol memang bukan pengamanan; yang mengamankan adalah pemeriksaan yang
+berjalan di peladen.
+
+**Skor tidak pernah dikirim dari peramban.** Ia dihitung ulang di peladen dari
+catatan absensi, piket, logbook, dan peminjaman. Tidak ada satu pun medan
+formulir yang menyentuhnya.
+
+**Absensi tidak dapat dipalsukan dari luar.** QR-nya ditandatangani peladen,
+berputar 60 detik, dan sekali pakai; kode hariannya tidak pernah masuk
+tanggapan API mana pun; dan keduanya hanya berarti bila permintaannya datang
+dari dalam jaringan laboratorium. Ketiganya diperiksa di peladen, dan
+ketiganya diuji.
+
+**Catatan tidak dapat dihapus.** Tidak ada satu pun jalur kode yang menghapus
+catatan absensi, jejak audit, atau surat yang sudah terbit — juga dikunci uji.
+Koreksi memakai catatan pembatalan yang merujuk catatan aslinya, dan
+pembatalan itu sendiri meninggalkan jejak atas nama pembatalnya.
+
+**Pintu masuk dibatasi.** Percobaan kata sandi dibatasi per akun dan per
+alamat, begitu pula penggantian kata sandi. Menebak kata sandi akun dosen
+berarti memperoleh hak menerbitkan surat dan mengubah peran siapa pun; pintu
+itu tidak boleh dapat digedor semalaman.
+
+**Peran diperbarui berkala.** Sesi menyegarkan peran dan status dari basis data
+tiap lima menit, sehingga anggota yang dinonaktifkan atau diturunkan perannya
+kehilangan aksesnya tanpa perlu menunggu sesinya berakhir.
+
+Yang TIDAK dijanjikan: sistem ini tidak menghentikan orang yang memang berada
+di dalam laboratorium lalu mengabsenkan dirinya sendiri sambil tidak
+mengerjakan apa pun. Itu urusan pengawasan manusia, dan memang seharusnya
+begitu.
 
 ---
 

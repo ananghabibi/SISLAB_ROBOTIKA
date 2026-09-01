@@ -434,6 +434,55 @@ nomor surat tidak pernah bentrok; setiap penerbitan tercatat di audit log.
 
 ---
 
+## Pengerasan keamanan sesudah Milestone 6
+
+Dikerjakan setelah keenam milestone dibangun, atas permintaan Kepala
+Laboratorium: memastikan tidak ada seorang pun dapat berbuat curang lewat
+peramban, dan semua orang memikul hak serta kewajiban yang sama.
+
+Hasil auditnya: pelingkupan per peran sudah benar di seluruh Server Action —
+setiap kolom tersembunyi (`squadId`, `mingguKe`, `userId`, `role`) memang sudah
+dibandingkan ulang dengan sesi di peladen. Yang ditemukan kurang ada tiga.
+
+1. **Halaman masuk menerima percobaan kata sandi tanpa batas.** Ini lubang
+   terbesar di seluruh sistem, dan pada pintu yang paling berharga: menebak
+   kata sandi akun dosen berarti memperoleh hak menerbitkan surat, mengubah
+   peran siapa pun, dan mengatur target periode. Kini dibatasi dua arah — per
+   akun dan per alamat — dan diperiksa SEBELUM pencocokan bcrypt, supaya
+   pembatasnya benar-benar menghentikan beban, bukan sekadar menolak dengan
+   sopan sesudah pekerjaannya terlanjur dilakukan.
+2. **Penggantian kata sandi juga tanpa batas.** Formulirnya menuntut kata sandi
+   lama, jadi ia menjadi tempat menebak kata sandi seseorang yang lupa keluar
+   dari sesinya di komputer bersama — tanpa menyentuh halaman masuk sama sekali.
+3. **Kepala tanggapan keamanan hanya ada di `Caddyfile`.** Ia hilang begitu
+   seseorang menjalankan `npm start` langsung, dan pemasangan darurat di
+   laboratorium justru sering begitu. Kini juga dipasang di `next.config.ts`,
+   ditambah Content-Security-Policy yang sebelumnya tidak ada sama sekali:
+   `frame-ancestors 'none'` menutup pembingkaian halaman absensi di situs lain,
+   dan `form-action 'self'` memastikan formulir apa pun — termasuk yang
+   disuntikkan lewat peralatan pengembang — hanya dapat mengirim ke peladen ini.
+   Kamera tetap diizinkan karena pemindai QR memerlukannya.
+
+Ditambah satu uji struktural, `tests/penjagaan-aksi.test.ts`, yang membaca
+seluruh berkas sumber dan menggagalkan pengujian bila:
+
+- ada Server Action atau Route Handler tanpa penjagaan hak akses;
+- ada pengecualian penjagaan yang tidak menyebutkan alasannya;
+- kode harian dipilih dari basis data di dalam rute API mana pun;
+- ada jalur kode yang menghapus catatan absensi, jejak audit, atau surat terbit.
+
+Uji itu sudah dibuktikan dapat gagal: berkas percobaan yang memanggil
+`attendance.deleteMany()` dan `auditLog.delete()` membuatnya merah, dan hijau
+kembali setelah berkas itu dihapus. Uji yang tidak pernah bisa gagal tidak
+menjaga apa pun.
+
+**Yang tidak dijanjikan** — dan ini ditulis supaya tidak ada yang salah
+mengira: sistem ini tidak menghentikan orang yang memang berada di dalam
+laboratorium lalu mengabsenkan dirinya sambil tidak mengerjakan apa pun. Itu
+urusan pengawasan manusia.
+
+---
+
 ## Aturan yang berlaku di seluruh milestone
 
 - Setiap milestone **wajib memperbarui README**: cara menjalankan, cara

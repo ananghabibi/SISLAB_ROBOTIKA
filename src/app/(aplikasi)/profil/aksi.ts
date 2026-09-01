@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { catatAudit } from "@/lib/audit";
+import { periksaLajuGantiSandi } from "@/lib/pembatas-laju";
 import { wajibMasuk } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
 
@@ -38,6 +39,12 @@ export async function ubahKataSandi(
   if (!terurai.success) {
     return { galat: terurai.error.issues[0]!.message };
   }
+
+  // Formulir ini menuntut kata sandi LAMA. Tanpa pembatas, ia menjadi tempat
+  // menebak kata sandi seseorang yang lupa keluar dari sesinya di komputer
+  // bersama laboratorium — tanpa menyentuh halaman masuk sama sekali.
+  const ditolak = periksaLajuGantiSandi(pengguna.id);
+  if (ditolak) return { galat: ditolak };
 
   const akun = await prisma.user.findUnique({
     where: { id: pengguna.id },

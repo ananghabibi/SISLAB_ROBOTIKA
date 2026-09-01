@@ -3,6 +3,8 @@
 import { AuthError } from "next-auth";
 
 import { signIn, signOut } from "@/auth";
+import { ipPemohon } from "@/lib/audit";
+import { periksaLajuMasuk } from "@/lib/pembatas-laju";
 
 export interface KeadaanMasuk {
   galat?: string;
@@ -41,6 +43,12 @@ export async function masukKredensial(
   if (!email || !password) {
     return { galat: "Surel dan kata sandi wajib diisi." };
   }
+
+  // Diperiksa SEBELUM kata sandinya dicocokkan. Memeriksa sesudahnya berarti
+  // setiap percobaan tetap membebani pencocokan bcrypt, dan pembatas ini
+  // berubah menjadi pesan sopan yang tidak menghentikan apa pun.
+  const ditolak = periksaLajuMasuk(await ipPemohon(), email);
+  if (ditolak) return { galat: ditolak };
 
   try {
     await signIn("credentials", { email, password, redirectTo: lanjut });
