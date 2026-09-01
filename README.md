@@ -349,7 +349,7 @@ Jawabannya harus `Database schema is up to date!`.
 | `error during connect` / `docker daemon is not running` | Docker Desktop belum menyala | Jalankan Docker Desktop, tunggu sampai siap |
 | `failed to resolve reference "docker.io/..."` / `dialing auth.docker.io:443` | Jaringan Anda memblokir Docker Hub | Pakai Pilihan B pada bagian 3.4 — pasang PostgreSQL langsung |
 | `password authentication failed for user "postgres"` | Kata sandi pada `DATABASE_URL` keliru | Perbaiki baris `DATABASE_URL` di `.env` |
-| `P1000: Authentication failed against database server` | Biasanya karena `--sandi-db KATASANDIANDA` disalin apa adanya — `KATASANDIANDA` itu tempat kosong, bukan kata sandi | `node scripts/siapkan-env.mjs --sandi-db <kata-sandi-postgres-yang-sebenarnya>` |
+| `P1000: Authentication failed against database server` | Kata sandi `postgres` di `.env` keliru — biasanya karena teks contoh (`KATASANDIANDA`, atau apa pun setelah `--sandi-db` di panduan) disalin apa adanya, bukan diganti kata sandi Anda | Uji kata sandi yang benar dengan `psql` (lihat langkah 3.5), lalu `node scripts/siapkan-env.mjs --sandi-db <kata-sandi-itu>`. Sejak versi ini, siapkan-env langsung memperingatkan bila kata sandinya ditolak |
 | `Can't reach database server at localhost:5432` | Basis data belum menyala, atau `DATABASE_URL` salah | `docker compose -f docker-compose.dev.yml up -d` |
 | `port is already allocated` | Ada PostgreSQL lain memakai port 5432 | Hentikan yang lain, atau ikuti bagian 3.5 |
 | `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |

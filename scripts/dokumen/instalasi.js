@@ -208,7 +208,7 @@ const isi = [
       ["EPERM ... query_engine-windows.dll.node", "npm run dev masih hidup dan mengunci berkasnya", "Hentikan npm run dev dulu, baru jalankan migrasi atau build"],
       ["PrismaClientValidationError, atau Unknown argument pada nama kolom", "Kode sudah ditarik tetapi migrasinya belum dijalankan", "Hentikan peladen, jalankan npm run db:migrate, jalankan lagi"],
       ["EPERM ... query_engine-windows.dll.node", "npm run dev masih menyala dan memegang berkas mesin Prisma", "Hentikan npm run dev lebih dulu, baru jalankan db:migrate atau build"],
-      ["P1000: Authentication failed against database server", "Biasanya --sandi-db KATASANDIANDA disalin apa adanya; itu tempat kosong, bukan kata sandi", "Jalankan ulang siapkan-env.mjs dengan kata sandi postgres yang sebenarnya"],
+      ["P1000: Authentication failed against database server", "Kata sandi postgres di .env keliru; biasanya teks contoh disalin apa adanya, bukan diganti kata sandi Anda", "Uji dengan psql, lalu jalankan ulang siapkan-env.mjs dengan kata sandi itu; siapkan-env kini langsung memperingatkan bila ditolak"],
       ["localhost:3000 kosong padahal alamat IP bisa dibuka", "Windows menerjemahkan localhost ke IPv6", "Pakai http://127.0.0.1:3000"],
       ["Halaman rintisan padahal fiturnya sudah ada", "Cabang git yang dibuka bukan cabang yang berisi pekerjaannya", "git branch --show-current, lalu pindah ke cabang yang benar"],
     ],

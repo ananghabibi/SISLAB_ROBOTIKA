@@ -639,6 +639,23 @@ ikut masuk `.gitignore`, karena isinya sama rahasianya dengan `.env` sendiri.
 Diuji: nilai lama utuh, kunci asing selamat, kunci baru terisi, jalan kedua kali
 tidak mengubah apa-apa, dan pemasangan dari nol tetap seperti semula.
 
+### siapkan-env menguji kata sandi basis data sebelum ditinggalkan
+
+Lanjutan dari jebakan KATASANDIANDA di bawah, dan kali ini kesalahannya berulang
+dengan teks contoh saya sendiri: "SandiYangTadiDiterimaPsql" pun disalin apa
+adanya. Pola yang sama akan terus terjadi selama kata sandi yang salah baru
+ketahuan dua perintah kemudian, sebagai P1000 yang jauh dari tempat ia diketik.
+
+Sekarang `siapkan-env.mjs --sandi-db` menjalankan `prisma migrate status` sekali
+tepat setelah menulis `.env`, selagi orangnya masih menatap layar. Bila kata
+sandinya ditolak, ia berhenti dengan kode 1 dan pesan yang menyebutkan sebab
+paling sering lebih dulu — teks contoh yang tersalin — serta cara mengujinya
+lewat psql. Dilewati diam-diam bila Prisma belum terpasang, supaya skripnya
+tetap dapat berjalan tepat setelah `git clone`.
+
+Diuji di atas PostgreSQL berkata sandi: kata sandi salah memperingatkan dengan
+kode 1, kata sandi benar lolos diam.
+
 ### `--sandi-db KATASANDIANDA` disalin apa adanya
 
 `KATASANDIANDA` di README adalah tempat kosong, tetapi ia terbaca seperti

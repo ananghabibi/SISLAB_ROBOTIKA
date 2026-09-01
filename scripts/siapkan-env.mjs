@@ -17,6 +17,7 @@
 // maupun Linux.
 // -----------------------------------------------------------------------------
 
+import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -159,6 +160,48 @@ function nilaiEnv(kunci) {
   return bacaNilai(hasil.split(/\r?\n/).find((b) => b.startsWith(`${kunci}=`)) ?? "")?.nilai;
 }
 
+/**
+ * Mencoba kata sandi yang baru saja ditulis, selagi orangnya masih di sini.
+ *
+ * Tanpa ini, kata sandi yang salah baru ketahuan dua perintah kemudian sebagai
+ * `P1000: Authentication failed` — jauh dari tempat ia diketik, sehingga yang
+ * terbaca adalah "prisma bermasalah", bukan "kata sandi saya keliru".
+ *
+ * Kesalahan yang paling sering bukan salah ketik, melainkan menyalin teks
+ * contoh dari panduan apa adanya. Karena itu pesannya menyebutkan kemungkinan
+ * itu lebih dulu.
+ *
+ * Dilewati diam-diam bila Prisma belum terpasang: skrip ini memang dirancang
+ * dapat berjalan tepat setelah `git clone`, sebelum `npm install`.
+ */
+function ujiSambungan() {
+  const hasil = spawnSync("npx", ["prisma", "migrate", "status"], {
+    cwd: akar,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
+  if (hasil.error) return;
+  const keluaran = `${hasil.stdout ?? ""}${hasil.stderr ?? ""}`;
+  if (!/P1000|Authentication failed/i.test(keluaran)) return;
+
+  console.error("\n\x1b[31m" + "─".repeat(72));
+  console.error("\x1b[1mKata sandi basis data itu ditolak PostgreSQL.\x1b[0m\x1b[31m");
+  console.error("─".repeat(72) + "\x1b[0m");
+  console.error(
+    "\nPeriksa dulu: apakah yang Anda ketik tadi benar-benar kata sandi Anda,\n" +
+      "atau teks contoh dari panduan yang tersalin apa adanya? Yang tertulis di\n" +
+      "panduan hanyalah tempat kosong, bukan kata sandi yang berlaku.\n",
+  );
+  console.error("Kata sandi yang benar dapat diuji lebih dulu dengan psql:\n");
+  console.error(
+    '    "C:\\Program Files\\PostgreSQL\\16\\bin\\psql" -U postgres -h localhost -d postgres -c "select 1"\n',
+  );
+  console.error("Yang diterima psql itulah yang harus diketikkan di sini.\n");
+  console.error("Berkas .env tetap tertulis; jalankan ulang perintah ini dengan kata");
+  console.error("sandi yang benar dan DATABASE_URL akan ditimpa.\n");
+  process.exitCode = 1;
+}
+
 const sandiMasuk = nilaiEnv("SEED_KEPALA_LAB_PASSWORD");
 const sandiBawaanAnggota = nilaiEnv("SANDI_BAWAAN_ANGGOTA");
 
@@ -179,3 +222,6 @@ console.log(`  ${sandiBawaanAnggota}`);
 console.log("Akun yang masih memakainya hanya membuka Dasbor dan Profil sampai diganti sendiri.");
 console.log("Bila seeder sudah pernah dijalankan sebelum baris ini terisi, jalankan ulang:");
 console.log("  npx prisma db seed");
+
+// Diuji hanya bila kata sandi basis datanya memang baru saja disetel di sini.
+if (sandiDb) ujiSambungan();
