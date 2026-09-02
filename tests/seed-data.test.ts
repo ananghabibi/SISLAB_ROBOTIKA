@@ -3,7 +3,7 @@
 //
 // `data/seed-data.csv` dirawat manusia dan akan disunting setiap awal periode.
 // Uji ini menangkap salah ketik sebelum seeder menyentuh basis data — jauh lebih
-// murah daripada menemukannya setelah 39 baris masuk dengan squad yang keliru.
+// murah daripada menemukannya setelah 42 baris masuk dengan squad yang keliru.
 // -----------------------------------------------------------------------------
 
 import { readFileSync } from "node:fs";
@@ -18,9 +18,10 @@ const anggota = uraiCsv(readFileSync(path.join(akar, "data/seed-data.csv"), "utf
 const squad = uraiCsv(readFileSync(path.join(akar, "data/squad-data.csv"), "utf8"));
 
 describe("data awal keanggotaan", () => {
-  it("berisi 39 orang: 38 mahasiswa dan 1 dosen", () => {
-    expect(anggota).toHaveLength(39);
-    expect(anggota.filter((a) => a.npm)).toHaveLength(38);
+  it("berisi 42 orang: 41 mahasiswa dan 1 dosen", () => {
+    // Tim AIROSA TA 2025/2026: 41 mahasiswa + 1 dosen (Kepala Lab).
+    expect(anggota).toHaveLength(42);
+    expect(anggota.filter((a) => a.npm)).toHaveLength(41);
   });
 
   it("berisi 6 squad, semuanya punya ketua", () => {
@@ -35,7 +36,7 @@ describe("data awal keanggotaan", () => {
     expect(hitung("KOORD_RISET")).toBe(1);
     expect(hitung("KOORD_PENGEMBANGAN")).toBe(1);
     expect(hitung("KETUA_SQUAD")).toBe(6);
-    expect(hitung("ANGGOTA")).toBe(29);
+    expect(hitung("ANGGOTA")).toBe(32);
   });
 
   it("tidak memuat NPM atau surel ganda", () => {
@@ -96,6 +97,6 @@ describe("data awal keanggotaan", () => {
       hitung[jenjang] = (hitung[jenjang] ?? 0) + 1;
     }
     // 3 koordinator ditandai KOORDINATOR; sisanya mengikuti angkatan.
-    expect(hitung).toEqual({ KOORDINATOR: 3, MUDA: 20, MADYA: 12, UTAMA: 3 });
+    expect(hitung).toEqual({ KOORDINATOR: 3, MUDA: 21, MADYA: 14, UTAMA: 3 });
   });
 });
