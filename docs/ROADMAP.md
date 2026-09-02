@@ -807,6 +807,39 @@ Lab) dan diverifikasi di peramban: Koordinator Pengembangan membuka akun Kepala
 Lab tanpa satu pun medan yang dapat disunting, sementara akun anggota biasa
 tetap dapat disuntingnya.
 
+### Jadwal piket dapat disunting, Senin–Sabtu
+
+Diminta Kepala Laboratorium: siapa piket pada hari apa harus dapat diatur dari
+antarmuka oleh Kepala Laboratorium dan Koordinator Pengembangan, dan piket
+berjalan Senin sampai Sabtu (sebelumnya Senin–Jumat, dan jadwalnya berupa CSV
+statis).
+
+Piket kini punya dua ranah yang TERPISAH, sehingga tidak bertabrakan:
+
+- **`piket`** — mencatat checklist piket harian. Tetap Koordinator Operasional.
+- **`jadwal_piket`** — mengatur roster (siapa, hari apa). Kepala Laboratorium
+  dan Koordinator Pengembangan (sejalan ranah keanggotaan/kaderisasinya). Semua
+  orang boleh melihat jadwalnya.
+
+Karena modulnya berbeda, uji "tidak ada dua koordinator yang mengelola modul
+yang sama" tetap hijau.
+
+Rosternya pindah dari CSV statis ke tabel `jadwal_piket` (migrasi
+`20260902010000_jadwal_piket`): satu baris per hari 1–6, `squadId` boleh null
+(belum ditetapkan). `data/jadwal-piket.csv` kini hanya nilai AWAL seeder, dan
+diperluas ke Sabtu (kosong). Seeder tidak menimpa jadwal yang sudah diubah.
+`piketHariIni()` membaca dari tabel ini, bukan lagi dari CSV.
+
+Penyunting: menu **Jadwal Piket** → `/piket/jadwal`, enam baris Senin–Sabtu,
+tiap baris memilih squad atau "belum ditetapkan". Halaman `/piket` menampilkan
+roster mingguan dan tombol "Atur jadwal" bagi yang berhak. Setiap perubahan
+tercatat di audit log (`UBAH_JADWAL_PIKET`).
+
+Diverifikasi di peramban terhadap build produksi: Koordinator Pengembangan
+membuka penyunting (enam hari), menetapkan Sabtu, tersimpan dan tampil di
+`/piket`; Koordinator Operasional ditolak dari `/piket/jadwal` (403) tetapi
+tetap membuka `/piket` (200) dan tidak melihat tombol "Atur jadwal".
+
 ## Aturan yang berlaku di seluruh milestone
 
 - Setiap milestone **wajib memperbarui README**: cara menjalankan, cara

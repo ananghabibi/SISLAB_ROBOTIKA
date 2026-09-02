@@ -23,6 +23,7 @@ import bcrypt from "bcryptjs";
 
 import { AWALAN_ASET_CONTOH } from "../src/lib/aset";
 import { uraiCsv } from "../src/lib/csv";
+import { jadwalPiket } from "../src/lib/piket";
 import { sandiBawaan, sandiBawaanDiabaikan } from "../src/lib/sandi";
 import {
   angkatanDariNpm,
@@ -310,6 +311,23 @@ async function seedPeriode() {
   console.log(`  periode   : ${nama} (aktif)`);
 }
 
+async function seedJadwalPiket() {
+  const squadPerKode = new Map(
+    (await prisma.squad.findMany({ select: { id: true, kode: true } })).map((s) => [s.kode, s.id]),
+  );
+  // Jadwal yang sudah diubah orang tidak ditimpa: seeder dijalankan ulang tiap
+  // awal periode, dan menimpa jadwal yang sudah disusun akan menghapusnya.
+  let dibuat = 0;
+  for (const baris of jadwalPiket()) {
+    const ada = await prisma.jadwalPiket.findUnique({ where: { hari: baris.nomorHari } });
+    if (ada) continue;
+    const squadId = baris.kodeSquad ? (squadPerKode.get(baris.kodeSquad) ?? null) : null;
+    await prisma.jadwalPiket.create({ data: { hari: baris.nomorHari, squadId } });
+    dibuat++;
+  }
+  console.log(`  jadwal    : ${dibuat} hari piket baru`);
+}
+
 async function main() {
   console.log("Menyemai basis data SILAB…");
   await seedSquad();
@@ -317,6 +335,7 @@ async function main() {
   await tetapkanKetuaSquad();
   await seedAset();
   await seedPeriode();
+  await seedJadwalPiket();
 
   const jumlah = await prisma.user.count();
   const perPeran = await prisma.user.groupBy({ by: ["role"], _count: true });

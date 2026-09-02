@@ -66,6 +66,15 @@ describe("penutupan rute per peran", () => {
     expect(peranBolehMembuka("KEPALA_LAB", "/inventaris/baru")).toBe(true);
   });
 
+  it("mengatur jadwal piket hanya untuk Kepala Lab dan Koordinator Pengembangan", () => {
+    expect(peranBolehMembuka("KEPALA_LAB", "/piket/jadwal")).toBe(true);
+    expect(peranBolehMembuka("KOORD_PENGEMBANGAN", "/piket/jadwal")).toBe(true);
+    expect(peranBolehMembuka("KOORD_OPERASIONAL", "/piket/jadwal")).toBe(false);
+    expect(peranBolehMembuka("KETUA_SQUAD", "/piket/jadwal")).toBe(false);
+    // Semua tetap boleh membuka /piket (mencatat/membaca).
+    expect(peranBolehMembuka("KOORD_OPERASIONAL", "/piket")).toBe(true);
+  });
+
   it("membuka /anggota/baru hanya untuk pengelola keanggotaan", () => {
     // Keanggotaan kini milik Koordinator Pengembangan; Operasional tidak lagi.
     expect(peranBolehMembuka("KOORD_PENGEMBANGAN", "/anggota/baru")).toBe(true);

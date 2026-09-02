@@ -27,6 +27,7 @@ export const MENU: ButirMenu[] = [
   { label: "Absensi Manual", href: "/absensi/manual", kelompok: "Harian", milestone: 2, selesai: true },
   { label: "Logbook Riset", href: "/logbook", kelompok: "Harian", milestone: 5, selesai: true },
   { label: "Piket", href: "/piket", kelompok: "Harian", milestone: 5, selesai: true },
+  { label: "Jadwal Piket", href: "/piket/jadwal", kelompok: "Pengelolaan", milestone: 5, selesai: true },
   { label: "Laporan Insiden", href: "/insiden", kelompok: "Harian", milestone: 5, selesai: true },
   { label: "Buku Tamu", href: "/tamu", kelompok: "Harian", milestone: 5, selesai: true },
 

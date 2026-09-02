@@ -31,6 +31,7 @@ export const ATURAN_RUTE: AturanRute[] = [
   { awalan: "/inventaris/baru", modul: "inventaris", butuh: "tulis" },
   { awalan: "/inventaris", modul: "inventaris", butuh: "baca" },
   { awalan: "/peminjaman", modul: "peminjaman", butuh: "baca" },
+  { awalan: "/piket/jadwal", modul: "jadwal_piket", butuh: "tulis" },
   { awalan: "/piket", modul: "piket", butuh: "baca" },
   { awalan: "/logbook", modul: "logbook", butuh: "baca" },
   { awalan: "/insiden", modul: "insiden", butuh: "baca" },

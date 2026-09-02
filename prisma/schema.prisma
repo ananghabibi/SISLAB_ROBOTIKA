@@ -161,10 +161,27 @@ model Squad {
 
   ketua     User?      @relation("KetuaSquad", fields: [ketuaId], references: [id], onDelete: SetNull)
   anggota   User[]     @relation("AnggotaSquad")
-  piketLogs PiketLog[]
-  logbooks  Logbook[]
+  piketLogs   PiketLog[]
+  logbooks    Logbook[]
+  jadwalPiket JadwalPiket[]
 
   @@map("squads")
+}
+
+// Jadwal piket mingguan: satu baris per hari kerja (1 Senin .. 6 Sabtu),
+// menunjuk squad yang bertugas hari itu. Dapat kosong (belum ditetapkan).
+//
+// Berbeda dari `data/jadwal-piket.csv` yang hanya menjadi nilai awal seeder:
+// tabel inilah yang berlaku, dan dapat diubah dari antarmuka oleh Kepala
+// Laboratorium dan Koordinator Pengembangan (modul `jadwal_piket`).
+model JadwalPiket {
+  hari      Int      @id // 1 = Senin .. 6 = Sabtu
+  squadId   String?
+  updatedAt DateTime @updatedAt
+
+  squad Squad? @relation(fields: [squadId], references: [id], onDelete: SetNull)
+
+  @@map("jadwal_piket")
 }
 
 model Period {

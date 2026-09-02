@@ -41,11 +41,13 @@ describe("berkas checklist piket", () => {
 });
 
 describe("jadwal piket", () => {
-  it("menjadwalkan lima hari kerja, satu squad tiap hari", () => {
+  it("menjadwalkan Senin sampai Sabtu, dengan Sabtu belum ditetapkan", () => {
+    // Nilai AWAL saja; yang berlaku adalah tabel jadwal_piket. Sabtu sengaja
+    // kosong — diserahkan untuk diatur dari antarmuka.
     const jadwal = jadwalPiket();
-    expect(jadwal).toHaveLength(5);
-    expect(jadwal.map((j) => j.nomorHari)).toEqual([1, 2, 3, 4, 5]);
-    expect(new Set(jadwal.map((j) => j.kodeSquad)).size).toBe(5);
+    expect(jadwal.map((j) => j.nomorHari)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(new Set(jadwal.slice(0, 5).map((j) => j.kodeSquad)).size).toBe(5);
+    expect(jadwal[5]?.kodeSquad).toBe("");
   });
 
   it("menemukan squad yang terjadwal pada hari kerja", () => {
@@ -54,9 +56,11 @@ describe("jadwal piket", () => {
     expect(squadTerjadwal(jadwal, 5)?.hari).toBe("Jumat");
   });
 
-  it("mengembalikan null pada Sabtu dan Minggu, bukan menuduhnya terlewat", () => {
+  it("Sabtu ada di jadwal tetapi belum bersquad; Minggu tidak dijadwalkan", () => {
     const jadwal = jadwalPiket();
-    expect(squadTerjadwal(jadwal, 6)).toBeNull();
+    // Sabtu kini ADA di jadwal (nilai awal), hanya squad-nya belum ditetapkan.
+    expect(squadTerjadwal(jadwal, 6)?.kodeSquad).toBe("");
+    // Minggu memang tidak pernah dijadwalkan.
     expect(squadTerjadwal(jadwal, 0)).toBeNull();
   });
 

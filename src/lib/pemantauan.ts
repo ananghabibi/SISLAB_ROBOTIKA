@@ -15,7 +15,7 @@
 import type { Period } from "@prisma/client";
 
 import { mingguKeDari } from "./logbook";
-import { jadwalPiket, squadTerjadwal } from "./piket";
+
 import { prisma } from "./prisma";
 import { nomorHariWib, tanggalKalenderWib } from "./waktu";
 
@@ -66,26 +66,23 @@ export interface PiketHariIni {
 
 /** Apakah piket hari ini sudah dicatat, dan oleh squad mana seharusnya. */
 export async function piketHariIni(sekarang: Date = new Date()): Promise<PiketHariIni> {
-  const terjadwal = squadTerjadwal(jadwalPiket(), nomorHariWib(sekarang));
-  if (!terjadwal) return { kodeSquad: null, namaSquad: null, idSquad: null, sudahDiisi: false };
-
-  const squad = await prisma.squad.findUnique({
-    where: { kode: terjadwal.kodeSquad },
-    select: { id: true, nama: true },
+  // Jadwal berlaku dibaca dari basis data (tabel jadwal_piket), bukan dari CSV:
+  // ia dapat diubah dari antarmuka oleh Kepala Lab dan Koordinator Pengembangan.
+  const baris = await prisma.jadwalPiket.findUnique({
+    where: { hari: nomorHariWib(sekarang) },
+    include: { squad: { select: { id: true, nama: true, kode: true } } },
   });
-  if (!squad) {
-    return { kodeSquad: terjadwal.kodeSquad, namaSquad: null, idSquad: null, sudahDiisi: false };
-  }
+  if (!baris?.squad) return { kodeSquad: null, namaSquad: null, idSquad: null, sudahDiisi: false };
 
   const catatan = await prisma.piketLog.findFirst({
-    where: { tanggal: tanggalKalenderWib(sekarang), squadId: squad.id },
+    where: { tanggal: tanggalKalenderWib(sekarang), squadId: baris.squad.id },
     select: { id: true },
   });
 
   return {
-    kodeSquad: terjadwal.kodeSquad,
-    namaSquad: squad.nama,
-    idSquad: squad.id,
+    kodeSquad: baris.squad.kode,
+    namaSquad: baris.squad.nama,
+    idSquad: baris.squad.id,
     sudahDiisi: catatan !== null,
   };
 }

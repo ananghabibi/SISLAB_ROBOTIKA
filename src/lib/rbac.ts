@@ -28,6 +28,7 @@ export const MODUL = [
   "inventaris",
   "peminjaman",
   "piket",
+  "jadwal_piket",
   "logbook",
   "insiden",
   "periode_target",
@@ -47,6 +48,7 @@ export const LABEL_MODUL: Record<Modul, string> = {
   inventaris: "Inventaris",
   peminjaman: "Peminjaman",
   piket: "Piket",
+  jadwal_piket: "Jadwal piket",
   logbook: "Logbook riset",
   insiden: "Laporan insiden",
   periode_target: "Periode & target skor",
@@ -182,6 +184,21 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
     KOORD_PENGEMBANGAN: bacaSemua,
     KETUA_SQUAD: tulisSendiri,
     ANGGOTA: bacaSendiri,
+    PENGAWAS: bacaSemua,
+  },
+  jadwal_piket: {
+    // Ranah tersendiri, TERPISAH dari `piket`. Mencatat checklist piket harian
+    // adalah `piket` (Koordinator Operasional); MENGATUR siapa piket dan pada
+    // hari apa adalah `jadwal_piket` — diminta Kepala Laboratorium diberikan
+    // kepada Koordinator Pengembangan, sejalan dengan ranah keanggotaan/
+    // kaderisasinya. Karena modulnya berbeda, tidak ada tumpang tindih dengan
+    // Operasional. Semua orang boleh MELIHAT jadwalnya.
+    KEPALA_LAB: tulisSemua,
+    KOORD_OPERASIONAL: bacaSemua,
+    KOORD_RISET: bacaSemua,
+    KOORD_PENGEMBANGAN: tulisSemua,
+    KETUA_SQUAD: bacaSemua,
+    ANGGOTA: bacaSemua,
     PENGAWAS: bacaSemua,
   },
   logbook: {

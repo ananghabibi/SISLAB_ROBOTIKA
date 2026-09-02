@@ -160,11 +160,13 @@ describe("pembagian wewenang antar-koordinator (tidak boleh tumpang tindih)", ()
   });
 
   it("tiap koordinator memegang ranahnya sendiri", () => {
-    // Operasional: inventaris & piket. Riset: logbook. Pengembangan: keanggotaan.
+    // Operasional: inventaris & piket (checklist). Riset: logbook.
+    // Pengembangan: keanggotaan & jadwal piket (roster).
     expect(bolehTulis("KOORD_OPERASIONAL", "inventaris")).toBe(true);
     expect(bolehTulis("KOORD_OPERASIONAL", "piket")).toBe(true);
     expect(bolehTulis("KOORD_RISET", "logbook")).toBe(true);
     expect(bolehTulis("KOORD_PENGEMBANGAN", "master_anggota")).toBe(true);
+    expect(bolehTulis("KOORD_PENGEMBANGAN", "jadwal_piket")).toBe(true);
   });
 
   it("koordinator tidak menulis ranah koordinator lain", () => {
@@ -176,6 +178,11 @@ describe("pembagian wewenang antar-koordinator (tidak boleh tumpang tindih)", ()
     expect(bolehTulis("KOORD_PENGEMBANGAN", "logbook")).toBe(false);
     expect(bolehTulis("KOORD_OPERASIONAL", "logbook")).toBe(false);
     expect(bolehTulis("KOORD_OPERASIONAL", "master_anggota")).toBe(false);
+    // Mencatat checklist piket tetap Operasional; MENGATUR jadwalnya bukan.
+    expect(bolehTulis("KOORD_OPERASIONAL", "jadwal_piket")).toBe(false);
+    expect(bolehTulis("KOORD_RISET", "jadwal_piket")).toBe(false);
+    // Sebaliknya, Pengembangan mengatur jadwal tetapi tidak mencatat checklist.
+    expect(bolehTulis("KOORD_PENGEMBANGAN", "piket")).toBe(false);
   });
 });
 

@@ -38,6 +38,19 @@ export function butirPiket(): ButirPiket[] {
   }));
 }
 
+/**
+ * Hari yang dapat dijadwalkan piket: Senin sampai Sabtu. Minggu tidak.
+ * Dipakai penyunting jadwal untuk menampilkan satu baris per hari.
+ */
+export const HARI_PIKET: { nomor: number; nama: string }[] = [
+  { nomor: 1, nama: "Senin" },
+  { nomor: 2, nama: "Selasa" },
+  { nomor: 3, nama: "Rabu" },
+  { nomor: 4, nama: "Kamis" },
+  { nomor: 5, nama: "Jumat" },
+  { nomor: 6, nama: "Sabtu" },
+];
+
 export function jadwalPiket(): BarisJadwal[] {
   return bacaDataCsv("jadwal-piket.csv").map((b) => ({
     hari: b.hari ?? "",

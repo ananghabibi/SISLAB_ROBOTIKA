@@ -1,10 +1,13 @@
 import type { Prisma } from "@prisma/client";
+import Link from "next/link";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
+import { gayaTombol } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
 import { PanelSaringan } from "@/components/ui/panel-saringan";
+import { rosterPiket } from "@/lib/jadwal-piket";
 import { piketHariIni } from "@/lib/pemantauan";
 import { saringanPiket, wajibIzin } from "@/lib/penjaga";
 import {
@@ -14,6 +17,7 @@ import {
   persenChecklist,
 } from "@/lib/piket";
 import { prisma } from "@/lib/prisma";
+import { bolehTulis } from "@/lib/rbac";
 import { tanggalPanjangWib, tanggalPendekWib } from "@/lib/waktu";
 import { FormulirPiket } from "./formulir";
 
@@ -28,10 +32,12 @@ export default async function Halaman({
   const { pengguna, izin } = await wajibIzin("piket", "baca");
   const butir = butirPiket();
   const bolehMencatat = izin.tulis !== "TIDAK";
+  const bolehAturJadwal = bolehTulis(pengguna.role, "jadwal_piket");
   const cari = (await searchParams).cari?.trim() ?? "";
 
-  const [jadwalHariIni, squad, daftar] = await Promise.all([
+  const [jadwalHariIni, roster, squad, daftar] = await Promise.all([
     piketHariIni(),
+    rosterPiket(),
     bolehMencatat
       ? prisma.squad.findMany({
           where: izin.tulis === "SEMUA" ? {} : { id: pengguna.squadId ?? "__tidak-ada__" },
@@ -62,11 +68,21 @@ export default async function Halaman({
 
   return (
     <>
-      <KepalaHalaman judul="Piket" keterangan={tanggalPanjangWib(new Date())} />
+      <KepalaHalaman
+        judul="Piket"
+        keterangan={tanggalPanjangWib(new Date())}
+        aksi={
+          bolehAturJadwal ? (
+            <Link href="/piket/jadwal" className={gayaTombol({ variant: "garis" })}>
+              Atur jadwal
+            </Link>
+          ) : null
+        }
+      />
 
       <Card className="mb-5">
-        <CardHeader>
-          <CardTitle>Jadwal hari ini</CardTitle>
+        <CardHeader className="flex flex-wrap items-center gap-2">
+          <CardTitle className="mr-auto">Jadwal hari ini</CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
           {jadwalHariIni.kodeSquad === null ? (
@@ -84,6 +100,24 @@ export default async function Halaman({
               </Badge>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-5">
+        <CardHeader>
+          <CardTitle>Roster mingguan</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {roster.map((hari) => (
+              <li key={hari.nomor} className="flex items-baseline justify-between gap-2 rounded-lg bg-dasar px-3 py-2">
+                <span className="font-medium">{hari.nama}</span>
+                <span className={hari.namaSquad ? "" : "text-teks-redup"}>
+                  {hari.namaSquad ?? "belum ditetapkan"}
+                </span>
+              </li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
 
