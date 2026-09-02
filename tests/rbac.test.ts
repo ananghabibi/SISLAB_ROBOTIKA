@@ -4,6 +4,7 @@ import type { Role } from "@prisma/client";
 import {
   bolehBaca,
   bolehHapus,
+  bolehKelolaAkun,
   bolehMemberiPeran,
   bolehMenerbitkanSkk,
   bolehTulis,
@@ -202,5 +203,22 @@ describe("batas penetapan peran", () => {
     expect(bolehMemberiPeran("KOORD_OPERASIONAL", "ANGGOTA", "KETUA_SQUAD")).toBe(false);
     expect(bolehMemberiPeran("KETUA_SQUAD", "ANGGOTA", "ANGGOTA")).toBe(false);
     expect(peranDapatDiberi("KOORD_OPERASIONAL")).toEqual([]);
+  });
+});
+
+describe("akun Kepala Laboratorium hanya boleh disentuh Kepala Laboratorium", () => {
+  it("tidak seorang pun selain Kepala Laboratorium boleh mengelola akun Kepala Lab", () => {
+    for (const peran of SEMUA_PERAN) {
+      const boleh = bolehKelolaAkun(peran, "KEPALA_LAB");
+      expect(boleh, `${peran} atas akun Kepala Lab`).toBe(peran === "KEPALA_LAB");
+    }
+  });
+
+  it("mengelola akun selain Kepala Lab tidak ikut tertutup oleh aturan ini", () => {
+    // Aturan ini khusus melindungi akun Kepala Lab; akun lain tetap tunduk pada
+    // hak modul biasa.
+    expect(bolehKelolaAkun("KOORD_PENGEMBANGAN", "ANGGOTA")).toBe(true);
+    expect(bolehKelolaAkun("KOORD_PENGEMBANGAN", "KETUA_SQUAD")).toBe(true);
+    expect(bolehKelolaAkun("KOORD_PENGEMBANGAN", "KOORD_RISET")).toBe(true);
   });
 });

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { bolehLihatDataOrang, tolakAkses, wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
-import { bolehTulis, LABEL_PERAN, PERAN_DIKELOLA, peranDapatDiberi } from "@/lib/rbac";
+import { bolehKelolaAkun, bolehTulis, LABEL_PERAN, PERAN_DIKELOLA, peranDapatDiberi } from "@/lib/rbac";
 import { sandiBawaan } from "@/lib/sandi";
 import { FormulirAnggota } from "../formulir-anggota";
 import { simpanAnggota } from "../aksi";
@@ -29,7 +29,11 @@ export default async function DetailAnggota({ params }: { params: Promise<{ id: 
     tolakAkses();
   }
 
-  const bolehSunting = bolehTulis(pengguna.role, "master_anggota");
+  // Akun Kepala Laboratorium hanya dapat disunting Kepala Laboratorium sendiri,
+  // sehingga bagi pengelola lain halaman ini menjadi tampilan baca saja dan
+  // kartu "Akses masuk" tidak muncul.
+  const bolehSunting =
+    bolehTulis(pengguna.role, "master_anggota") && bolehKelolaAkun(pengguna.role, anggota.role);
   // Peran boleh diubah bila pengelola berwenang atas peran akun INI. Kepala
   // Laboratorium selalu boleh; pengelola keanggotaan lain hanya untuk akun yang
   // perannya masih dalam jangkauannya (Anggota atau Ketua Squad), tidak untuk
@@ -62,7 +66,9 @@ export default async function DetailAnggota({ params }: { params: Promise<{ id: 
           <CardDescription>
             {bolehSunting
               ? "Setiap perubahan tercatat di audit log beserta nilai lama dan barunya."
-              : "Peran Anda hanya berhak membaca data ini."}
+              : anggota.role === "KEPALA_LAB"
+                ? "Data Kepala Laboratorium hanya dapat diubah oleh Kepala Laboratorium sendiri."
+                : "Peran Anda hanya berhak membaca data ini."}
           </CardDescription>
         </CardHeader>
         <CardContent>

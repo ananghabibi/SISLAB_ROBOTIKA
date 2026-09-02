@@ -9,7 +9,7 @@ import { catatAudit } from "@/lib/audit";
 import { npmValid, prodiDariNpm, angkatanDariNpm, jenjangDariAngkatan } from "@/lib/npm";
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
-import { bolehMemberiPeran, bolehTulis } from "@/lib/rbac";
+import { bolehKelolaAkun, bolehMemberiPeran, bolehTulis } from "@/lib/rbac";
 import { sandiBawaan } from "@/lib/sandi";
 
 export interface KeadaanAnggota {
@@ -152,6 +152,12 @@ export async function simpanAnggota(
 
   const lama = await prisma.user.findUnique({ where: { id: idAnggota } });
   if (!lama) return { galat: "Anggota tidak ditemukan." };
+
+  // Data Kepala Laboratorium hanya boleh diubah Kepala Laboratorium sendiri —
+  // seluruh medannya, bukan hanya perannya.
+  if (!bolehKelolaAkun(pengguna.role, lama.role)) {
+    return { galat: "Data Kepala Laboratorium hanya dapat diubah oleh Kepala Laboratorium." };
+  }
 
   // Menetapkan peran dibatasi menurut wewenang: Kepala Laboratorium bebas,
   // pengelola keanggotaan lain hanya sampai Ketua Squad dan tidak boleh
@@ -297,9 +303,14 @@ export async function setelUlangSandi(
 
   const anggota = await prisma.user.findUnique({
     where: { id: idAnggota },
-    select: { id: true, nama: true },
+    select: { id: true, nama: true, role: true },
   });
   if (!anggota) return { galat: "Anggota tidak ditemukan." };
+  if (!bolehKelolaAkun(pengguna.role, anggota.role)) {
+    return {
+      galat: "Kata sandi Kepala Laboratorium hanya dapat disetel ulang oleh Kepala Laboratorium.",
+    };
+  }
 
   await prisma.user.update({
     where: { id: idAnggota },

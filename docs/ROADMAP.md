@@ -788,6 +788,25 @@ build produksi: pilihan peran Pengembangan hanya Anggota/Ketua Squad, peran
 seorang koordinator tak dapat disentuhnya, /anggota/baru tertutup bagi
 Operasional (403) tetapi /inventaris/baru terbuka (200).
 
+### Data Kepala Laboratorium hanya boleh diubah Kepala Laboratorium
+
+Diminta Kepala Laboratorium. Sebelumnya Koordinator Pengembangan — yang
+berwenang atas keanggotaan — dapat menyunting data atau menyetel ulang sandi
+akun SIAPA PUN, termasuk akun Kepala Laboratorium. Itu lubang: puncak wewenang
+tidak boleh dapat disentuh dari bawah.
+
+`bolehKelolaAkun(pengelola, peranTarget)` di `src/lib/rbac.ts` menutupnya: akun
+Kepala Laboratorium hanya dapat disentuh Kepala Laboratorium sendiri.
+Ditegakkan di dua aksi peladen — `simpanAnggota` (seluruh medan, bukan hanya
+peran) dan `setelUlangSandi` — dan di antarmuka halaman anggota menjadi tampilan
+baca saja tanpa kartu "Akses masuk" bagi pengelola lain. Menghapus akun Kepala
+Lab pun tetap tertutup (hapus hanya Kepala Lab, dan penjaga sisa-Kepala-Lab).
+
+Dikunci uji (tidak seorang pun selain Kepala Lab boleh mengelola akun Kepala
+Lab) dan diverifikasi di peramban: Koordinator Pengembangan membuka akun Kepala
+Lab tanpa satu pun medan yang dapat disunting, sementara akun anggota biasa
+tetap dapat disuntingnya.
+
 ## Aturan yang berlaku di seluruh milestone
 
 - Setiap milestone **wajib memperbarui README**: cara menjalankan, cara

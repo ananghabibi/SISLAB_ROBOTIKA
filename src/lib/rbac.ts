@@ -355,3 +355,18 @@ export function bolehMemberiPeran(
   if (peranLama !== null && !PERAN_DIKELOLA.includes(peranLama)) return false;
   return true;
 }
+
+/**
+ * Bolehkah `pengelola` menyentuh akun seseorang yang berperan `peranTarget`
+ * (menyunting datanya, menyetel ulang sandinya, mengubah perannya)?
+ *
+ * Akun Kepala Laboratorium hanya dapat disentuh Kepala Laboratorium sendiri.
+ * Tidak ada anggota, ketua squad, maupun koordinator — sekalipun ia pengelola
+ * keanggotaan — yang boleh mengubah data Kepala Laboratorium. Ini penjagaan
+ * tersendiri di atas hak modul: seorang Koordinator Pengembangan berwenang atas
+ * keanggotaan pada umumnya, tetapi tidak atas akun yang menjadi puncak wewenang.
+ */
+export function bolehKelolaAkun(pengelola: Role, peranTarget: Role): boolean {
+  if (peranTarget === "KEPALA_LAB") return pengelola === "KEPALA_LAB";
+  return true;
+}
