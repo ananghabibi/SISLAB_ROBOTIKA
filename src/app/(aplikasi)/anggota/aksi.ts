@@ -9,7 +9,7 @@ import { catatAudit } from "@/lib/audit";
 import { npmValid, prodiDariNpm, angkatanDariNpm, jenjangDariAngkatan } from "@/lib/npm";
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
-import { bolehTulis } from "@/lib/rbac";
+import { bolehMemberiPeran, bolehTulis } from "@/lib/rbac";
 import { sandiBawaan } from "@/lib/sandi";
 
 export interface KeadaanAnggota {
@@ -127,6 +127,18 @@ async function tersisaKepalaLab(kecualiId?: string): Promise<number> {
   });
 }
 
+/**
+ * Pesan penolakan saat seorang pengelola mencoba menetapkan peran di luar
+ * wewenangnya. Dibedakan supaya Koordinator Pengembangan tahu batasnya, bukan
+ * sekadar "hanya Kepala Lab".
+ */
+function pesanTolakPeran(peran: (typeof PERAN)[number]): string {
+  if (bolehTulis(peran, "master_anggota")) {
+    return "Anda hanya dapat menetapkan peran sampai Ketua Squad. Menetapkan Koordinator atau Kepala Laboratorium adalah hak Kepala Laboratorium.";
+  }
+  return "Hanya Kepala Laboratorium yang dapat mengubah peran.";
+}
+
 export async function simpanAnggota(
   idAnggota: string,
   _keadaan: KeadaanAnggota,
@@ -141,10 +153,12 @@ export async function simpanAnggota(
   const lama = await prisma.user.findUnique({ where: { id: idAnggota } });
   if (!lama) return { galat: "Anggota tidak ditemukan." };
 
-  // Mengubah peran adalah modul tersendiri: hanya Kepala Laboratorium.
+  // Menetapkan peran dibatasi menurut wewenang: Kepala Laboratorium bebas,
+  // pengelola keanggotaan lain hanya sampai Ketua Squad dan tidak boleh
+  // menyentuh peran yang sudah koordinator ke atas.
   const peranBerubah = masukan.role !== lama.role;
-  if (peranBerubah && !bolehTulis(pengguna.role, "peran_hak_akses")) {
-    return { galat: "Hanya Kepala Laboratorium yang dapat mengubah peran." };
+  if (peranBerubah && !bolehMemberiPeran(pengguna.role, lama.role, masukan.role)) {
+    return { galat: pesanTolakPeran(pengguna.role) };
   }
   if (peranBerubah && idAnggota === pengguna.id) {
     return {
@@ -213,8 +227,8 @@ export async function buatAnggota(
   if (!terurai.success) return { galat: terurai.error.issues[0]!.message };
   const masukan = terurai.data;
 
-  if (masukan.role !== "ANGGOTA" && !bolehTulis(pengguna.role, "peran_hak_akses")) {
-    return { galat: "Hanya Kepala Laboratorium yang dapat memberi peran selain Anggota." };
+  if (!bolehMemberiPeran(pengguna.role, null, masukan.role)) {
+    return { galat: pesanTolakPeran(pengguna.role) };
   }
 
   const npm = masukan.npm || null;

@@ -749,6 +749,45 @@ Diverifikasi dengan Playwright terhadap build produksi: pencarian teks insiden
 menyisakan hanya yang cocok, saringan status bekerja, dan seluruh menu daftar
 memuat dengan kotak pencariannya.
 
+### Wewenang koordinator dibagi tegas, tidak tumpang tindih
+
+Diminta Kepala Laboratorium: tiap koordinator memegang satu ranah pengelolaan
+yang berbeda, dan tidak ada dua koordinator yang berwenang atas hal yang sama.
+
+- **Koordinator Operasional** — inventaris, peminjaman, piket (logistik & operasi
+  lab), ditambah absensi manual darurat, koreksi rekap absensi, tindak lanjut
+  insiden, dan ekspor. Hak tulisnya atas keanggotaan DICABUT (dulu ia ikut
+  mengelola anggota, dan itu bertabrakan dengan Pengembangan) — kini ia hanya
+  membaca daftar anggota.
+- **Koordinator Riset** — logbook riset. Tidak menyentuh inventaris, piket, atau
+  keanggotaan. (Catatan: "jadwal uji" dan "timeline squad" sebagai modul
+  tersendiri belum ada; wewenang riset saat ini adalah logbook. Bila ingin modul
+  penjadwalan khusus, itu pengembangan baru.)
+- **Koordinator Pengembangan** — keanggotaan (master_anggota), dengan batas
+  penetapan peran HANYA sampai Ketua Squad.
+
+Batas penetapan peran ditegakkan `bolehMemberiPeran()` di `src/lib/rbac.ts`, dan
+dipakai bersama oleh aksi peladen dan formulir anggota:
+
+- Koordinator Pengembangan dapat menetapkan seseorang menjadi **Anggota** atau
+  **Ketua Squad**, dan hanya untuk akun yang perannya masih di jangkauan itu.
+- Ia TIDAK dapat mengangkat siapa pun menjadi Koordinator, Kepala Laboratorium,
+  atau Pengawas; dan tidak dapat menyentuh peran akun yang SUDAH koordinator ke
+  atas, bahkan untuk menurunkannya. Itu tetap hak Kepala Laboratorium lewat
+  modul `peran_hak_akses` (halaman Peran & Hak Akses).
+- Menghapus anggota tetap hanya Kepala Laboratorium.
+
+Yang tetap milik Kepala Laboratorium seorang: menetapkan koordinator, periode &
+target skor, penerbitan SKK, penghapusan aset dan anggota, dan pembacaan audit
+log penuh.
+
+Dikunci uji: satu uji memindai seluruh matriks dan menggagalkan bila ada satu
+modul pun yang dikelola (tulis "SEMUA") oleh dua koordinator sekaligus; uji lain
+menegakkan batas `bolehMemberiPeran`. Diverifikasi pula di peramban terhadap
+build produksi: pilihan peran Pengembangan hanya Anggota/Ketua Squad, peran
+seorang koordinator tak dapat disentuhnya, /anggota/baru tertutup bagi
+Operasional (403) tetapi /inventaris/baru terbuka (200).
+
 ## Aturan yang berlaku di seluruh milestone
 
 - Setiap milestone **wajib memperbarui README**: cara menjalankan, cara

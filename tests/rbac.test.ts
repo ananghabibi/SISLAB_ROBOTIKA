@@ -4,11 +4,13 @@ import type { Role } from "@prisma/client";
 import {
   bolehBaca,
   bolehHapus,
+  bolehMemberiPeran,
   bolehMenerbitkanSkk,
   bolehTulis,
   izinUntuk,
   MATRIKS_AKSES,
   MODUL,
+  peranDapatDiberi,
   peranHanyaBaca,
 } from "@/lib/rbac";
 
@@ -140,5 +142,65 @@ describe("penyimpangan yang disengaja dari SPEC 4.2", () => {
     expect(izinUntuk("KOORD_PENGEMBANGAN", "peran_hak_akses").tulis).toBe("TIDAK");
     expect(izinUntuk("KOORD_PENGEMBANGAN", "master_anggota").hapus).toBe(false);
     expect(izinUntuk("KOORD_OPERASIONAL", "master_anggota").hapus).toBe(false);
+  });
+});
+
+describe("pembagian wewenang antar-koordinator (tidak boleh tumpang tindih)", () => {
+  const KOORDINATOR: Role[] = ["KOORD_OPERASIONAL", "KOORD_RISET", "KOORD_PENGEMBANGAN"];
+
+  it("tidak ada satu modul pun yang dikelola dua koordinator sekaligus", () => {
+    // Yang dibandingkan adalah WEWENANG PENGELOLAAN (tulis "SEMUA" — atas data
+    // orang lain), bukan layanan-mandiri: absensi sendiri dan pelaporan insiden
+    // berlingkup "SENDIRI" bagi semua orang dan bukan ranah koordinator.
+    for (const modul of MODUL) {
+      const pengelola = KOORDINATOR.filter((k) => izinUntuk(k, modul).tulis === "SEMUA");
+      expect(pengelola.length, `${modul} dikelola ${pengelola.join(", ")}`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("tiap koordinator memegang ranahnya sendiri", () => {
+    // Operasional: inventaris & piket. Riset: logbook. Pengembangan: keanggotaan.
+    expect(bolehTulis("KOORD_OPERASIONAL", "inventaris")).toBe(true);
+    expect(bolehTulis("KOORD_OPERASIONAL", "piket")).toBe(true);
+    expect(bolehTulis("KOORD_RISET", "logbook")).toBe(true);
+    expect(bolehTulis("KOORD_PENGEMBANGAN", "master_anggota")).toBe(true);
+  });
+
+  it("koordinator tidak menulis ranah koordinator lain", () => {
+    expect(bolehTulis("KOORD_RISET", "inventaris")).toBe(false);
+    expect(bolehTulis("KOORD_RISET", "piket")).toBe(false);
+    expect(bolehTulis("KOORD_RISET", "master_anggota")).toBe(false);
+    expect(bolehTulis("KOORD_PENGEMBANGAN", "inventaris")).toBe(false);
+    expect(bolehTulis("KOORD_PENGEMBANGAN", "piket")).toBe(false);
+    expect(bolehTulis("KOORD_PENGEMBANGAN", "logbook")).toBe(false);
+    expect(bolehTulis("KOORD_OPERASIONAL", "logbook")).toBe(false);
+    expect(bolehTulis("KOORD_OPERASIONAL", "master_anggota")).toBe(false);
+  });
+});
+
+describe("batas penetapan peran", () => {
+  it("Kepala Laboratorium boleh menetapkan peran apa pun", () => {
+    expect(bolehMemberiPeran("KEPALA_LAB", "ANGGOTA", "KOORD_RISET")).toBe(true);
+    expect(bolehMemberiPeran("KEPALA_LAB", "KOORD_RISET", "ANGGOTA")).toBe(true);
+    expect(peranDapatDiberi("KEPALA_LAB")).toContain("KOORD_OPERASIONAL");
+  });
+
+  it("Koordinator Pengembangan hanya sampai Ketua Squad", () => {
+    expect(bolehMemberiPeran("KOORD_PENGEMBANGAN", null, "ANGGOTA")).toBe(true);
+    expect(bolehMemberiPeran("KOORD_PENGEMBANGAN", "ANGGOTA", "KETUA_SQUAD")).toBe(true);
+    // Tidak boleh mengangkat menjadi koordinator, kepala lab, atau pengawas.
+    expect(bolehMemberiPeran("KOORD_PENGEMBANGAN", "ANGGOTA", "KOORD_RISET")).toBe(false);
+    expect(bolehMemberiPeran("KOORD_PENGEMBANGAN", "KETUA_SQUAD", "KEPALA_LAB")).toBe(false);
+    expect(bolehMemberiPeran("KOORD_PENGEMBANGAN", "ANGGOTA", "PENGAWAS")).toBe(false);
+    // Tidak boleh menyentuh akun yang SUDAH koordinator ke atas, sekalipun
+    // menurunkannya menjadi Anggota.
+    expect(bolehMemberiPeran("KOORD_PENGEMBANGAN", "KOORD_OPERASIONAL", "ANGGOTA")).toBe(false);
+    expect(peranDapatDiberi("KOORD_PENGEMBANGAN")).toEqual(["ANGGOTA", "KETUA_SQUAD"]);
+  });
+
+  it("peran tanpa hak keanggotaan tidak dapat menetapkan peran sama sekali", () => {
+    expect(bolehMemberiPeran("KOORD_OPERASIONAL", "ANGGOTA", "KETUA_SQUAD")).toBe(false);
+    expect(bolehMemberiPeran("KETUA_SQUAD", "ANGGOTA", "ANGGOTA")).toBe(false);
+    expect(peranDapatDiberi("KOORD_OPERASIONAL")).toEqual([]);
   });
 });

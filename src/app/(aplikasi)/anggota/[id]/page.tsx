@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { bolehLihatDataOrang, tolakAkses, wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
-import { bolehTulis, LABEL_PERAN } from "@/lib/rbac";
+import { bolehTulis, LABEL_PERAN, PERAN_DIKELOLA, peranDapatDiberi } from "@/lib/rbac";
 import { sandiBawaan } from "@/lib/sandi";
 import { FormulirAnggota } from "../formulir-anggota";
 import { simpanAnggota } from "../aksi";
@@ -30,7 +30,17 @@ export default async function DetailAnggota({ params }: { params: Promise<{ id: 
   }
 
   const bolehSunting = bolehTulis(pengguna.role, "master_anggota");
-  const bolehUbahPeran = bolehTulis(pengguna.role, "peran_hak_akses");
+  // Peran boleh diubah bila pengelola berwenang atas peran akun INI. Kepala
+  // Laboratorium selalu boleh; pengelola keanggotaan lain hanya untuk akun yang
+  // perannya masih dalam jangkauannya (Anggota atau Ketua Squad), tidak untuk
+  // akun yang sudah menjadi koordinator ke atas.
+  const bolehUbahPeran =
+    bolehTulis(pengguna.role, "peran_hak_akses") ||
+    (bolehTulis(pengguna.role, "master_anggota") && PERAN_DIKELOLA.includes(anggota.role));
+  // Pilihan peran dibatasi menurut wewenang; peran akun kini selalu disertakan
+  // agar nilainya tetap tampil walau di luar jangkauan (kendalinya nonaktif).
+  const opsiPeran = new Set(peranDapatDiberi(pengguna.role));
+  opsiPeran.add(anggota.role);
   const squad = await prisma.squad.findMany({
     orderBy: { nama: "asc" },
     select: { id: true, nama: true },
@@ -62,7 +72,7 @@ export default async function DetailAnggota({ params }: { params: Promise<{ id: 
               labelTombol="Simpan perubahan"
               bolehUbahPeran={bolehUbahPeran}
               squad={squad}
-              peran={Object.entries(LABEL_PERAN).map(([nilai, label]) => ({ nilai, label }))}
+              peran={[...opsiPeran].map((nilai) => ({ nilai, label: LABEL_PERAN[nilai] }))}
               nilai={{
                 nama: anggota.nama,
                 npm: anggota.npm ?? "",

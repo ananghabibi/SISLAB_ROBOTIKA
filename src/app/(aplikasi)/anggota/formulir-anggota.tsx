@@ -131,8 +131,8 @@ export function FormulirAnggota({
           htmlFor="role"
           petunjuk={
             bolehUbahPeran
-              ? "Menentukan seluruh hak akses. Perubahan tercatat di audit log."
-              : "Hanya Kepala Laboratorium yang dapat mengubah peran."
+              ? "Menentukan hak akses. Pilihan dibatasi menurut wewenang Anda; perubahan tercatat di audit log."
+              : "Peran ini di luar wewenang Anda untuk diubah."
           }
         >
           <Select id="role" name="role" defaultValue={nilaiTampil.role} disabled={!bolehUbahPeran}>

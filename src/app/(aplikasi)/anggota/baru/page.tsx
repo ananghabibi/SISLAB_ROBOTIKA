@@ -2,7 +2,7 @@ import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
-import { bolehTulis, LABEL_PERAN } from "@/lib/rbac";
+import { LABEL_PERAN, peranDapatDiberi } from "@/lib/rbac";
 import { FormulirAnggota } from "../formulir-anggota";
 import { buatAnggota } from "../aksi";
 
@@ -37,9 +37,9 @@ export default async function TambahAnggota() {
           <FormulirAnggota
             aksi={buatAnggota}
             labelTombol="Simpan anggota"
-            bolehUbahPeran={bolehTulis(pengguna.role, "peran_hak_akses")}
+            bolehUbahPeran={peranDapatDiberi(pengguna.role).length > 1}
             squad={squad}
-            peran={Object.entries(LABEL_PERAN).map(([nilai, label]) => ({ nilai, label }))}
+            peran={peranDapatDiberi(pengguna.role).map((nilai) => ({ nilai, label: LABEL_PERAN[nilai] }))}
             nilai={{
               nama: "",
               npm: "",

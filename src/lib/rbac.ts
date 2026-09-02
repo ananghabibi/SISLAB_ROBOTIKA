@@ -111,16 +111,24 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
   },
   master_anggota: {
     // MENYIMPANG DARI SPEC 4.2, yang memberi Koordinator Pengembangan "B"
-    // (baca saja). Diubah atas permintaan Kepala Laboratorium: pendaftaran
-    // anggota baru datang bersamaan dengan pembinaan kaderisasi, dan yang
-    // menjalankannya adalah Koordinator Pengembangan. Menahan haknya hanya
-    // melahirkan pendaftaran titipan lewat akun orang lain.
+    // (baca saja). Diubah atas permintaan Kepala Laboratorium sebagai bagian
+    // dari pembagian wewenang antar-koordinator yang TIDAK BOLEH TUMPANG TINDIH
+    // (lihat blok "WEWENANG KOORDINATOR" di bawah matriks ini):
     //
-    // Batasnya tetap: memberi peran selain ANGGOTA adalah modul
-    // `peran_hak_akses`, dan modul itu masih milik Kepala Laboratorium
-    // seorang. Hapus juga tetap tertutup.
+    //   - Keanggotaan  → Koordinator Pengembangan (di sini).
+    //   - Inventaris & piket → Koordinator Operasional.
+    //   - Logbook riset → Koordinator Riset.
+    //
+    // Karena itu hak tulis Koordinator Operasional atas keanggotaan DICABUT:
+    // sebelumnya ia ikut menulis di sini, dan itu bertabrakan dengan Koordinator
+    // Pengembangan. Kini ia hanya membaca.
+    //
+    // Batas Pengembangan: ia menetapkan peran HANYA sampai Ketua Squad
+    // (lihat `bolehMemberiPeran`). Menetapkan Koordinator atau Kepala
+    // Laboratorium tetap hak Kepala Laboratorium lewat modul `peran_hak_akses`.
+    // Menghapus anggota pun tetap tertutup — hanya Kepala Laboratorium.
     KEPALA_LAB: tulisHapus,
-    KOORD_OPERASIONAL: tulisSemua,
+    KOORD_OPERASIONAL: bacaSemua,
     KOORD_RISET: bacaSemua,
     KOORD_PENGEMBANGAN: tulisSemua,
     KETUA_SQUAD: bacaSendiri,
@@ -276,4 +284,74 @@ export function peranHanyaBaca(peran: Role): boolean {
 /** Hanya Kepala Lab yang boleh menerbitkan Surat Keterangan Kontribusi. */
 export function bolehMenerbitkanSkk(peran: Role): boolean {
   return peran === "KEPALA_LAB";
+}
+
+// -----------------------------------------------------------------------------
+// WEWENANG KOORDINATOR — dibagi tegas, tidak boleh tumpang tindih.
+//
+// Atas permintaan Kepala Laboratorium, tiap koordinator memegang satu ranah
+// pengelolaan yang berbeda, dan tidak ada dua koordinator yang menulis modul
+// yang sama:
+//
+//   - Koordinator Operasional  → inventaris, peminjaman, piket (logistik &
+//     operasi lab), ditambah absensi manual darurat, koreksi rekap absensi,
+//     tindak lanjut insiden, dan ekspor. Tidak menyentuh keanggotaan maupun
+//     logbook riset.
+//   - Koordinator Riset        → logbook riset. Tidak menyentuh inventaris,
+//     piket, maupun keanggotaan.
+//   - Koordinator Pengembangan → keanggotaan (master_anggota), dengan batas
+//     penetapan peran sampai Ketua Squad saja (lihat `bolehMemberiPeran`).
+//     Tidak menyentuh inventaris, piket, maupun logbook.
+//
+// Yang tetap menjadi hak Kepala Laboratorium seorang: menetapkan koordinator
+// (peran_hak_akses), periode & target skor, penerbitan SKK, penghapusan aset
+// dan anggota, dan pembacaan audit log secara penuh.
+// -----------------------------------------------------------------------------
+
+const SEMUA_PERAN: Role[] = [
+  "KEPALA_LAB",
+  "KOORD_OPERASIONAL",
+  "KOORD_RISET",
+  "KOORD_PENGEMBANGAN",
+  "KETUA_SQUAD",
+  "ANGGOTA",
+  "PENGAWAS",
+];
+
+/**
+ * Peran yang boleh DIBERIKAN oleh pengelola keanggotaan yang BUKAN Kepala
+ * Laboratorium (mis. Koordinator Pengembangan): hanya sampai Ketua Squad.
+ *
+ * Menetapkan Koordinator, Kepala Laboratorium, atau Pengawas tetap hak Kepala
+ * Laboratorium — perannya menyangkut wewenang, bukan sekadar data keanggotaan.
+ */
+export const PERAN_DIKELOLA: Role[] = ["ANGGOTA", "KETUA_SQUAD"];
+
+/** Daftar peran yang boleh diberikan seorang pengelola, untuk mengisi menu. */
+export function peranDapatDiberi(pengelola: Role): Role[] {
+  if (bolehTulis(pengelola, "peran_hak_akses")) return [...SEMUA_PERAN];
+  if (bolehTulis(pengelola, "master_anggota")) return [...PERAN_DIKELOLA];
+  return [];
+}
+
+/**
+ * Bolehkah `pengelola` menetapkan peran sebuah akun dari `peranLama`
+ * (null saat membuat akun baru) menjadi `peranBaru`?
+ *
+ * Kepala Laboratorium: peran apa pun. Pengelola keanggotaan lain: sah hanya
+ * bila BAIK peran lama MAUPUN peran baru berada dalam jangkauannya — sehingga
+ * akun yang sudah menjadi koordinator (atau lebih tinggi) tidak dapat disentuh
+ * perannya, dan tidak seorang pun dapat dinaikkan menjadi koordinator lewat
+ * pintu keanggotaan ini.
+ */
+export function bolehMemberiPeran(
+  pengelola: Role,
+  peranLama: Role | null,
+  peranBaru: Role,
+): boolean {
+  if (bolehTulis(pengelola, "peran_hak_akses")) return true;
+  if (!bolehTulis(pengelola, "master_anggota")) return false;
+  if (!PERAN_DIKELOLA.includes(peranBaru)) return false;
+  if (peranLama !== null && !PERAN_DIKELOLA.includes(peranLama)) return false;
+  return true;
 }

@@ -66,8 +66,10 @@ describe("penutupan rute per peran", () => {
     expect(peranBolehMembuka("KEPALA_LAB", "/inventaris/baru")).toBe(true);
   });
 
-  it("membuka /anggota/baru untuk Koordinator Pengembangan", () => {
+  it("membuka /anggota/baru hanya untuk pengelola keanggotaan", () => {
+    // Keanggotaan kini milik Koordinator Pengembangan; Operasional tidak lagi.
     expect(peranBolehMembuka("KOORD_PENGEMBANGAN", "/anggota/baru")).toBe(true);
+    expect(peranBolehMembuka("KOORD_OPERASIONAL", "/anggota/baru")).toBe(false);
     expect(peranBolehMembuka("KOORD_RISET", "/anggota/baru")).toBe(false);
     expect(peranBolehMembuka("KETUA_SQUAD", "/anggota/baru")).toBe(false);
   });
