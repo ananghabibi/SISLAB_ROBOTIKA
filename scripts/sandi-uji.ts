@@ -25,9 +25,9 @@ const PANJANG_MINIMAL = 10;
 /** Satu wakil untuk tiap peran, diambil dari data/seed-data.csv. */
 const WAKIL_PERAN: { peran: Role; surel: string }[] = [
   { peran: "KEPALA_LAB", surel: "anang.habibi@unisma.ac.id" },
-  { peran: "KOORD_OPERASIONAL", surel: "22301053005@student.unisma.ac.id" },
-  { peran: "KOORD_RISET", surel: "22301053006@student.unisma.ac.id" },
-  { peran: "KOORD_PENGEMBANGAN", surel: "22301053023@student.unisma.ac.id" },
+  { peran: "KOORD_OPERASIONAL", surel: "22401053014@student.unisma.ac.id" },
+  { peran: "KOORD_RISET", surel: "22401053033@student.unisma.ac.id" },
+  { peran: "KOORD_PENGEMBANGAN", surel: "22401053025@student.unisma.ac.id" },
   { peran: "KETUA_SQUAD", surel: "22301053029@student.unisma.ac.id" },
   { peran: "ANGGOTA", surel: "22501053005@student.unisma.ac.id" },
 ];

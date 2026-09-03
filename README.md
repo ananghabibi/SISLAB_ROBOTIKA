@@ -276,7 +276,7 @@ Prompt **kedua** di folder yang sama (biarkan `npm run dev` tetap berjalan di
 jendela pertama):
 
 ```cmd
-npm run sandi -- 22301053005@student.unisma.ac.id KataSandiUji2026
+npm run sandi -- 22401053014@student.unisma.ac.id KataSandiUji2026
 npm run sandi -- 22301053029@student.unisma.ac.id KataSandiUji2026
 npm run sandi -- 22501053005@student.unisma.ac.id KataSandiUji2026
 ```
@@ -485,9 +485,9 @@ Satu wakil tiap peran akan memakai kata sandi yang Anda ketik itu:
 | Peran | Surel | Nama |
 |---|---|---|
 | Kepala Laboratorium | `anang.habibi@unisma.ac.id` | Anang Habibi, S.ST., M.T. |
-| Koordinator Operasional | `22301053005@student.unisma.ac.id` | Zaenal Abidin |
-| Koordinator Riset | `22301053006@student.unisma.ac.id` | Ahmad Khoirudin |
-| Koordinator Pengembangan | `22301053023@student.unisma.ac.id` | A Viki Adi S |
+| Koordinator Operasional | `22401053014@student.unisma.ac.id` | Farhan Kamil |
+| Koordinator Riset | `22401053033@student.unisma.ac.id` | Moc Reyfan Wijanarko |
+| Koordinator Pengembangan | `22401053025@student.unisma.ac.id` | Novita Zahra Maulida |
 | Ketua Squad (KRTI VTOL) | `22301053029@student.unisma.ac.id` | M. Syiham Lazuardi Samson |
 | Anggota | `22501053005@student.unisma.ac.id` | M. Arzak Alif Mubarok |
 
@@ -511,7 +511,7 @@ menguji perbedaan menu antarperan — pakai utilitas berikut:
 
 ```bash
 # pengembangan
-npm run sandi -- 22301053005@student.unisma.ac.id KataSandiUji2026
+npm run sandi -- 22401053014@student.unisma.ac.id KataSandiUji2026
 
 # di laboratorium
 docker compose exec app npx tsx scripts/set-sandi.ts <surel> <kata-sandi>
