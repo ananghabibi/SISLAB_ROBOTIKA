@@ -23,6 +23,8 @@ import bcrypt from "bcryptjs";
 
 import { AWALAN_ASET_CONTOH } from "../src/lib/aset";
 import { uraiCsv } from "../src/lib/csv";
+import { jadwalPiket } from "../src/lib/piket";
+import { sandiBawaan, sandiBawaanDiabaikan } from "../src/lib/sandi";
 import {
   angkatanDariNpm,
   jenjangDariAngkatan,
@@ -67,10 +69,21 @@ async function seedAnggota() {
     (await prisma.squad.findMany({ select: { id: true, kode: true } })).map((s) => [s.kode, s.id]),
   );
 
-  // Kata sandi awal akun dosen. Wajib diganti setelah login pertama; README
-  // menjelaskan caranya. Anggota mahasiswa masuk lewat Google, tanpa kata sandi.
-  const sandiDosen = process.env.SEED_KEPALA_LAB_PASSWORD ?? "ubah-setelah-login-pertama";
-  const hashDosen = await bcrypt.hash(sandiDosen, 12);
+  // Setiap akun lahir dengan kata sandi, termasuk anggota mahasiswa yang
+  // sehari-hari masuk lewat Google: kalau Google sedang tidak dapat dihubungi
+  // dari dalam laboratorium, absensi tidak boleh ikut berhenti.
+  //
+  // Akun dosen boleh memakai kata sandi tersendiri lewat SEED_KEPALA_LAB_PASSWORD
+  // karena merekalah yang menyiapkan peladen dan memasang berkas .env-nya.
+  if (sandiBawaanDiabaikan()) {
+    console.warn(
+      "  PERINGATAN: SANDI_BAWAAN_ANGGOTA terlalu pendek dan diabaikan.\n" +
+        "  Akun baru memakai kata sandi cadangan yang tertulis di src/lib/sandi.ts.",
+    );
+  }
+  const hashUmum = await bcrypt.hash(sandiBawaan(), 12);
+  const sandiDosen = process.env.SEED_KEPALA_LAB_PASSWORD;
+  const hashDosen = sandiDosen ? await bcrypt.hash(sandiDosen, 12) : hashUmum;
 
   let dibuat = 0;
   let diperbarui = 0;
@@ -113,22 +126,23 @@ async function seedAnggota() {
       status,
     };
 
-    // Akun dosen memakai Credentials; hanya akun itu yang perlu kata sandi.
-    const perluSandi = role === "KEPALA_LAB" || role === "PENGAWAS";
+    const hashAwal = role === "KEPALA_LAB" || role === "PENGAWAS" ? hashDosen : hashUmum;
 
     const adaSebelumnya = await prisma.user.findUnique({
       where: { email: data.email },
       select: { id: true, passwordHash: true },
     });
 
+    // Akun yang sudah punya kata sandi tidak disentuh: seeder dijalankan ulang
+    // tiap awal periode, dan menimpa kata sandi yang sudah dipilih sendiri akan
+    // mengunci seisi laboratorium di luar sistemnya sendiri.
+    const perluSandiAwal = !adaSebelumnya?.passwordHash;
+    const sandiAwal = { passwordHash: hashAwal, wajibGantiSandi: true };
+
     await prisma.user.upsert({
       where: { email: data.email },
-      // Kata sandi yang sudah diganti sendiri oleh dosen tidak ditimpa.
-      update: {
-        ...data,
-        ...(perluSandi && !adaSebelumnya?.passwordHash ? { passwordHash: hashDosen } : {}),
-      },
-      create: { ...data, ...(perluSandi ? { passwordHash: hashDosen } : {}) },
+      update: { ...data, ...(perluSandiAwal ? sandiAwal : {}) },
+      create: { ...data, ...sandiAwal },
     });
 
     if (adaSebelumnya) diperbarui++;
@@ -297,6 +311,23 @@ async function seedPeriode() {
   console.log(`  periode   : ${nama} (aktif)`);
 }
 
+async function seedJadwalPiket() {
+  const squadPerKode = new Map(
+    (await prisma.squad.findMany({ select: { id: true, kode: true } })).map((s) => [s.kode, s.id]),
+  );
+  // Jadwal yang sudah diubah orang tidak ditimpa: seeder dijalankan ulang tiap
+  // awal periode, dan menimpa jadwal yang sudah disusun akan menghapusnya.
+  let dibuat = 0;
+  for (const baris of jadwalPiket()) {
+    const ada = await prisma.jadwalPiket.findUnique({ where: { hari: baris.nomorHari } });
+    if (ada) continue;
+    const squadId = baris.kodeSquad ? (squadPerKode.get(baris.kodeSquad) ?? null) : null;
+    await prisma.jadwalPiket.create({ data: { hari: baris.nomorHari, squadId } });
+    dibuat++;
+  }
+  console.log(`  jadwal    : ${dibuat} hari piket baru`);
+}
+
 async function main() {
   console.log("Menyemai basis data SILAB…");
   await seedSquad();
@@ -304,6 +335,7 @@ async function main() {
   await tetapkanKetuaSquad();
   await seedAset();
   await seedPeriode();
+  await seedJadwalPiket();
 
   const jumlah = await prisma.user.count();
   const perPeran = await prisma.user.groupBy({ by: ["role"], _count: true });

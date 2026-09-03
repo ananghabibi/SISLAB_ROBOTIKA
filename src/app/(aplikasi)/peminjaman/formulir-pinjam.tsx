@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 
 import { PemindaiAset } from "@/components/pemindai-aset";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Select, TextArea } from "@/components/ui/field";
 import { UKURAN_MAKSIMAL_MB } from "@/lib/unggahan";
 import { catatPinjam, type KeadaanPinjam } from "./aksi";
 
@@ -72,7 +72,7 @@ export function FormulirPinjam({
       </div>
 
       <Field label="Keperluan" htmlFor="keperluan" petunjuk="Untuk apa alat ini dipakai.">
-        <textarea
+        <TextArea
           id="keperluan"
           name="keperluan"
           rows={3}

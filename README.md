@@ -28,6 +28,25 @@ memasang dan merawat peladennya.
 
 ---
 
+## 0. Dokumen cetak
+
+Dua berkas Word di folder `docs/`, untuk dicetak atau dibagikan kepada anggota
+yang tidak membaca repositori ini:
+
+| Berkas | Isi |
+|---|---|
+| `docs/Panduan-Instalasi-SILAB.docx` | Pemasangan langkah demi langkah, untuk laptop maupun mini PC laboratorium, berikut daftar periksa dan tabel gejala–sebab–tindakan |
+| `docs/Tutorial-Menu-SILAB.docx` | Tutorial ke-18 menu: siapa yang boleh, untuk apa, langkahnya, dan yang perlu diketahui |
+
+Keduanya berbahasa Indonesia dan berdiri sendiri — tidak menuntut pembacanya
+membuka README ini. Sesudah dibuka di Word, tekan **Ctrl + A** lalu **F9** untuk
+memunculkan nomor halaman pada daftar isinya.
+
+Berkasnya dibuat ulang dengan skrip di `scripts/dokumen/`; ubah skripnya, bukan
+berkas Word-nya, supaya perubahan tidak hilang pada pembuatan berikutnya.
+
+---
+
 ## 1. Mengapa server ini harus berada di dalam laboratorium
 
 Sistem dijalankan pada **satu mini PC atau laptop bekas yang menyala terus di
@@ -142,11 +161,18 @@ node scripts/siapkan-env.mjs
 > ke versi mayor berikutnya mengubah perilaku yang belum pernah diuji di sini.
 
 `siapkan-env.mjs` membuat berkas `.env` beserta seluruh kunci rahasianya, lalu
-**menampilkan kata sandi untuk masuk pertama kali**. Catat kata sandi itu.
+**menampilkan kata sandi untuk masuk pertama kali** dan **kata sandi bawaan
+setiap anggota baru**. Catat keduanya. Kata sandi bawaan itu dibangkitkan acak
+untuk pemasangan ini saja, jadi tidak sama dengan laboratorium lain.
 
 Perintah ini aman dijalankan berulang kali: nilai yang sudah ada tidak pernah
 ditimpa, hanya baris yang masih kosong yang diisi. Jalankan lagi kapan pun Anda
 lupa kata sandi masuk — ia akan mencetaknya lagi.
+
+Bila `.env` sudah ada, perintah ini juga **menambahkan baris baru yang muncul di
+`.env.example`** — misalnya `SANDI_BAWAAN_ANGGOTA` yang lahir belakangan.
+Salinan berkas lamanya disimpan sebagai `.env.bak` sebelum apa pun ditulis, dan
+kunci buatan sendiri yang tidak dikenal `.env.example` ikut dipertahankan.
 
 > **Berkas `.env` tidak terlihat di File Explorer** karena namanya diawali
 > titik. Itu normal; berkasnya ada. Untuk memastikan dan membukanya:
@@ -187,9 +213,25 @@ Jangan dilawan — langsung pakai Pilihan B.
    node scripts/siapkan-env.mjs --sandi-db KATASANDIANDA
    ```
 
-   Ganti `KATASANDIANDA` dengan kata sandi langkah 2. Perintah ini menulis
-   ulang baris `DATABASE_URL` di `.env` untuk Anda, jadi berkasnya tidak perlu
-   dibuka sendiri. Tanda baca di dalam kata sandi ditangani otomatis.
+   > **`KATASANDIANDA` bukan kata sandi.** Itu tempat kosong yang harus Anda
+   > ganti dengan kata sandi `postgres` yang Anda ketik sendiri pada langkah 2.
+   > Menyalin baris di atas apa adanya membuat `.env` berisi kata sandi
+   > `KATASANDIANDA`, dan langkah berikutnya gagal dengan
+   > `P1000: Authentication failed`. Kalau itu terjadi, jalankan ulang perintah
+   > ini dengan kata sandi yang benar — `DATABASE_URL` ditulis ulang, tidak
+   > perlu memperbaiki `.env` dengan tangan.
+
+   Perintah ini menulis ulang baris `DATABASE_URL` di `.env` untuk Anda, jadi
+   berkasnya tidak perlu dibuka sendiri. Tanda baca di dalam kata sandi
+   ditangani otomatis.
+
+   Lupa kata sandi `postgres`-nya? Ujilah dengan:
+
+   ```cmd
+   "C:\Program Files\PostgreSQL\16\bin\psql" -U postgres -h localhost -c "select 1"
+   ```
+
+   Ia akan menanyakan kata sandi. Yang diterima psql itulah yang benar.
 
 Basis data bernama `silab` tidak perlu dibuat sendiri — langkah berikutnya
 membuatnya otomatis.
@@ -226,13 +268,15 @@ setiap laptop dihidupkan.
 
 ### 3.7 Mencoba peran lain
 
-Seeder hanya memberi kata sandi kepada akun dosen; anggota mahasiswa memakai
-Google. Supaya perbedaan menu antarperan bisa dicoba sekarang, pasang kata
-sandi sementara. Buka Command Prompt **kedua** di folder yang sama (biarkan
-`npm run dev` tetap berjalan di jendela pertama):
+Seluruh akun hasil seeder memakai kata sandi bawaan yang sama, dan akun yang
+masih memakainya hanya membuka Dasbor dan Profil. Supaya perbedaan menu
+antarperan bisa dicoba sekarang tanpa mengganti sandinya satu per satu lewat
+halaman Profil, pasang kata sandi sementara dari baris perintah. Buka Command
+Prompt **kedua** di folder yang sama (biarkan `npm run dev` tetap berjalan di
+jendela pertama):
 
 ```cmd
-npm run sandi -- 22301053005@student.unisma.ac.id KataSandiUji2026
+npm run sandi -- 22401053014@student.unisma.ac.id KataSandiUji2026
 npm run sandi -- 22301053029@student.unisma.ac.id KataSandiUji2026
 npm run sandi -- 22501053005@student.unisma.ac.id KataSandiUji2026
 ```
@@ -243,7 +287,60 @@ juga mengetik langsung alamat `http://localhost:3000/peran` sebagai Anggota:
 hasilnya 403, karena penolakan terjadi di peladen, bukan sekadar menyembunyikan
 menu.
 
-### 3.8 Kalau ada yang gagal
+### 3.8 Memperbarui pemasangan yang sudah jalan
+
+Setiap kali menarik perubahan baru, **urutannya tidak boleh terbalik**:
+
+```cmd
+:: 1. Hentikan npm run dev lebih dulu — tekan Ctrl+C di jendelanya.
+::    Di Windows, peladen yang masih menyala memegang berkas mesin Prisma,
+::    dan pembuatan ulang klien akan gagal dengan galat EPERM.
+
+git pull
+npm install
+npm run db:migrate
+npm run dev
+```
+
+`npm run db:migrate` melakukan dua hal sekaligus: menerapkan migrasi basis data
+yang baru, dan **membuat ulang Prisma Client** supaya kode mengenal kolom yang
+baru ditambahkan.
+
+Kalau langkah itu terlewat, `npm run dev` **menolak menyala** dan menyebutkan
+migrasi mana yang tertunda — pemeriksaannya berjalan sendiri sebelum peladen
+dinyalakan (`scripts/periksa-migrasi.mjs`). Prisma Client yang ketinggalan
+dibuat ulang otomatis di sana, sebelum peladen sempat memegang berkas mesinnya.
+
+Pemeriksaan itu hanya menahan peladen untuk keadaan yang memang dikenalinya.
+Basis data yang belum menyala, `.env` yang belum dibuat, kata sandi basis data
+yang ditolak, `npx` yang tidak dapat dijalankan — semuanya diperingatkan lalu
+dibiarkan lewat. Bila toh Anda tertahan dan perlu jalan sekarang juga:
+
+```cmd
+set LEWATI_PERIKSA_MIGRASI=1
+npm run dev
+```
+
+Melewatinya, atau menjalankannya sebelum `git pull`, menghasilkan galat yang
+tampak menakutkan tetapi sebenarnya sederhana:
+
+```
+PrismaClientValidationError
+Invalid `prisma.user.findUnique()` invocation
+Unknown argument `wajibGantiSandi`
+```
+
+Artinya selalu sama: **kode sudah baru, basis data atau Prisma Client masih
+lama.** Jalankan ulang urutan di atas dari awal. Untuk memastikan basis datanya
+sudah sejajar:
+
+```cmd
+npx prisma migrate status
+```
+
+Jawabannya harus `Database schema is up to date!`.
+
+### 3.9 Kalau ada yang gagal
 
 | Pesan | Artinya | Yang harus dilakukan |
 |---|---|---|
@@ -252,25 +349,29 @@ menu.
 | `error during connect` / `docker daemon is not running` | Docker Desktop belum menyala | Jalankan Docker Desktop, tunggu sampai siap |
 | `failed to resolve reference "docker.io/..."` / `dialing auth.docker.io:443` | Jaringan Anda memblokir Docker Hub | Pakai Pilihan B pada bagian 3.4 — pasang PostgreSQL langsung |
 | `password authentication failed for user "postgres"` | Kata sandi pada `DATABASE_URL` keliru | Perbaiki baris `DATABASE_URL` di `.env` |
+| `P1000: Authentication failed against database server` | Kata sandi `postgres` di `.env` keliru — biasanya karena teks contoh (`KATASANDIANDA`, atau apa pun setelah `--sandi-db` di panduan) disalin apa adanya, bukan diganti kata sandi Anda | Uji kata sandi yang benar dengan `psql` (lihat langkah 3.5), lalu `node scripts/siapkan-env.mjs --sandi-db <kata-sandi-itu>`. Sejak versi ini, siapkan-env langsung memperingatkan bila kata sandinya ditolak |
 | `Can't reach database server at localhost:5432` | Basis data belum menyala, atau `DATABASE_URL` salah | `docker compose -f docker-compose.dev.yml up -d` |
 | `port is already allocated` | Ada PostgreSQL lain memakai port 5432 | Hentikan yang lain, atau ikuti bagian 3.5 |
 | `EADDRINUSE :3000` | Port 3000 sudah dipakai | Tutup aplikasi yang memakainya, atau `set PORT=3001` lalu `npm run dev` |
 | `localhost:3000` kosong padahal alamat IP bisa dibuka | Windows menerjemahkan `localhost` ke IPv6 `::1`, sedangkan peladen mendengarkan IPv4 | Pakai `http://127.0.0.1:3000` |
 | Muncul `Next.js 16.x` padahal proyek memakai 15.5.24 | `npm install` menaikkan versi tanpa diminta | `npm ci` — memasang persis versi yang terkunci |
-| HP tidak bisa membuka alamat `172.2x.x.x` atau `172.3x.x.x` | Itu adaptor virtual WSL/Hyper-V, bukan WiFi laptop | Ambil alamat dari blok **Wireless LAN adapter Wi-Fi** pada `ipconfig` |
+| HP tidak bisa membuka alamat `172.x.x.x` | Bisa jadi adaptor virtual WSL/Hyper-V — tetapi blok itu juga dipakai WiFi kampus, jadi alamatnya belum tentu salah | `npm run alamat` memilah keduanya lewat gerbang bawaan. Cara manual: ambil alamat dari blok **Wireless LAN adapter Wi-Fi** pada `ipconfig`, abaikan blok `vEthernet`/`WSL` |
 | `netsh` menerima aturan firewall tetapi tidak ada bedanya | Baris `LocalFirewallRules N/A (GPO-store only)` — laptop dikelola Group Policy, aturan buatan sendiri diabaikan | Pakai jalan memutar pada bagian 6.5: uji dengan kamera laptop, atau lewat terowongan Cloudflare |
-| HP memuat terus lalu gagal walau firewall sudah dibuka | Ponsel berada di jaringan lain, atau router mengaktifkan *client isolation* | Pastikan tiga angka pertama alamat IP ponsel sama dengan laptop. Bila sama dan tetap gagal, uji lewat hotspot ponsel — bila lewat hotspot berhasil, berarti routernya yang memisahkan perangkat |
+| HP memuat terus lalu gagal walau firewall sudah dibuka | Ponsel berada di jaringan lain, atau router mengaktifkan *client isolation* | `npm run alamat -- <alamat-ip-ponsel>` menghitungnya memakai topeng yang sebenarnya. (Aturan "tiga angka pertama harus sama" hanya benar pada topeng /24; WiFi kampus lazim /20.) Bila sudah sejaringan dan tetap gagal, uji lewat hotspot ponsel — bila lewat hotspot berhasil, berarti routernya yang memisahkan perangkat |
 | Alamat WiFi yang kemarin bisa, hari ini tidak | Windows menggolongkan ulang jaringan menjadi Public, yang memblokir sambungan masuk | `netsh advfirewall show currentprofile`; bila Public, ubah tipe jaringan menjadi Private |
 | Tombol Pindai QR tidak membuka kamera | Halaman dibuka lewat `http`; peramban hanya mengizinkan kamera pada `https` atau `localhost` | Ikuti langkah `chrome://flags` pada bagian 6.5 huruf d |
 | HP memuat terus padahal peladen berjalan | Skema tidak cocok — peladen `http` tetapi ponsel mencoba `https` (atau sebaliknya) karena mengingat kunjungan sebelumnya | Buka tab penyamaran dan ketik alamat lengkap dengan `http://` atau `https://` sesuai perintah yang sedang dijalankan |
 | HP memuat terus lalu gagal di alamat WiFi yang benar | Windows Firewall menutup port 3000 | Command Prompt sebagai Administrator: `netsh advfirewall firewall add rule name="SILAB dev 3000" dir=in action=allow protocol=TCP localport=3000` |
 | `@prisma/client did not initialize yet` | Klien Prisma belum dibuat — terjadi bila `npm install` sempat gagal di tengah jalan | `npx prisma generate` |
+| `PrismaClientValidationError` / `Unknown argument` pada sebuah kolom | Kode sudah baru, basis data atau Prisma Client masih lama | Ikuti urutan pada bagian 3.8: hentikan `npm run dev`, `git pull`, `npm run db:migrate`, jalankan lagi |
+| `EPERM: operation not permitted, rename ... query_engine-windows.dll.node` | `npm run dev` masih menyala dan memegang berkas mesin Prisma | Hentikan `npm run dev` lebih dulu, baru jalankan `npm run db:migrate` atau `npm run build` |
 | `We detected multiple lockfiles` | Ada `package-lock.json` nyasar di folder rumah Anda, biasanya karena `npm install` pernah dijalankan di sana | Sekadar peringatan, boleh diabaikan. Bila ingin bersih: hapus `%USERPROFILE%\package-lock.json` |
-| `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SEED_KEPALA_LAB_PASSWORD` di `.env`, atau pakai `npm run sandi` |
+| `Surel atau kata sandi salah` | Kata sandi keliru, atau akun itu belum punya kata sandi | Lihat `SANDI_BAWAAN_ANGGOTA` di `.env`, atau setel ulang lewat **Anggota → Akses masuk** |
+| Sudah masuk, tetapi tiap menu memantul ke Profil | Akun masih memakai kata sandi bawaan | Ganti kata sandi di **Profil → Keamanan akun** |
 | `Konfigurasi autentikasi belum lengkap` | `.env` belum dibuat, atau `AUTH_SECRET` masih kosong | `node scripts/siapkan-env.mjs` |
 | `.env` tidak kelihatan di File Explorer | Wajar — namanya diawali titik | `dir /a` untuk memastikan, `notepad .env` untuk membuka |
 
-### 3.9 Perintah lain yang berguna
+### 3.10 Perintah lain yang berguna
 
 | Perintah | Kegunaan |
 |---|---|
@@ -278,11 +379,15 @@ menu.
 | `npm test` | Jalankan uji Vitest |
 | `npm run dev:https` | Jalankan dengan https, agar kamera ponsel bisa dipakai |
 | `npm run alamat` | Cari alamat WiFi laptop untuk dibuka dari ponsel |
+| `npm run alamat -- <ip-ponsel>` | Sama, sekalian menguji apakah ponsel itu sejaringan |
 | `npm run test:e2e` | Jalankan uji Playwright (perlu peladen berjalan) |
 | `npm run build` | Build produksi |
 | `npm run db:studio` | Jelajahi isi basis data lewat peramban |
 | `npm run db:migrate` | Buat dan terapkan migrasi baru |
+| `npm run periksa:migrasi` | Periksa migrasi tertunda dan kesegaran Prisma Client (berjalan sendiri sebelum `npm run dev`) |
 | `npm run sandi -- <surel> <sandi>` | Pasang kata sandi seorang anggota |
+| `npm run impor:absensi -- <berkas.csv>` | Periksa berkas absensi lama, tanpa menulis |
+| `npm run impor:absensi -- <berkas.csv> --tulis` | Simpan hasil impornya |
 | `npm run sandi:uji -- <sandi>` | Siapkan akun uji untuk tiap peran (hanya pengembangan) |
 | `node scripts/siapkan-env.mjs` | Lengkapi `.env`, cetak ulang kata sandi masuk |
 | `npm run db:reset` | Kosongkan dan isi ulang basis data dari awal |
@@ -306,7 +411,8 @@ pemeriksaan subnet dilewati. **Nilai ini wajib `false` di laboratorium.**
 | `QR_TOKEN_SECRET` | ya | Kunci HMAC token QR berputar |
 | `QR_ROTATE_SECONDS`, `QR_MAX_AGE_SECONDS` | — | Bawaan 60 dan 90 detik |
 | `CRON_SECRET` | ya | Melindungi endpoint terjadwal |
-| `SEED_KEPALA_LAB_PASSWORD` | — | Kata sandi awal akun dosen |
+| `SANDI_BAWAAN_ANGGOTA` | — | Kata sandi bawaan setiap akun baru. Minimal 10 karakter; yang lebih pendek diabaikan |
+| `SEED_KEPALA_LAB_PASSWORD` | — | Kata sandi awal akun dosen. Kosong = ikut `SANDI_BAWAAN_ANGGOTA` |
 | `TZ` | — | `Asia/Jakarta` |
 
 ---
@@ -317,25 +423,38 @@ Ada dua jalur, dan keduanya tunduk pada aturan yang sama: **surel harus sudah
 terdaftar sebagai anggota.** Sistem tidak pernah membuat akun dari hasil login —
 daftar anggota berasal dari SK Keanggotaan.
 
-### Jalur 1 — surel + kata sandi (akun dosen)
+### Jalur 1 — surel + kata sandi
 
 Jalur ini tidak memerlukan kredensial Google, jadi inilah cara tercepat untuk
 masuk pertama kali dan untuk menguji sistem.
 
-Seeder memasang kata sandi bagi akun berperan `KEPALA_LAB` dan `PENGAWAS`,
-diambil dari `SEED_KEPALA_LAB_PASSWORD` di `.env` (bawaan:
-`ubah-setelah-login-pertama`).
+**Setiap akun punya kata sandi sejak dibuat**, baik yang dibuat seeder maupun
+yang ditambahkan lewat halaman **Anggota → Tambah anggota**. Kata sandi awalnya
+diambil dari `SANDI_BAWAAN_ANGGOTA` di `.env`; akun berperan `KEPALA_LAB` dan
+`PENGAWAS` memakai `SEED_KEPALA_LAB_PASSWORD` bila variabel itu diisi.
 
 | Kolom | Nilai bawaan hasil seeder |
 |---|---|
 | Surel | `anang.habibi@unisma.ac.id` — kolom `email` baris pertama `data/seed-data.csv` |
-| Kata sandi | isi `SEED_KEPALA_LAB_PASSWORD` |
+| Kata sandi | isi `SEED_KEPALA_LAB_PASSWORD`, atau `SANDI_BAWAAN_ANGGOTA` bila kosong |
 
 Kalau surel di CSV sudah diganti ke surel yang sebenarnya, pakai yang itu —
 sistem mencocokkannya **persis**.
 
-**Segera setelah berhasil masuk:** buka **Profil → Keamanan akun** dan ganti
-kata sandi bawaan.
+#### Kata sandi bawaan hanya cukup untuk menggantinya
+
+Akun yang masih memakai kata sandi bawaan ditandai `wajibGantiSandi`, dan selama
+tandanya menyala **hanya Dasbor dan Profil yang terbuka**. Absensi, logbook,
+piket, inventaris — semuanya memantulkan orangnya kembali ke Profil.
+
+Itu bukan kerewelan. Kata sandi bawaan sama untuk setiap akun baru, jadi ia
+tidak dapat membuktikan bahwa yang menekan tombol hadir memang pemilik akun.
+Membiarkannya cukup untuk mengisi absensi sama saja dengan membuka pintu titip
+absen yang seluruh sistem ini dibangun untuk menutupnya.
+
+Jadi langkah pertama setiap orang, tanpa kecuali: **Profil → Keamanan akun**,
+isi kata sandi bawaan pada kolom "Kata sandi lama", lalu pilih kata sandi
+sendiri. Sesudah itu seluruh menu terbuka.
 
 ### Jalur 2 — Google kampus (anggota mahasiswa)
 
@@ -352,9 +471,10 @@ belum terdaftar sebagai anggota. Pesan galatnya menjelaskan yang mana.
 
 ### Akun uji untuk semua peran sekaligus
 
-Seeder hanya memberi kata sandi kepada akun dosen; anggota mahasiswa memakai
-Google. Untuk mencoba perbedaan menu dan penolakan hak akses antarperan tanpa
-menyiapkan kredensial Google lebih dulu:
+Seluruh akun hasil seeder memakai kata sandi bawaan yang sama, dan karena itu
+semuanya terkunci pada Dasbor dan Profil sampai sandinya diganti. Untuk mencoba
+perbedaan menu dan penolakan hak akses antarperan tanpa mengganti enam kata
+sandi satu per satu:
 
 ```cmd
 npm run sandi:uji -- KataSandiUji2026
@@ -365,9 +485,9 @@ Satu wakil tiap peran akan memakai kata sandi yang Anda ketik itu:
 | Peran | Surel | Nama |
 |---|---|---|
 | Kepala Laboratorium | `anang.habibi@unisma.ac.id` | Anang Habibi, S.ST., M.T. |
-| Koordinator Operasional | `22301053005@student.unisma.ac.id` | Zaenal Abidin |
-| Koordinator Riset | `22301053006@student.unisma.ac.id` | Ahmad Khoirudin |
-| Koordinator Pengembangan | `22301053023@student.unisma.ac.id` | A Viki Adi S |
+| Koordinator Operasional | `22401053014@student.unisma.ac.id` | Farhan Kamil |
+| Koordinator Riset | `22401053033@student.unisma.ac.id` | Moc Reyfan Wijanarko |
+| Koordinator Pengembangan | `22401053025@student.unisma.ac.id` | Novita Zahra Maulida |
 | Ketua Squad (KRTI VTOL) | `22301053029@student.unisma.ac.id` | M. Syiham Lazuardi Samson |
 | Anggota | `22501053005@student.unisma.ac.id` | M. Arzak Alif Mubarok |
 
@@ -381,20 +501,27 @@ satu anggota lewat halaman **Anggota**, lalu jalankan ulang perintah di atas.
 
 ### Memasang kata sandi anggota lain
 
-Peran selain dosen tidak diberi kata sandi oleh seeder — mereka memakai Google.
-Untuk memulihkan kata sandi dosen yang lupa, atau untuk **menguji perbedaan
-menu antarperan sebelum Google OAuth disiapkan**, pakai utilitas berikut:
+Cara yang paling mudah: buka **Anggota → pilih orangnya → Akses masuk →
+"Setel ulang ke kata sandi bawaan"**. Akunnya kembali ke kata sandi bawaan dan
+kembali terkunci pada Dasbor dan Profil sampai pemiliknya memilih kata sandi
+baru. Tidak perlu akses shell, dan penyetelan ulang tercatat di audit log.
+
+Bila perlu memasang kata sandi tertentu dari mesin peladen — misalnya untuk
+menguji perbedaan menu antarperan — pakai utilitas berikut:
 
 ```bash
 # pengembangan
-npm run sandi -- 22301053005@student.unisma.ac.id KataSandiUji2026
+npm run sandi -- 22401053014@student.unisma.ac.id KataSandiUji2026
 
 # di laboratorium
 docker compose exec app npx tsx scripts/set-sandi.ts <surel> <kata-sandi>
 ```
 
-Kata sandi minimal 10 karakter. Setiap pemasangan tercatat di audit log; isi
-kata sandinya sendiri tidak pernah ikut tercatat.
+Kata sandi minimal 10 karakter dan tidak boleh sama dengan kata sandi bawaan.
+Berbeda dengan penyetelan ulang lewat halaman Anggota, kata sandi yang dipasang
+di sini dianggap sudah dipilih, sehingga akunnya langsung terbuka penuh. Setiap
+pemasangan tercatat di audit log; isi kata sandinya sendiri tidak pernah ikut
+tercatat.
 
 Surel tiap peran dapat dilihat di `data/seed-data.csv`, atau lewat:
 
@@ -415,7 +542,7 @@ Anggota berstatus `NONAKTIF` atau `LULUS` tidak dapat masuk. Untuk menutup
 akses seseorang, ubah statusnya — jangan hapus akunnya, karena riwayat
 absensinya harus tetap utuh.
 
-## 6. Menjalankan absensi harian
+## 6. Menjalankan kegiatan harian
 
 ### 6.1 Layar laboratorium
 
@@ -489,6 +616,15 @@ docker compose logs cron | tail -20     # memastikan penjadwalnya hidup
 `localhost` di ponsel berarti ponsel itu sendiri, bukan laptop Anda. Ada tiga
 hal yang harus beres, dan ketiganya wajib — bukan pilihan.
 
+> **Alamat peladen kini tertulis di layarnya sendiri.** Halaman `/display` — yang
+> memang sudah dilihat setiap orang sebelum absen — menampilkan **Buka di
+> ponsel** beserta alamat yang berlaku saat itu juga, dan halaman masuk
+> menyebutkannya di kaki halaman. Alamat WiFi berubah sendiri setiap kali laptop
+> menyambung ulang; dengan begini yang berdiri di pintu tidak perlu bertanya
+> lagi. Sumbernya header `Host` permintaan bila bukan localhost, sehingga di
+> laboratorium ia menampilkan alamat mini PC yang sebenarnya walau aplikasinya
+> berjalan di dalam kontainer.
+
 **a. Pakai alamat WiFi laptop, bukan localhost.** Cara tercepat menemukannya:
 
 ```cmd
@@ -505,10 +641,35 @@ npm run dev -- -H 192.168.1.138
 Mengikat secara tegas menghilangkan keraguan: bila ponsel tetap tidak bisa
 membuka alamat itu, sebabnya sudah pasti jaringan, bukan pemilihan antarmuka.
 
+Yang membedakan alamat nyata dari adaptor virtual adalah **gerbang bawaan**:
+kartu WiFi memegangnya, adaptor WSL, Docker, dan Hyper-V tidak. Blok alamatnya
+tidak dapat dijadikan patokan — WSL dan Docker memang mengambil alamat dari
+`172.16.x.x`–`172.31.x.x`, tetapi sebagian WiFi kampus juga membagikan alamat
+dari blok yang sama. Di WiFi UNISMA, misalnya, laptop mendapat alamat seperti
+`172.16.15.117` dengan topeng `255.255.240.0`, dan alamat itu **benar**.
+
+Bila ponsel sudah tersambung, sebutkan sekalian alamatnya supaya tidak perlu
+menebak apakah keduanya sejaringan:
+
+```cmd
+npm run alamat -- 172.16.15.122
+```
+
+Perbandingannya memakai topeng jaringan yang sebenarnya. Ini penting: aturan
+lisan &ldquo;tiga angka pertamanya harus sama&rdquo; hanya benar pada topeng
+`/24`. Pada `/20` milik WiFi kampus, `172.16.3.9` dan `172.16.15.117` berada di
+**satu** jaringan meski angka ketiganya berbeda jauh.
+
+Perintah yang sama juga membaca `.env` dan memberi tahu bila subnet Anda belum
+tercantum di `LAB_SUBNETS`. Tanpa peringatan itu gejalanya menyesatkan:
+halamannya terbuka mulus di ponsel, QR terpindai, lalu absensi ditolak 403 —
+oleh lapis 1, bukan oleh kerusakan. Menambah subnet kampus ke `LAB_SUBNETS`
+hanya untuk mencoba di laptop; di laboratorium berlaku bagian 6.6 huruf b.
+
 Cara panjangnya: Baris `Network:` yang
 tercetak Next.js **belum tentu benar**: bila laptop punya WSL, Docker, atau
-Hyper-V, yang tercetak sering justru alamat adaptor virtualnya — biasanya
-`172.2x.x.x` atau `172.3x.x.x` — dan alamat itu tidak dapat dihubungi ponsel.
+Hyper-V, yang tercetak sering justru alamat adaptor virtualnya, dan alamat itu
+tidak dapat dihubungi ponsel.
 
 Cari alamat WiFi yang sebenarnya:
 
@@ -517,8 +678,17 @@ ipconfig
 ```
 
 Cari blok **Wireless LAN adapter Wi-Fi** dan ambil baris `IPv4 Address`
-(misalnya `172.16.2.231`). Abaikan blok bernama `vEthernet`, `WSL`, atau
-`Default Switch`.
+(misalnya `172.16.15.117`). Abaikan blok bernama `vEthernet`, `WSL`, atau
+`Default Switch` — dan perhatikan bahwa `ipconfig` menyebut blok itu apa
+adanya, jadi nama bloknyalah yang menentukan, bukan angka alamatnya.
+
+> **Peringatan "Cross origin request detected" dari Next.js dapat diabaikan.**
+> Ia muncul karena halaman dibuka lewat alamat WiFi sementara peladen
+> pengembangan menganggap dirinya `localhost`. `next.config.ts` sudah
+> mendaftarkan seluruh alamat IPv4 laptop pada `allowedDevOrigins`, dibaca dari
+> mesinnya sendiri supaya tetap benar walau alamat WiFi berubah. Bila
+> peringatannya masih muncul, jalankan ulang `npm run dev` — berkas konfigurasi
+> hanya dibaca saat peladen mulai.
 
 **b. Pastikan jaringan WiFi bertipe Private, bukan Public.** Ini penyebab yang
 paling sering membuat alamat yang kemarin bisa dibuka mendadak tidak bisa:
@@ -537,6 +707,14 @@ lewat PowerShell sebagai Administrator:
 Set-NetConnectionProfile -InterfaceAlias "Wi-Fi" -NetworkCategory Private
 ```
 
+Public sendiri belum tentu vonisnya. Yang sebenarnya memblokir adalah *tidak
+adanya aturan Allow untuk profil yang sedang aktif* — jadi bila aturan
+firewall Node.js Anda memang mencakup Public, ponsel tetap dapat masuk tanpa
+profilnya diubah. `npm run alamat` memeriksa keduanya dan menyebutkan yang
+mana yang berlaku. Ini penting di WiFi kampus, yang sering dikelola kebijakan
+jaringan sehingga pilihan Private-nya kelabu: di sana membuka porta untuk
+profil Public adalah jalan yang benar, bukan jalan pintas.
+
 **c. Izinkan lewat Windows Firewall.** Saat pertama kali dijalankan, Windows
 biasanya menanyakan izin — pilih **Allow**. Bila pertanyaannya sudah terlanjur
 ditolak, buka *Windows Defender Firewall* → *Allow an app* dan izinkan Node.js
@@ -545,8 +723,16 @@ pada jaringan **Private**.
 **d. Kamera memerlukan https.** Ini yang paling sering menghentikan orang.
 Lewat `http://192.168.x.x:3000`, halamannya terbuka tetapi tombol
 &ldquo;Pindai QR&rdquo; **tidak akan membuka kamera** — peramban hanya
-mengizinkannya pada `https` atau `localhost`. Aplikasi menyebutkan hal ini apa
-adanya bila terjadi, jadi jangan tertukar dengan gangguan jaringan.
+mengizinkannya pada `https` atau `localhost`. Aplikasi memperingatkan hal ini
+di atas tombolnya, sebelum ditekan, jadi jangan tertukar dengan gangguan
+jaringan.
+
+Perhatikan bahwa syarat ini **tidak ada hubungannya dengan ponsel**: laptop pun
+kena bila halamannya dibuka lewat alamat WiFi. Di laptop yang menjalankan
+peladen, jalan keluarnya paling mudah — buka `http://localhost:3000`, yang
+sudah dianggap aman tanpa sertifikat apa pun. Jangan mengikat peladen ke satu
+alamat (`-H 172.16.15.117`) bila ingin memakai cara ini, karena `localhost`
+tidak ikut terlayani; `npm run dev` polos mendengarkan keduanya.
 
 `npm run dev:https` **tidak menolong untuk ponsel**: sertifikat yang dibuat
 Next.js hanya mencakup `localhost`, sehingga ponsel menolaknya sebelum sempat
@@ -569,6 +755,18 @@ kendali, dan keduanya harus diisi:
 Tekan **Relaunch**, lalu **tutup Chrome sepenuhnya** dari daftar aplikasi
 terbaru dan buka lagi. Sesudah itu kamera berfungsi pada alamat tersebut.
 Kembalikan ke `Disabled` setelah selesai menguji.
+
+Yang dicocokkan adalah alamat **persis**, berikut portnya. Alamat laptop dapat
+berubah sendiri setiap kali menyambung ulang ke WiFi — dan begitu berubah,
+izin ini tidak lagi berlaku serta kamera berhenti terbuka tanpa penjelasan.
+Jalankan `npm run alamat` lebih dulu, dan perbarui isi kotaknya bila alamatnya
+sudah lain. Beberapa alamat boleh ditulis sekaligus, dipisah koma.
+
+Perlu diketahui pula: memindai QR **tidak dapat dilewati** dengan mengetik
+sesuatu. Kode harian baru diminta setelah QR terbaca, dan urutan itu memang
+disengaja — lihat bagian 7. Jadi selama kamera belum terbuka di ponsel,
+pengujian absensi dari ponsel memang belum dapat diselesaikan; pakai jalan
+memutar di bawah.
 
 > Anggota laboratorium **tidak perlu melakukan ini**. Di laboratorium alamatnya
 > sudah https lewat Caddy (Pilihan B pada `Caddyfile`), sehingga kamera langsung
@@ -678,6 +876,49 @@ Bila untuk sementara terpaksa memakai WiFi kampus, sistemnya tetap berjalan —
 tetapi lapis 1 melemah, dan lapis 2 serta 3 yang menanggung sisanya. Catat
 keadaan itu, dan perbaiki begitu perangkatnya tersedia.
 
+**Cara mengisi `LAB_SUBNETS` setiap kali jaringannya berganti.** Berlaku sama
+untuk pindah dari laptop ke mini PC, dari WiFi kampus ke AP laboratorium, atau
+sekadar AP-nya diganti:
+
+1. Sambungkan **peladennya** — mini PC atau laptop yang menjalankan aplikasi —
+   ke jaringan itu.
+2. Jalankan `npm run alamat` di peladen tersebut, lalu salin blok pada kolom
+   `jaringan`, misalnya `jaringan 172.16.0.0/20`. Itulah nilai `LAB_SUBNETS`.
+3. Tulis di `.env`, dan pastikan bypass-nya mati:
+
+   ```
+   LAB_SUBNETS=172.16.0.0/20
+   LAB_NETWORK_BYPASS=false
+   ```
+
+4. Jalankan ulang aplikasinya — `.env` hanya dibaca saat peladen mulai. Pada
+   pemasangan Docker: `docker compose up -d --force-recreate app`.
+5. Uji dari ponsel yang tersambung ke jaringan itu — harus **diterima**.
+6. Uji kebalikannya, dan jangan dilewati: ubah sementara `LAB_SUBNETS` ke blok
+   lain (misalnya `192.168.99.0/24`), jalankan ulang peladen, lalu coba absen
+   lagi dari ponsel yang sama — kali ini harus **ditolak** dengan pesan lapis 1.
+   Kembalikan nilainya sesudah itu.
+
+   Tanpa langkah 6, yang terbukti barulah &ldquo;absensi bisa&rdquo;, bukan
+   &ldquo;absensi terjaga&rdquo; — dan keduanya terlihat sama persis dari luar.
+   Mencoba lewat data seluler **bukan** penggantinya: dari sana peladennya
+   memang tidak dapat dijangkau sama sekali, jadi yang muncul &ldquo;situs
+   tidak dapat dijangkau&rdquo;, bukan penolakan. Gejala itu sama saja dengan
+   yang muncul bila aplikasinya mati.
+
+Yang perlu diperhatikan:
+
+- Isinya **blok jaringan**, bukan alamat satu perangkat. Alamat peladen boleh
+  berubah karena DHCP tanpa mengubah baris ini — tetapi alamat yang diketik
+  pengguna ikut berubah, jadi peladen sebaiknya diberi alamat tetap.
+- Boleh lebih dari satu blok, dipisah koma, bila laboratorium punya beberapa
+  jaringan (misalnya 2,4 GHz dan 5 GHz yang tersubnet sendiri-sendiri).
+- Menambahkan subnet WiFi kampus ke daftar ini di laboratorium sama dengan
+  mematikan lapis 1 — lihat alinea di atas. Saat mencoba di laptop boleh;
+  hapus lagi sebelum dipakai sungguhan.
+- Topeng yang lazim: `255.255.255.0` berarti `/24`, `255.255.240.0` berarti
+  `/20`, `255.255.0.0` berarti `/16`. `npm run alamat` sudah menghitungkannya.
+
 ---
 
 ### 6.7 Bila jaringan atau layar bermasalah
@@ -689,6 +930,101 @@ nama pencatatnya.
 
 Jalur ini sengaja dibuat merepotkan. Kalau ia mulai sering dipakai, yang perlu
 diperbaiki adalah jaringan atau layarnya — bukan menambah kenyamanan di sana.
+
+### 6.8 Piket
+
+Jadwalnya ada di **`data/jadwal-piket.csv`** — satu squad memegang satu hari
+kerja. Sabtu dan Minggu sengaja tidak dijadwalkan: piket yang dijadwalkan pada
+hari yang laboratoriumnya biasanya tutup hanya melahirkan catatan yang diisi
+asal-asalan pada Senin pagi. Hari tanpa jadwal **bukan** piket yang terlewat,
+dan halaman Piket menyebutkannya begitu.
+
+Checklistnya ada di **`data/checklist-piket.csv`**, delapan butir. Kolom `kode`
+dipakai sebagai kunci di basis data, jadi kode yang sudah pernah dipakai jangan
+diubah — catatan piket lama akan kehilangan artinya. Menambah butir, mengurangi,
+atau memperbaiki kalimatnya boleh kapan saja, dan catatan lama tetap terbaca:
+butir yang belum pernah ada terbaca sebagai belum dicentang, butir yang sudah
+dihapus tidak ditampilkan lagi.
+
+Dua hal yang **tidak** diminta dari petugas piket, dan keduanya disengaja:
+
+- **Centang delapan dari delapan tidak diwajibkan.** Butir yang belum sempat
+  dikerjakan dibiarkan kosong dan tercatat apa adanya. Catatan piket yang selalu
+  berbunyi 8 dari 8 tidak dapat dipakai memperbaiki apa pun.
+- **Jumlah alat yang belum kembali tidak diketik.** Ia dihitung sendiri dari
+  daftar peminjaman yang masih terbuka saat piket disimpan. Angka yang diketik
+  tangan pada akhir hari yang melelahkan selalu menjadi nol — dan nol yang salah
+  lebih buruk daripada tidak ada angka, karena ia ikut menghitung skor.
+
+Foto ruangan **sebelum** dan **sesudah** wajib. Satu catatan piket per squad per
+hari; percobaan kedua ditolak dengan pesan yang menyebutkan sebabnya.
+
+Siapa yang boleh mencatat piket: **Koordinator Operasional** dan **Kepala
+Laboratorium** untuk squad mana pun, **Ketua Squad** untuk squadnya sendiri.
+Kepala Lab menyimpang dari SPEC 4.2 yang memberinya baca saja — alasannya sama
+dengan penyimpangan peminjaman: dialah yang paling sering berada di ruangan pada
+jam-jam terakhir, dan piket yang tidak bisa dicatat orang yang sedang berdiri di
+sana akan dicatat besok pagi dari ingatan. Bila belum punya squad sendiri,
+pilihan bawaannya adalah squad yang terjadwal hari ini.
+
+### 6.9 Logbook riset mingguan
+
+Satu entri per squad per pekan. Pekan dihitung mulai **Senin**, bukan mulai hari
+periode kebetulan dibuka: kalau periode dibuka hari Rabu dan pekan ikut dihitung
+Rabu–Selasa, penanda &ldquo;belum mengisi pekan ini&rdquo; akan menuduh squad
+yang sebenarnya sudah mengisi.
+
+Logbook **tidak dapat diisi untuk pekan yang belum tiba**. Kalau boleh, ia akan
+diisi sekaligus sebulan di muka pada malam sebelum penilaian, dan catatan riset
+mingguan kehilangan seluruh gunanya.
+
+Squad yang belum mengisi pekan berjalan tampil menonjol di dasbor Kepala
+Laboratorium dan para Koordinator, serta di bagian atas halaman Logbook. Anggota
+biasa tidak melihat daftar itu: pengingat untuk koordinator, bukan papan aib.
+
+Yang boleh mengisi: **Ketua Squad** dan **Anggota** untuk squadnya sendiri,
+**Koordinator Riset** dan **Kepala Laboratorium** untuk squad mana pun. Dua yang
+terakhir tidak punya squad sendiri, jadi squadnya dipilih dari daftar — dan
+daftar centang anggotanya ikut berganti mengikuti pilihan itu.
+
+Nomor pekan disimpan bersama **periodenya**. Tanpa itu, logbook pekan 1 semester
+depan akan ditolak karena bertabrakan dengan pekan 1 semester ini.
+
+### 6.10 Laporan insiden dan nyaris celaka
+
+Siapa pun boleh melapor, termasuk anggota. Formulirnya sependek mungkin dan
+tidak ada satu pun medan yang menuntut orang mengaku salah — laporan nyaris
+celaka hanya masuk kalau melapor lebih murah daripada diam, dan yang pertama
+hilang saat formulirnya merepotkan justru laporan yang paling berharga: yang
+belum menimbulkan korban.
+
+Foto **tidak** diwajibkan. Insiden yang perlu dilaporkan sering justru yang
+sudah dibereskan lebih dulu; memaksa foto berarti memaksa orang membiarkan
+keadaan berbahaya demi mengambil gambar.
+
+Laporan yang masuk **langsung tampil di paling atas dasbor** Kepala
+Laboratorium, dengan penanda terpisah untuk cedera dan kebakaran. Itulah bentuk
+notifikasinya: pesan WhatsApp dan bot memang tidak dibangun (SPEC bagian 10).
+
+**Tidak ada tombol hapus**, dan itu disengaja. Laporan insiden yang bisa dihapus
+akan dihapus persis pada saat ia paling perlu dibaca. Yang berubah hanya status
+tindak lanjutnya — Baru, Ditinjau, Ditangani, Selesai — dan hanya oleh Kepala
+Laboratorium serta Koordinator Operasional.
+
+### 6.11 Buku tamu
+
+Tamu, dosen lain, dan mahasiswa non-anggota masuk lewat sini, **bukan lewat
+absensi** (SPEC 6.4). Pemisahan itu bukan soal kerapian: catatan absensi adalah
+dasar Surat Keterangan Kontribusi, dan satu baris tamu yang menyelinap ke sana
+merusak angka yang dipakai menerbitkan surat resmi.
+
+Setiap tamu wajib punya **pendamping** dari anggota aktif. Tamu yang masuk tanpa
+ada yang bertanggung jawab menemaninya adalah persoalan keselamatan, bukan
+persoalan pencatatan.
+
+Jam pulang tidak pernah dikarang. Tamu yang terlanjur pulang tanpa dicatat tetap
+berakhir dengan jam pulang kosong — aturan yang sama dengan absensi anggota, dan
+karena alasan yang sama.
 
 ---
 
@@ -720,6 +1056,33 @@ Dua perilaku yang mudah disalahpahami:
 Rumus ini punya uji otomatisnya sendiri (`tests/skor.test.ts`), termasuk untuk
 skor sempurna, skor nol, potongan yang membuat hasil negatif, dan target nol.
 Jalankan `npm test` setiap kali rumusnya disentuh.
+
+### 7.1b Absensi berhasil tetapi rekapnya nol
+
+Hampir selalu satu sebab: **tanggal absensinya berada di luar rentang periode
+aktif**. Rekap hanya menghitung absensi yang tanggalnya berada di dalam periode,
+dan seeder membuka `Semester Ganjil TA 2026/2027` yang berjalan
+**1 September 2026 – 31 Januari 2027**. Mencoba sistem pada Agustus berarti
+seluruh absensi jatuh sebelum periode dimulai, dan rekap menunjukkan nol
+walaupun catatannya tersimpan utuh.
+
+Halaman Rekap dan Dasbor sekarang menyebutkan keadaan itu terang-terangan,
+berikut jumlah catatan yang berada di luar rentang. Perbaikannya di **Periode
+&amp; Target**: sesuaikan tanggal periode aktif sehingga mencakup hari ini, atau
+aktifkan periode yang benar. Catatan absensinya tidak perlu diulang — begitu
+rentangnya benar, semuanya langsung ikut terhitung.
+
+### 7.1c Sesi yang tidak diakhiri dengan pindai pulang
+
+**Tetap dihitung hadir.** Harinya tetap masuk rekap dan tetap menyumbang skor.
+Yang menjadi nol hanya durasinya (SPEC 6.4), dan skor kontribusi memang tidak
+memakai durasi sama sekali — komponennya hari hadir, sesi berbagi, piket,
+logbook, dan potongan alat belum kembali.
+
+Jam pulang **tidak pernah dikarang**. Yang tidak tercatat tetap kosong dan
+tertulis &ldquo;tidak diakhiri&rdquo; di riwayat. Menebak jam pulang akan
+membuat seluruh kolom jam kehilangan artinya, dan kolom itu dipakai
+menerangkan kontribusi seseorang kepada Program Studi.
 
 ### 7.2 Siapa melihat skor siapa
 
@@ -764,6 +1127,73 @@ Menu **Ekspor Data** menyediakan dua bentuk untuk tiap periode:
 Angkanya dihitung ulang saat berkas diunduh. Angka pada Surat Keterangan
 Kontribusi yang sudah terbit tidak ikut berubah — surat menyimpan snapshot-nya
 sendiri.
+
+---
+
+## 7b. Surat Keterangan Kontribusi dan audit
+
+### 7b.1 Daftar kandidat
+
+`/skk` menampilkan **seluruh** anggota dalam lingkup Anda, bukan hanya yang
+layak — beserta angka tiap syarat SPEC 6.2. Yang belum layak justru perlu
+melihat angka mana yang kurang selagi periodenya masih berjalan.
+
+Syaratnya: kehadiran ≥ 70%, entri logbook squad ≥ 70% pekan aktif, piket
+mencapai target periode, dan skor akhir ≥ ambang periode. Bagi anggota tim
+lomba ada satu syarat lagi — serah terima dokumentasi — yang **tidak dapat
+dinilai sistem** karena tidak ada kejadian di sistem yang membuktikannya. Ia
+ditanyakan pada formulir penerbitan.
+
+### 7b.2 Menerbitkan
+
+Hanya **Kepala Laboratorium**. Suratnya terbit dengan nomor
+`007/SKK/LAB-ROB/FT-UNISMA/IX/2026` — urut per tahun kalender, bulan angka
+Romawi — dan PDF-nya mengikuti format **FRM-LR-07** lengkap dengan kop.
+
+Kepala Lab **boleh** menerbitkan walau ada syarat yang kurang; SPEC 6.2
+menegaskan sistem hanya mengusulkan. Tetapi ia harus mencentang pernyataan
+tegas, dan syarat yang kurang itu **ikut tercetak di suratnya**. Kelonggaran
+yang tidak meninggalkan jejak akan menjadi kebiasaan dalam satu semester.
+
+> **Angka pada surat dibekukan saat terbit.** Lembar PDF dirender dari
+> `snapshotJson`, tidak pernah dari perhitungan ulang. Membatalkan catatan
+> absensi setelah surat terbit **tidak** mengubah angka pada surat itu — dan
+> memang tidak boleh, karena surat itu mungkin sudah dicetak, ditandatangani,
+> dan dikirim ke Program Studi.
+
+Tidak ada tombol membatalkan atau menghapus surat, dengan alasan yang sama.
+
+### 7b.3 Audit log
+
+`/audit` menampilkan jejak seluruh perubahan yang dapat dipertanyakan saat
+audit Program Studi, dengan saringan aksi, entitas, dan pencarian nama pelaku
+atau id entitas. Saringannya memakai formulir GET biasa, sehingga satu tautan
+sudah cukup untuk menunjukkan hal yang sama kepada orang lain.
+
+Kepala Lab membaca seluruhnya; Koordinator Operasional hanya jejak tindakannya
+sendiri.
+
+### 7b.4 Impor absensi lama dari Google Sheets
+
+```bash
+npm run impor:absensi -- data/absensi-lama.csv          # periksa saja
+npm run impor:absensi -- data/absensi-lama.csv --tulis  # simpan
+```
+
+Kolom yang dibaca: `npm`, `tanggal`, `jam_masuk`, `jam_keluar`,
+`jenis_kegiatan`, `uraian`. Kolom lain diabaikan.
+
+Tanpa `--tulis` skrip hanya membaca dan melaporkan: berapa baris sah, berapa
+ditolak, dan **baris ke berapa** yang salah beserta sebabnya. Tanggal boleh
+`2026-03-04` atau `4/3/2026` — yang bergaris miring dibaca **hari/bulan/tahun**.
+Bentuk lain ditolak, tidak ditebak: menebak antara urutan Indonesia dan Amerika
+berarti 4 Maret dan 3 April tertukar tanpa ada yang menyadarinya.
+
+Barisnya masuk sebagai catatan **Manual** dengan alasan yang menyebut berkas
+asalnya, sehingga rekap dan audit menampilkannya apa adanya sebagai data yang
+bukan berasal dari pemindaian QR. Baris yang bentrok dengan catatan yang sudah
+ada **dilewati**, tidak menimpa — tidak ada peran yang boleh mengubah catatan
+absensi, dan skrip pun tidak.
 
 ---
 
@@ -874,6 +1304,15 @@ src/lib/absensi.ts        Aturan absensi (SPEC 6.4)
 src/lib/skor.ts           Mesin skor kontribusi (SPEC 6.1), murni dan teruji
 src/lib/kontribusi.ts     Pengumpul angka kontribusi dari basis data
 src/lib/lingkup.ts        Siapa boleh melihat data siapa
+src/lib/piket.ts          Checklist dan jadwal piket, murni dan teruji
+src/lib/logbook.ts        Penomoran pekan logbook, murni dan teruji
+src/lib/insiden.ts        Jenis insiden, status tindak lanjut, penanda mendesak
+src/lib/pemantauan.ts     Kueri penanda dasbor: logbook, piket, insiden
+src/lib/data-csv.ts       Pembaca data/*.csv saat aplikasi berjalan
+src/lib/skk.ts            Syarat SKK (SPEC 6.2) dan nomor surat, murni dan teruji
+src/lib/skk-terbit.ts     Penerbitan surat dan pembekuan snapshotJson
+src/lib/impor.ts          Penguraian CSV absensi lama, murni dan teruji
+src/components/pdf/skk-pdf.tsx  Lembar surat FRM-LR-07
 src/app/api/attendance/   Satu-satunya pintu pencatatan kehadiran
 src/app/display/          Layar laboratorium
 src/lib/rute.ts           Peta rute ke modul; dipakai middleware dan menu
@@ -881,6 +1320,15 @@ src/lib/penjaga.ts        Penjagaan per halaman dan per baris data
 src/lib/audit.ts          Penulisan audit log
 src/lib/npm.ts            Turunan prodi, angkatan, dan jenjang dari NPM
 src/lib/waktu.ts          Semua konversi UTC ke WIB terjadi di sini
+
+src/app/globals.css       Palet, ukuran teks, dan sasaran sentuh 44 piksel
+src/components/ui/field.tsx     Input, Select, TextArea, Centang, dan Field
+src/components/ui/umpan-balik.tsx  Pesan formulir dan pengosongan setelah berhasil
+src/app/(aplikasi)/error.tsx    Batas galat — menu tetap terlihat saat halaman gagal
+src/app/(aplikasi)/loading.tsx  Kerangka halaman selagi datanya disiapkan
+src/app/not-found.tsx     Halaman 404 berbahasa Indonesia
+src/lib/pembatas-laju.ts  Pembatas percobaan absensi, masuk, dan ganti sandi
+tests/penjagaan-aksi.test.ts  Uji struktural: tiada aksi tanpa penjagaan
 
 scripts/set-sandi.ts      Utilitas memasang kata sandi dari peladen
 tests/                    Uji Vitest untuk kebijakan akses, jaringan, dan token
@@ -894,6 +1342,52 @@ menu, dan penjagaan halaman membaca tabel yang sama, jadi ketiganya ikut
 berubah bersama. Jalankan `npm test` sesudahnya — `tests/rbac.test.ts` menjaga
 aturan yang tidak boleh dilanggar (Pengawas tidak pernah menulis, hanya Kepala
 Lab yang menerbitkan surat, tidak ada yang boleh menghapus absensi).
+
+---
+
+## 10b. Mengapa curang tidak terbayar
+
+Pertanyaan yang wajar ditanyakan anggota: kalau halamannya bisa dibuka
+peralatan pengembang peramban, bukankah angkanya bisa diubah? Jawabannya
+tidak, dan alasannya perlu diketahui semua orang — bukan dirahasiakan.
+
+**Yang dikirim peramban tidak pernah dipercaya.** Setiap Server Action dan
+setiap rute API memanggil penjagaan hak akses di peladen, dan `tests/penjagaan-aksi.test.ts`
+membaca seluruh berkas sumber untuk memastikan tidak ada satu pun yang
+terlewat. Mengganti nilai kolom tersembunyi lewat peralatan pengembang —
+`squadId`, `mingguKe`, `userId`, `role` — hanya menghasilkan penolakan, karena
+peladen membandingkannya lagi dengan sesi dan matriks hak akses. Menyembunyikan
+tombol memang bukan pengamanan; yang mengamankan adalah pemeriksaan yang
+berjalan di peladen.
+
+**Skor tidak pernah dikirim dari peramban.** Ia dihitung ulang di peladen dari
+catatan absensi, piket, logbook, dan peminjaman. Tidak ada satu pun medan
+formulir yang menyentuhnya.
+
+**Absensi tidak dapat dipalsukan dari luar.** QR-nya ditandatangani peladen,
+berputar 60 detik, dan sekali pakai; kode hariannya tidak pernah masuk
+tanggapan API mana pun; dan keduanya hanya berarti bila permintaannya datang
+dari dalam jaringan laboratorium. Ketiganya diperiksa di peladen, dan
+ketiganya diuji.
+
+**Catatan tidak dapat dihapus.** Tidak ada satu pun jalur kode yang menghapus
+catatan absensi, jejak audit, atau surat yang sudah terbit — juga dikunci uji.
+Koreksi memakai catatan pembatalan yang merujuk catatan aslinya, dan
+pembatalan itu sendiri meninggalkan jejak atas nama pembatalnya.
+
+**Pintu masuk dibatasi.** Percobaan kata sandi dibatasi per akun dan per
+alamat, begitu pula penggantian kata sandi. Menebak kata sandi akun dosen
+berarti memperoleh hak menerbitkan surat dan mengubah peran siapa pun; pintu
+itu tidak boleh dapat digedor semalaman.
+
+**Peran diperbarui berkala.** Sesi menyegarkan peran dan status dari basis data
+tiap lima menit, sehingga anggota yang dinonaktifkan atau diturunkan perannya
+kehilangan aksesnya tanpa perlu menunggu sesinya berakhir.
+
+Yang TIDAK dijanjikan: sistem ini tidak menghentikan orang yang memang berada
+di dalam laboratorium lalu mengabsenkan dirinya sendiri sambil tidak
+mengerjakan apa pun. Itu urusan pengawasan manusia, dan memang seharusnya
+begitu.
 
 ---
 

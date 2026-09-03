@@ -1,5 +1,6 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -8,11 +9,66 @@ import { catatAudit } from "@/lib/audit";
 import { npmValid, prodiDariNpm, angkatanDariNpm, jenjangDariAngkatan } from "@/lib/npm";
 import { wajibIzin } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
-import { bolehTulis } from "@/lib/rbac";
+import { bolehKelolaAkun, bolehMemberiPeran, bolehTulis } from "@/lib/rbac";
+import { sandiBawaan } from "@/lib/sandi";
 
 export interface KeadaanAnggota {
   galat?: string;
   berhasil?: string;
+  /**
+   * Nilai yang benar-benar tersimpan, dikembalikan supaya formulir dapat
+   * menampilkan keadaan basis data setelah menyimpan.
+   *
+   * React 19 mengosongkan ulang medan formulir tak terkendali begitu aksinya
+   * selesai — ia memulihkannya ke defaultValue, yaitu nilai LAMA saat formulir
+   * pertama dipasang. Akibatnya peran yang baru diubah tampak kembali seperti
+   * semula, padahal basis datanya sudah berubah. Nilai ini menjadi defaultValue
+   * yang baru, dan `token` memaksa medannya dipasang ulang tiap kali menyimpan.
+   */
+  tersimpan?: NilaiTersimpan;
+  token?: number;
+}
+
+export interface NilaiTersimpan {
+  nama: string;
+  npm: string;
+  email: string;
+  prodi: string;
+  fakultas: string;
+  angkatan: string;
+  semester: string;
+  squadId: string;
+  jenjang: string;
+  status: string;
+  role: string;
+}
+
+function nilaiDari(baris: {
+  nama: string;
+  npm: string | null;
+  email: string;
+  prodi: string;
+  fakultas: string;
+  angkatan: number | null;
+  semester: number | null;
+  squadId: string | null;
+  jenjang: string;
+  status: string;
+  role: string;
+}): NilaiTersimpan {
+  return {
+    nama: baris.nama,
+    npm: baris.npm ?? "",
+    email: baris.email,
+    prodi: baris.prodi,
+    fakultas: baris.fakultas,
+    angkatan: baris.angkatan?.toString() ?? "",
+    semester: baris.semester?.toString() ?? "",
+    squadId: baris.squadId ?? "",
+    jenjang: baris.jenjang,
+    status: baris.status,
+    role: baris.role,
+  };
 }
 
 const PERAN = [
@@ -71,6 +127,18 @@ async function tersisaKepalaLab(kecualiId?: string): Promise<number> {
   });
 }
 
+/**
+ * Pesan penolakan saat seorang pengelola mencoba menetapkan peran di luar
+ * wewenangnya. Dibedakan supaya Koordinator Pengembangan tahu batasnya, bukan
+ * sekadar "hanya Kepala Lab".
+ */
+function pesanTolakPeran(peran: (typeof PERAN)[number]): string {
+  if (bolehTulis(peran, "master_anggota")) {
+    return "Anda hanya dapat menetapkan peran sampai Ketua Squad. Menetapkan Koordinator atau Kepala Laboratorium adalah hak Kepala Laboratorium.";
+  }
+  return "Hanya Kepala Laboratorium yang dapat mengubah peran.";
+}
+
 export async function simpanAnggota(
   idAnggota: string,
   _keadaan: KeadaanAnggota,
@@ -85,10 +153,18 @@ export async function simpanAnggota(
   const lama = await prisma.user.findUnique({ where: { id: idAnggota } });
   if (!lama) return { galat: "Anggota tidak ditemukan." };
 
-  // Mengubah peran adalah modul tersendiri: hanya Kepala Laboratorium.
+  // Data Kepala Laboratorium hanya boleh diubah Kepala Laboratorium sendiri —
+  // seluruh medannya, bukan hanya perannya.
+  if (!bolehKelolaAkun(pengguna.role, lama.role)) {
+    return { galat: "Data Kepala Laboratorium hanya dapat diubah oleh Kepala Laboratorium." };
+  }
+
+  // Menetapkan peran dibatasi menurut wewenang: Kepala Laboratorium bebas,
+  // pengelola keanggotaan lain hanya sampai Ketua Squad dan tidak boleh
+  // menyentuh peran yang sudah koordinator ke atas.
   const peranBerubah = masukan.role !== lama.role;
-  if (peranBerubah && !bolehTulis(pengguna.role, "peran_hak_akses")) {
-    return { galat: "Hanya Kepala Laboratorium yang dapat mengubah peran." };
+  if (peranBerubah && !bolehMemberiPeran(pengguna.role, lama.role, masukan.role)) {
+    return { galat: pesanTolakPeran(pengguna.role) };
   }
   if (peranBerubah && idAnggota === pengguna.id) {
     return {
@@ -144,7 +220,7 @@ export async function simpanAnggota(
 
   revalidatePath("/anggota");
   revalidatePath(`/anggota/${idAnggota}`);
-  return { berhasil: "Perubahan tersimpan." };
+  return { berhasil: "Perubahan tersimpan.", tersimpan: nilaiDari(baru), token: Date.now() };
 }
 
 export async function buatAnggota(
@@ -157,8 +233,8 @@ export async function buatAnggota(
   if (!terurai.success) return { galat: terurai.error.issues[0]!.message };
   const masukan = terurai.data;
 
-  if (masukan.role !== "ANGGOTA" && !bolehTulis(pengguna.role, "peran_hak_akses")) {
-    return { galat: "Hanya Kepala Laboratorium yang dapat memberi peran selain Anggota." };
+  if (!bolehMemberiPeran(pengguna.role, null, masukan.role)) {
+    return { galat: pesanTolakPeran(pengguna.role) };
   }
 
   const npm = masukan.npm || null;
@@ -173,6 +249,9 @@ export async function buatAnggota(
   const turunan = npm ? prodiDariNpm(npm) : null;
   const angkatan = masukan.angkatan ?? (npm ? angkatanDariNpm(npm) : null);
 
+  // Akun lahir langsung dengan kata sandi bawaan, sehingga menambah anggota
+  // benar-benar selesai di halaman ini. Benderanya menyala: sampai sandinya
+  // diganti sendiri, akun ini hanya membuka Dasbor dan Profil.
   const baru = await prisma.user.create({
     data: {
       nama: masukan.nama,
@@ -186,6 +265,8 @@ export async function buatAnggota(
       jenjang: masukan.jenjang ?? jenjangDariAngkatan(angkatan),
       status: masukan.status,
       role: masukan.role,
+      passwordHash: await bcrypt.hash(sandiBawaan(), 12),
+      wajibGantiSandi: true,
     },
   });
 
@@ -199,6 +280,53 @@ export async function buatAnggota(
 
   revalidatePath("/anggota");
   redirect(`/anggota/${baru.id}`);
+}
+
+/**
+ * Mengembalikan sebuah akun ke kata sandi bawaan.
+ *
+ * Jalur pemulihan untuk anggota yang lupa sandinya. Sebelum ini satu-satunya
+ * caranya adalah `npm run sandi` di mesin peladen, yang berarti hanya orang
+ * dengan akses shell yang dapat menolong — dan orang itu tidak selalu ada di
+ * laboratorium saat dibutuhkan.
+ *
+ * Aman diberikan kepada pengelola master anggota karena kata sandi bawaan
+ * tidak membuka apa pun: benderanya ikut menyala kembali, sehingga akunnya
+ * hanya dapat dipakai untuk memilih kata sandi baru.
+ */
+export async function setelUlangSandi(
+  idAnggota: string,
+  _keadaan: KeadaanAnggota,
+  _data: FormData,
+): Promise<KeadaanAnggota> {
+  const { pengguna } = await wajibIzin("master_anggota", "tulis");
+
+  const anggota = await prisma.user.findUnique({
+    where: { id: idAnggota },
+    select: { id: true, nama: true, role: true },
+  });
+  if (!anggota) return { galat: "Anggota tidak ditemukan." };
+  if (!bolehKelolaAkun(pengguna.role, anggota.role)) {
+    return {
+      galat: "Kata sandi Kepala Laboratorium hanya dapat disetel ulang oleh Kepala Laboratorium.",
+    };
+  }
+
+  await prisma.user.update({
+    where: { id: idAnggota },
+    data: { passwordHash: await bcrypt.hash(sandiBawaan(), 12), wajibGantiSandi: true },
+  });
+
+  // Isi kata sandi tidak pernah masuk audit log; hanya faktanya yang dicatat.
+  await catatAudit({
+    userId: pengguna.id,
+    aksi: "SETEL_ULANG_KATA_SANDI",
+    entitas: "User",
+    entitasId: idAnggota,
+  });
+
+  revalidatePath(`/anggota/${idAnggota}`);
+  return { berhasil: `Kata sandi ${anggota.nama} dikembalikan ke kata sandi bawaan.` };
 }
 
 /**

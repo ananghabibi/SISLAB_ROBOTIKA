@@ -6,11 +6,15 @@
 // yang masih di luar dan siapa yang memegangnya" — bukan untuk membaca arsip.
 // -----------------------------------------------------------------------------
 
+import type { Prisma } from "@prisma/client";
 import Link from "next/link";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
+import { gayaTombol } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/field";
+import { PanelSaringan } from "@/components/ui/panel-saringan";
 import { pinjamanBerjalan, riwayatPinjaman, sudahLewatTenggat } from "@/lib/inventaris";
 import { saringanPeminjaman, wajibIzin } from "@/lib/penjaga";
 import { bolehTulis } from "@/lib/rbac";
@@ -31,12 +35,27 @@ const WARNA_KONDISI: Record<string, "berhasil" | "peringatan" | "bahaya" | "netr
   HILANG: "bahaya",
 };
 
-export default async function HalamanPeminjaman() {
+export default async function HalamanPeminjaman({
+  searchParams,
+}: {
+  searchParams: Promise<{ cari?: string }>;
+}) {
   const { pengguna } = await wajibIzin("peminjaman", "baca");
 
   // Anggota biasa hanya melihat pinjamannya sendiri; saringannya masuk ke dalam
   // kueri, bukan disaring setelah semuanya terlanjur terbaca.
-  const saringan = saringanPeminjaman(pengguna);
+  const cari = (await searchParams).cari?.trim() ?? "";
+  const cariWhere: Prisma.LoanWhereInput = cari
+    ? {
+        OR: [
+          { asset: { is: { nama: { contains: cari, mode: "insensitive" } } } },
+          { asset: { is: { kodeAset: { contains: cari, mode: "insensitive" } } } },
+          { peminjam: { is: { nama: { contains: cari, mode: "insensitive" } } } },
+          { keperluan: { contains: cari, mode: "insensitive" } },
+        ],
+      }
+    : {};
+  const saringan: Prisma.LoanWhereInput = { ...saringanPeminjaman(pengguna), ...cariWhere };
   const [berjalan, riwayat] = await Promise.all([
     pinjamanBerjalan(saringan),
     riwayatPinjaman(saringan, 30),
@@ -57,15 +76,21 @@ export default async function HalamanPeminjaman() {
         }
         aksi={
           bolehCatat ? (
-            <Link
-              href="/peminjaman/baru"
-              className="inline-flex min-h-11 items-center rounded-lg bg-utama px-4 text-sm font-semibold text-white hover:opacity-90"
-            >
-              Catat peminjaman
+            <Link href="/peminjaman/baru" className={gayaTombol()}>
+              + Catat peminjaman
             </Link>
           ) : null
         }
       />
+
+      <PanelSaringan jalur="/peminjaman" jumlahAktif={cari ? 1 : 0}>
+        <Input
+          name="cari"
+          placeholder="Cari alat, kode, peminjam, atau keperluan"
+          defaultValue={cari}
+          aria-label="Cari peminjaman"
+        />
+      </PanelSaringan>
 
       <Card className="mb-6">
         <CardHeader>

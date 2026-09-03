@@ -111,8 +111,19 @@ model User {
   status    StatusAnggota @default(AKTIF)
   avatarUrl String?
 
-  // Hanya dipakai akun dosen (Credentials). Anggota mahasiswa memakai Google kampus.
+  // Setiap akun punya kata sandi sejak dibuat: yang lewat Google kampus pun,
+  // supaya ada satu jalur masuk cadangan ketika Google sedang tidak dapat
+  // dihubungi dari dalam laboratorium.
   passwordHash String?
+
+  // Akun yang masih memakai kata sandi bawaan. Selama benderanya menyala,
+  // penjagaan di `src/lib/penjaga.ts` hanya mengizinkan Dasbor dan Profil.
+  //
+  // Ini bukan kenyamanan, melainkan bagian dari anti titip absen: satu kata
+  // sandi bawaan yang sama untuk semua orang berarti siapa pun yang tahu kata
+  // itu dapat masuk sebagai orang lain dan menekan tombol hadir atas namanya.
+  // Karena itu kata sandi bawaan hanya cukup untuk satu hal — menggantinya.
+  wajibGantiSandi Boolean @default(false)
 
   squad Squad? @relation("AnggotaSquad", fields: [squadId], references: [id], onDelete: SetNull)
 
@@ -150,10 +161,27 @@ model Squad {
 
   ketua     User?      @relation("KetuaSquad", fields: [ketuaId], references: [id], onDelete: SetNull)
   anggota   User[]     @relation("AnggotaSquad")
-  piketLogs PiketLog[]
-  logbooks  Logbook[]
+  piketLogs   PiketLog[]
+  logbooks    Logbook[]
+  jadwalPiket JadwalPiket[]
 
   @@map("squads")
+}
+
+// Jadwal piket mingguan: satu baris per hari kerja (1 Senin .. 6 Sabtu),
+// menunjuk squad yang bertugas hari itu. Dapat kosong (belum ditetapkan).
+//
+// Berbeda dari `data/jadwal-piket.csv` yang hanya menjadi nilai awal seeder:
+// tabel inilah yang berlaku, dan dapat diubah dari antarmuka oleh Kepala
+// Laboratorium dan Koordinator Pengembangan (modul `jadwal_piket`).
+model JadwalPiket {
+  hari      Int      @id // 1 = Senin .. 6 = Sabtu
+  squadId   String?
+  updatedAt DateTime @updatedAt
+
+  squad Squad? @relation(fields: [squadId], references: [id], onDelete: SetNull)
+
+  @@map("jadwal_piket")
 }
 
 model Period {
@@ -173,6 +201,7 @@ model Period {
 
   snapshots ContributionSnapshot[]
   skk       Skk[]
+  logbooks  Logbook[]
 
   @@index([aktif])
   @@map("periods")
@@ -351,6 +380,11 @@ model Logbook {
   updatedAt DateTime @updatedAt
 
   squadId           String
+  // Nomor pekan dihitung terhadap periode, jadi periodenya harus ikut
+  // disimpan. Tanpa itu, pekan 1 periode berikutnya bertabrakan dengan pekan 1
+  // periode sekarang pada kekangan unik di bawah, dan logbook pertama semester
+  // depan ditolak tanpa sebab yang dapat dimengerti siapa pun.
+  periodId          String
   mingguKe          Int
   tanggal           DateTime @db.Date
   dibuatOlehId      String
@@ -362,11 +396,13 @@ model Logbook {
   rencanaBerikutnya String
   buktiUrl          String?
 
-  squad      Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
-  dibuatOleh User  @relation(fields: [dibuatOlehId], references: [id], onDelete: Restrict)
+  squad      Squad  @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  period     Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  dibuatOleh User   @relation(fields: [dibuatOlehId], references: [id], onDelete: Restrict)
 
-  @@unique([squadId, mingguKe])
+  @@unique([squadId, periodId, mingguKe])
   @@index([squadId])
+  @@index([periodId])
   @@map("logbooks")
 }
 

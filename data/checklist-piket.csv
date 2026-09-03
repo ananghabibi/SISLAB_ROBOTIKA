@@ -1,0 +1,16 @@
+# Checklist piket delapan butir (SPEC bagian 7, Milestone 5).
+#
+# Urutan baris menentukan urutan tampil, dan butir terakhir sengaja "kunci
+# pintu" karena itu yang benar-benar terakhir dikerjakan. Kode dipakai sebagai
+# kunci pada medan `checklist` di basis data, jadi kode yang sudah pernah
+# dipakai JANGAN diubah — catatan piket lama akan kehilangan artinya. Menambah,
+# mengurangi, atau mengubah kalimat butirnya boleh.
+kode,butir,keterangan
+MEJA,Meja kerja bersih dan kosong,Tidak ada komponen atau kabel tertinggal di atas meja
+LANTAI,Lantai tersapu dan bebas serpihan,Serpihan timah dan potongan kabel ikut disapu
+ALAT,Alat kembali ke tempatnya,Cocokkan dengan daftar peminjaman yang masih terbuka
+SOLDER,Solder dan alat panas sudah mati dan dingin,Cabut dari stopkontak setelah benar-benar dingin
+LISTRIK,Catu daya dan stopkontak dimatikan,Kecuali perangkat yang memang harus menyala terus
+BATERAI,Baterai LiPo tersimpan di kotak tahan api,Baterai yang kembung dipisahkan dan dilaporkan
+SAMPAH,Sampah dibuang dan dipilah,Sisa timah dan baterai bekas tidak masuk sampah biasa
+PINTU,"Jendela ditutup, AC dimatikan, pintu dikunci",Butir terakhir sebelum meninggalkan ruangan

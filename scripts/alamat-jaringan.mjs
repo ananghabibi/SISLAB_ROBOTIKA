@@ -2,10 +2,15 @@
 // Mencari alamat IPv4 laptop yang benar-benar bisa dihubungi ponsel, lalu
 // memeriksa sebab yang paling sering membuatnya tetap tidak bisa dibuka.
 //
+//   npm run alamat
+//   npm run alamat -- 172.16.15.122      (alamat IP ponsel, bila ingin diadu)
+//
 // Baris `Network:` yang dicetak Next.js memilih antarmuka pertama yang
 // ditemukannya, dan pada laptop yang punya WSL, Docker, atau Hyper-V pilihan itu
 // hampir selalu adaptor virtual — alamat yang tidak akan pernah dapat dijangkau
-// perangkat lain. Skrip ini memisahkan mana yang nyata dan mana yang virtual.
+// perangkat lain. Skrip ini memisahkan mana yang nyata dan mana yang virtual,
+// dengan melihat siapa yang memegang gerbang bawaan, bukan menebak dari blok
+// alamatnya.
 //
 // Di Windows ia juga memeriksa kategori jaringan. Windows menandai WiFi sebagai
 // "Public" setiap kali ia ragu — setelah pindah jaringan, setelah kartu WiFi
@@ -13,59 +18,73 @@
 // Gejalanya persis seperti aplikasi yang rusak: laptop bisa membuka sendiri,
 // ponsel tidak bisa sama sekali. Ini penyebab yang paling sering berulang, dan
 // ia tidak meninggalkan pesan galat apa pun di aplikasi.
-//
-//   npm run alamat
 // -----------------------------------------------------------------------------
 
 import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import { networkInterfaces, platform } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-/** Nama antarmuka yang hampir pasti bukan jaringan sungguhan. */
-const VIRTUAL = /(wsl|hyper-?v|vethernet|virtual|vmware|virtualbox|docker|loopback|tailscale|zerotier|utun|bridge)/i;
-
-/** Blok alamat yang lazim dipakai adaptor virtual Windows. */
-const CURIGA = [/^172\.(1[6-9]|2\d|3[01])\./, /^169\.254\./];
+import {
+  cidrDari,
+  ipDalamCidr,
+  ipKeAngka,
+  pilahAntarmuka,
+  profilMemblokir,
+  profilTanpaIzin,
+  rentangJaringan,
+  seJaringan,
+} from "./alamat-lib.mjs";
 
 /** Porta peladen pengembangan; boleh diganti lewat PORT. */
 const PORT = process.env.PORT ?? "3000";
 
-const alamat = [];
+const akar = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Alamat ponsel, bila disebutkan: `npm run alamat -- 172.16.15.122`. */
+const ipPonsel = process.argv.slice(2).find((a) => ipKeAngka(a) !== null) ?? null;
+
+const antarmuka = [];
 for (const [nama, daftar] of Object.entries(networkInterfaces())) {
   for (const a of daftar ?? []) {
     if (a.family !== "IPv4" || a.internal) continue;
-    const virtual = VIRTUAL.test(nama) || CURIGA.some((p) => p.test(a.address));
-    alamat.push({ nama, ip: a.address, virtual });
+    antarmuka.push({ nama, ip: a.address, topeng: a.netmask });
   }
 }
 
-if (alamat.length === 0) {
+if (antarmuka.length === 0) {
   console.log("Tidak ada antarmuka IPv4 yang aktif. Sambungkan laptop ke WiFi lebih dulu.");
   process.exit(0);
 }
 
-const nyata = alamat.filter((a) => !a.virtual);
-const virtual = alamat.filter((a) => a.virtual);
+const dipilah = pilahAntarmuka(antarmuka, gerbangBawaan());
+const nyata = dipilah.filter((a) => a.jenis === "nyata");
+const virtual = dipilah.filter((a) => a.jenis === "virtual");
+const takBerguna = dipilah.filter((a) => a.jenis === "takBerguna");
+const ragu = dipilah.some((a) => a.ragu);
 
 console.log("Alamat yang dapat dibuka dari ponsel:\n");
 if (nyata.length === 0) {
   console.log("  (tidak ada — semua antarmuka tampak virtual)\n");
 } else {
   for (const a of nyata) {
-    console.log(`  http://${a.ip}:${PORT}        [${a.nama}]`);
+    const cidr = cidrDari(a.ip, a.topeng);
+    console.log(`  http://${a.ip}:${PORT}        [${a.nama}]${cidr ? `  jaringan ${cidr}` : ""}`);
   }
   console.log("");
+  if (ragu) {
+    console.log("Catatan: tabel rute tidak terbaca, jadi pemilahan di atas hanya");
+    console.log("menebak dari nama antarmuka. Coba satu per satu bila perlu.\n");
+  }
   console.log("PENTING: alamat ini adalah alamat LAPTOP, dan dapat berubah");
   console.log("sendiri setiap kali laptop menyambung ulang ke WiFi. Alamat yang");
   console.log("Anda lihat di pengaturan WiFi PONSEL adalah alamat ponsel itu");
   console.log("sendiri — mengetiknya di ponsel berarti menyuruh ponsel memanggil");
   console.log("dirinya sendiri, dan hasilnya selalu \"situs tidak dapat dijangkau\".");
   console.log("");
-  console.log(`Jalankan peladen terikat ke alamat itu supaya tidak salah pilih:`);
+  console.log("Jalankan peladen terikat ke alamat itu supaya tidak salah pilih:");
   console.log(`  npm run dev -- -H ${nyata[0].ip}`);
-  console.log("");
-  console.log("Ponsel harus berada di jaringan yang sama. Periksa di ponsel:");
-  console.log(`  Pengaturan > WiFi > (jaringan Anda) > alamat IP harus sekelompok`);
-  console.log(`  dengan ${nyata[0].ip} — tiga angka pertamanya sama.`);
 }
 
 if (virtual.length > 0) {
@@ -73,9 +92,223 @@ if (virtual.length > 0) {
   for (const a of virtual) console.log(`  ${a.ip.padEnd(16)} [${a.nama}]`);
 }
 
+if (takBerguna.length > 0) {
+  console.log("\nAntarmuka berikut GAGAL mendapat alamat dari WiFi (169.254.x.x itu");
+  console.log("alamat karangan Windows saat DHCP tidak menjawab):");
+  for (const a of takBerguna) console.log(`  ${a.ip.padEnd(16)} [${a.nama}]`);
+  console.log("  Sambungkan ulang WiFi-nya; selama alamatnya masih 169.254, laptop ini");
+  console.log("  belum berada di jaringan mana pun.");
+}
+
+bandingkanDenganPonsel();
+periksaSubnetLab();
+
 const kategoriAktif = periksaProfilWindows();
 periksaPendengar();
 periksaAturanFirewall(kategoriAktif);
+
+/**
+ * Mengadu alamat ponsel dengan alamat laptop memakai topeng yang sebenarnya.
+ *
+ * Menjawab satu pertanyaan yang selama ini dijawab dengan aturan lisan "tiga
+ * angka pertamanya harus sama". Aturan itu hanya benar pada topeng /24. WiFi
+ * kampus lazim memakai /20 — di sana 172.16.3.9 dan 172.16.15.117 satu
+ * jaringan meski angka ketiganya berbeda jauh, dan aturan lisan itu menuduh
+ * jaringan yang sebenarnya sudah benar.
+ */
+function bandingkanDenganPonsel() {
+  if (!ipPonsel) {
+    if (nyata.length > 0) {
+      const rentang = rentangJaringan(nyata[0].ip, nyata[0].topeng);
+      console.log("\nPonsel harus berada di jaringan yang sama. Periksa di ponsel:");
+      console.log("  Pengaturan > WiFi > (jaringan Anda) > Alamat IP");
+      if (rentang) {
+        console.log(`  Alamatnya harus antara ${rentang.pertama} dan ${rentang.terakhir}.`);
+      }
+      console.log("  Lalu adu langsung dengan menyebutkannya di sini:");
+      console.log("    npm run alamat -- <alamat-ip-ponsel>");
+    }
+    return;
+  }
+
+  console.log(`\nAlamat ponsel yang Anda sebutkan: ${ipPonsel}`);
+
+  const milikSendiri = antarmuka.find((a) => a.ip === ipPonsel);
+  if (milikSendiri) {
+    console.log(`  Itu justru alamat LAPTOP ini sendiri [${milikSendiri.nama}].`);
+    console.log("  Yang perlu dibaca adalah alamat di pengaturan WiFi ponsel.");
+    return;
+  }
+
+  const sama = nyata.filter((a) => seJaringan(a.ip, ipPonsel, a.topeng));
+  if (sama.length > 0) {
+    for (const a of sama) {
+      console.log(`  SATU JARINGAN dengan ${a.ip} [${a.nama}] — buka di ponsel:`);
+      console.log(`    http://${a.ip}:${PORT}`);
+    }
+    console.log("");
+    console.log("  Jaringannya sudah benar. Bila ponsel tetap gagal membuka, sebabnya");
+    console.log("  ada di laptop (profil jaringan, firewall, peladen belum jalan) atau");
+    console.log("  di router — lihat hasil pemeriksaan di bawah.");
+    return;
+  }
+
+  console.log("  BEDA JARINGAN dengan seluruh alamat nyata laptop:");
+  for (const a of nyata) {
+    console.log(`    laptop ${a.ip} (${cidrDari(a.ip, a.topeng) ?? "?"}) — ponsel di luar blok itu`);
+  }
+  console.log("  Sambungkan ponsel ke SSID yang sama dengan laptop, dan pastikan");
+  console.log("  ponsel tidak sedang memakai data seluler atau VPN.");
+}
+
+/**
+ * Memperingatkan bila subnet laptop belum tercantum di LAB_SUBNETS.
+ *
+ * Gejalanya menipu: halaman terbuka mulus di ponsel, QR terpindai, lalu absensi
+ * ditolak 403 tanpa ada yang salah di jaringannya. Lapis 1 memang menolak
+ * secara bawaan — itu disengaja — tetapi saat mencoba di luar laboratorium
+ * orang mudah mengira aplikasinya yang rusak.
+ */
+function periksaSubnetLab() {
+  const berkas = path.join(akar, ".env");
+  if (!existsSync(berkas)) return;
+
+  let isi;
+  try {
+    isi = readFileSync(berkas, "utf8");
+  } catch {
+    return;
+  }
+
+  const ambil = (kunci) => {
+    const cocok = isi.split(/\r?\n/).find((b) => b.startsWith(`${kunci}=`));
+    return cocok ? cocok.slice(kunci.length + 1).trim().replace(/^["']|["']$/g, "") : null;
+  };
+
+  const bypass = ambil("LAB_NETWORK_BYPASS") === "true";
+  const subnet = (ambil("LAB_SUBNETS") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+
+  console.log("\nLapis 1 (penjagaan jaringan) menurut berkas .env:");
+
+  if (bypass) {
+    console.log("  LAB_NETWORK_BYPASS=true — pemeriksaan jaringan sedang DILEWATI.");
+    console.log("  Hanya boleh begini di laptop. Di laboratorium wajib false.");
+    console.log("");
+    console.log("  Selama dilewati, lapis 1 tidak sedang diuji sama sekali: absensi");
+    console.log("  akan diterima dari jaringan mana pun. Untuk mengujinya betulan dari");
+    console.log("  jaringan tempat Anda sekarang, tulis di .env:");
+    for (const a of nyata) {
+      const cidr = cidrDari(a.ip, a.topeng);
+      if (cidr) console.log(`    LAB_SUBNETS=${cidr}`);
+    }
+    console.log("    LAB_NETWORK_BYPASS=false");
+    console.log("  lalu jalankan ulang `npm run dev` — .env hanya dibaca saat mulai.");
+    return;
+  }
+
+  if (subnet.length === 0) {
+    console.log("  LAB_SUBNETS kosong — tidak ada satu pun jaringan yang dipercaya,");
+    console.log("  jadi setiap percobaan absen akan ditolak 403.");
+  } else {
+    console.log(`  LAB_SUBNETS = ${subnet.join(", ")}`);
+  }
+
+  const diperiksa = ipPonsel ? [{ label: "ponsel", ip: ipPonsel }] : [];
+  for (const a of nyata) diperiksa.push({ label: `laptop [${a.nama}]`, ip: a.ip, topeng: a.topeng });
+
+  const diluar = diperiksa.filter((d) => !subnet.some((blok) => ipDalamCidr(d.ip, blok)));
+  if (diluar.length === 0) {
+    console.log("  Alamat Anda tercakup. Absensi tidak akan tertolak lapis jaringan.");
+    return;
+  }
+
+  console.log("");
+  console.log("  Alamat berikut BERADA DI LUAR daftar itu:");
+  for (const d of diluar) console.log(`    ${d.ip.padEnd(16)} ${d.label}`);
+  console.log("");
+  console.log("  Halamannya akan tetap terbuka, tetapi absensi ditolak 403. Untuk");
+  console.log("  mencoba dari jaringan tempat Anda sekarang, tambahkan bloknya:");
+  for (const a of nyata) {
+    const cidr = cidrDari(a.ip, a.topeng);
+    if (cidr) console.log(`    LAB_SUBNETS=${[...subnet, cidr].join(",")}`);
+  }
+  console.log("");
+  console.log("  Lalu jalankan ulang `npm run dev` — berkas .env hanya dibaca saat");
+  console.log("  peladen mulai.");
+  console.log("");
+  console.log("  Baris itu untuk MENCOBA saja. Di laboratorium, LAB_SUBNETS hanya");
+  console.log("  boleh berisi subnet AP laboratorium sendiri. Mengisinya dengan");
+  console.log("  subnet WiFi kampus berarti seluruh kampus dianggap berada di dalam");
+  console.log("  lab, dan lapis 1 kehilangan seluruh gunanya.");
+}
+
+/**
+ * Antarmuka mana yang memegang gerbang bawaan.
+ *
+ * Inilah pembeda antara kartu WiFi dan adaptor virtual yang tidak bergantung
+ * pada blok alamat: WSL, Docker, dan Hyper-V memang mengambil alamat dari
+ * 172.16–172.31, tetapi begitu pula sebagian jaringan kampus. Yang tidak
+ * dimiliki adaptor virtual adalah gerbang bawaan.
+ *
+ * Kegagalan membacanya bukan galat: pemanggilnya beralih ke penebakan lewat
+ * nama antarmuka.
+ */
+function gerbangBawaan() {
+  try {
+    if (platform() === "win32") {
+      const keluaran = execFileSync(
+        "powershell",
+        [
+          "-NoProfile",
+          "-Command",
+          "Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway } |" +
+            ' ForEach-Object { "$($_.InterfaceAlias)|$($_.IPv4DefaultGateway.NextHop)" }',
+        ],
+        { encoding: "utf8", timeout: 15_000, stdio: ["ignore", "pipe", "ignore"] },
+      );
+      return keluaran
+        .split("\n")
+        .map((b) => b.trim())
+        .filter(Boolean)
+        .map((b) => {
+          const [nama, ip] = b.split("|");
+          return { nama: nama?.trim() ?? "", ip: ip?.trim() ?? "" };
+        });
+    }
+
+    if (platform() === "darwin") {
+      const keluaran = execFileSync("netstat", ["-rn", "-f", "inet"], {
+        encoding: "utf8",
+        timeout: 10_000,
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      return keluaran
+        .split("\n")
+        .filter((b) => /^default\s/.test(b.trim()))
+        .map((b) => {
+          const kolom = b.trim().split(/\s+/);
+          return { nama: kolom[kolom.length - 1] ?? "", ip: kolom[1] ?? "" };
+        })
+        .filter((g) => g.nama || g.ip);
+    }
+
+    const keluaran = execFileSync("ip", ["-4", "route", "show", "default"], {
+      encoding: "utf8",
+      timeout: 10_000,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return keluaran
+      .split("\n")
+      .filter((b) => b.trim())
+      .map((b) => ({
+        nama: b.match(/\bdev\s+(\S+)/)?.[1] ?? "",
+        ip: b.match(/\bvia\s+(\S+)/)?.[1] ?? "",
+      }))
+      .filter((g) => g.nama || g.ip);
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Memeriksa kategori jaringan Windows.
@@ -155,11 +388,16 @@ function periksaProfilWindows() {
   if (publik.length === 0) return kategori;
 
   console.log("\n  ---------------------------------------------------------------");
-  console.log("  INILAH SEBABNYA PONSEL TIDAK BISA MEMBUKA. Profil Public memblokir");
-  console.log("  seluruh sambungan masuk, jadi laptop tetap bisa membuka alamatnya");
-  console.log("  sendiri sementara ponsel tidak dapat menjangkaunya sama sekali.");
+  console.log("  PERLU DIPERIKSA. Profil Public menolak sambungan masuk yang tidak");
+  console.log("  punya aturan Allow untuk profil Public. Gejalanya: laptop bisa");
+  console.log("  membuka alamatnya sendiri, ponsel tidak sama sekali.");
   console.log("");
-  console.log("  Perbaiki lewat Pengaturan:");
+  console.log("  Tetapi Public sendiri BUKAN vonis. Bila ada aturan Allow yang");
+  console.log("  mencakup Public, ponsel tetap dapat masuk tanpa profilnya diubah.");
+  console.log("  Pemeriksaan firewall di bawah yang memutuskan — baca dulu sampai");
+  console.log("  sana sebelum mengubah apa pun di sini.");
+  console.log("");
+  console.log("  Bila memang perlu diubah, lewat Pengaturan:");
   console.log("    Pengaturan > Jaringan & Internet > WiFi > (jaringan Anda)");
   console.log("    > Jenis profil jaringan > pilih Pribadi (Private)");
   console.log("");
@@ -167,6 +405,10 @@ function periksaProfilWindows() {
   for (const p of publik) {
     console.log(`    Set-NetConnectionProfile -Name "${p.nama}" -NetworkCategory Private`);
   }
+  console.log("");
+  console.log("  Sebagian WiFi kampus tidak mengizinkan perubahan ini karena dikelola");
+  console.log("  kebijakan jaringan. Bila pilihannya kelabu, tidak apa-apa: membuka");
+  console.log("  porta untuk profil Public sama sahnya, dan itu yang diperiksa di bawah.");
   console.log("");
   console.log("  Windows dapat mengembalikannya ke Public sewaktu-waktu. Bila ponsel");
   console.log("  tiba-tiba tidak bisa membuka lagi, jalankan `npm run alamat` lebih");
@@ -306,8 +548,9 @@ function periksaAturanFirewall(kategoriAktif = []) {
     console.log("  TIDAK ADA aturan masuk untuk node.exe.");
     console.log("  Windows akan menolak ponsel tanpa memberi tahu siapa pun. Buat izinnya");
     console.log("  lewat PowerShell sebagai Administrator:");
-    console.log("    New-NetFirewallRule -DisplayName \"SILAB dev 3000\" -Direction Inbound `");
-    console.log("      -Action Allow -Protocol TCP -LocalPort 3000 -Profile Private");
+    console.log(`    New-NetFirewallRule -DisplayName "SILAB dev ${PORT}" \``);
+    console.log("      -Direction Inbound -Action Allow -Protocol TCP `");
+    console.log(`      -LocalPort ${PORT} -Profile ${cakupanProfil(kategoriAktif)}`);
     return;
   }
 
@@ -336,10 +579,9 @@ function periksaAturanFirewall(kategoriAktif = []) {
   console.log("  ---------------------------------------------------------------");
 }
 
-/** Apakah nilai Profile sebuah aturan mencakup kategori jaringan tertentu. */
-function profilMencakup(profilAturan, kategori) {
-  const bagian = profilAturan.split(",").map((b) => b.trim());
-  return bagian.includes("Any") || bagian.includes(kategori);
+/** Profil yang perlu disebut pada aturan firewall baru. */
+function cakupanProfil(kategoriAktif) {
+  return kategoriAktif.length > 0 ? kategoriAktif.join(",") : "Private";
 }
 
 /**
@@ -354,23 +596,43 @@ function laporkanCakupanProfil(aturan, kategoriAktif) {
     return;
   }
 
-  const mengizinkan = aturan.filter((a) => a.tindakan === "Allow" && a.aktif === "True");
-  const tanpaIzin = kategoriAktif.filter(
-    (k) => !mengizinkan.some((a) => profilMencakup(a.profil, k)),
-  );
+  const tanpaIzin = profilTanpaIzin(aturan, kategoriAktif);
 
   if (tanpaIzin.length === 0) {
     console.log(`  Tidak ada aturan Block, dan profil aktif (${kategoriAktif.join(", ")}) diizinkan.`);
     console.log("  Firewall bukan penyebabnya.");
+    if (kategoriAktif.includes("Public")) {
+      console.log("  Peringatan profil Public di atas GUGUR: ada aturan Allow yang");
+      console.log("  mencakup Public, jadi profil jaringannya tidak perlu diubah.");
+    }
+    return;
+  }
+
+  // Ketiadaan aturan Allow belum berarti memblokir: firewall profil itu bisa
+  // saja dimatikan, atau tindakan bawaan masuknya justru Allow.
+  const keadaan = keadaanFirewall();
+  const memblokir = tanpaIzin.filter((k) => profilMemblokir(k, keadaan));
+
+  if (memblokir.length === 0) {
+    console.log("");
+    console.log(`  Tidak ada aturan Allow yang mencakup profil aktif (${tanpaIzin.join(", ")}),`);
+    console.log("  TETAPI firewall profil itu memang tidak menutup sambungan masuk");
+    console.log("  (dimatikan, atau tindakan bawaannya Allow). Firewall bukan");
+    console.log("  penyebabnya.");
     return;
   }
 
   console.log("");
   console.log("  ---------------------------------------------------------------");
-  console.log(`  INILAH SEBABNYA. Jaringan Anda sekarang berprofil ${tanpaIzin.join(", ")},`);
-  console.log("  tetapi tidak ada satu pun aturan Allow di atas yang mencakup profil itu.");
-  console.log("  Windows menolak sambungan masuk pada profil yang tidak punya aturan");
-  console.log("  Allow — tidak perlu ada aturan Block untuk memblokir.");
+  console.log("  BILA PONSEL GAGAL MEMBUKA, INI SEBAB YANG PALING MUNGKIN.");
+  console.log(`  Jaringan Anda sekarang berprofil ${memblokir.join(", ")}, tetapi tidak ada`);
+  console.log("  satu pun aturan Allow di atas yang mencakup profil itu. Windows");
+  console.log("  menolak sambungan masuk pada profil yang tidak punya aturan Allow —");
+  console.log("  tidak perlu ada aturan Block untuk memblokir.");
+  console.log("");
+  console.log("  Skrip ini tidak dapat melihat dari sisi ponsel. Bila ponsel ternyata");
+  console.log("  sudah bisa membuka halamannya, abaikan bagian ini — berarti ada jalan");
+  console.log("  masuk lain yang tidak tampak pada daftar aturan di atas.");
   console.log("");
   console.log("  Ini lazim terjadi tepat setelah jaringan dipindahkan dari Public ke");
   console.log("  Private: aturan yang ada dibuat waktu jaringannya masih Public, dan");
@@ -378,9 +640,45 @@ function laporkanCakupanProfil(aturan, kategoriAktif) {
   console.log("");
   console.log("  Perbaiki lewat PowerShell sebagai Administrator:");
   console.log(`    New-NetFirewallRule -DisplayName "SILAB dev ${PORT}" \``);
-  console.log("      -Direction Inbound -Action Allow -Protocol TCP \`");
-  console.log(`      -LocalPort ${PORT} -Profile ${tanpaIzin.join(",")}`);
+  console.log("      -Direction Inbound -Action Allow -Protocol TCP `");
+  console.log(`      -LocalPort ${PORT} -Profile ${memblokir.join(",")}`);
   console.log("  ---------------------------------------------------------------");
+}
+
+/**
+ * Keadaan tiap profil firewall: menyala atau tidak, dan tindakan bawaan untuk
+ * sambungan masuk.
+ *
+ * Kegagalan membacanya mengembalikan daftar kosong, dan `profilMemblokir`
+ * memperlakukan profil yang tidak terbaca sebagai memblokir.
+ */
+function keadaanFirewall() {
+  try {
+    const keluaran = execFileSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        'Get-NetFirewallProfile | ForEach-Object {' +
+          ' "$($_.Name)|$($_.Enabled)|$($_.DefaultInboundAction)" }',
+      ],
+      { encoding: "utf8", timeout: 20_000, stdio: ["ignore", "pipe", "ignore"] },
+    );
+    return keluaran
+      .split("\n")
+      .map((b) => b.trim())
+      .filter(Boolean)
+      .map((b) => {
+        const [nama, aktif, bawaanMasuk] = b.split("|");
+        return {
+          nama: nama?.trim() ?? "",
+          aktif: aktif?.trim() ?? "",
+          bawaanMasuk: bawaanMasuk?.trim() ?? "",
+        };
+      });
+  } catch {
+    return [];
+  }
 }
 
 /**

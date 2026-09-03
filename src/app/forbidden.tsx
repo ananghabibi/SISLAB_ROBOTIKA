@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { gayaTombol } from "@/components/ui/button";
 
 /**
  * Tampilan tunggal untuk seluruh penolakan hak akses.
@@ -22,8 +22,8 @@ export default function Terlarang() {
         Bila menurut Anda ini keliru, hubungi Kepala Laboratorium. Hanya beliau yang dapat mengubah
         peran.
       </p>
-      <Link href="/dasbor">
-        <Button className="w-full">Kembali ke dasbor</Button>
+      <Link href="/dasbor" className={gayaTombol({ className: "w-full px-4" })}>
+        Kembali ke dasbor
       </Link>
     </main>
   );

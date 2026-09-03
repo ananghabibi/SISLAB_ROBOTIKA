@@ -28,6 +28,7 @@ export const MODUL = [
   "inventaris",
   "peminjaman",
   "piket",
+  "jadwal_piket",
   "logbook",
   "insiden",
   "periode_target",
@@ -47,6 +48,7 @@ export const LABEL_MODUL: Record<Modul, string> = {
   inventaris: "Inventaris",
   peminjaman: "Peminjaman",
   piket: "Piket",
+  jadwal_piket: "Jadwal piket",
   logbook: "Logbook riset",
   insiden: "Laporan insiden",
   periode_target: "Periode & target skor",
@@ -110,10 +112,27 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
     PENGAWAS: tidak,
   },
   master_anggota: {
+    // MENYIMPANG DARI SPEC 4.2, yang memberi Koordinator Pengembangan "B"
+    // (baca saja). Diubah atas permintaan Kepala Laboratorium sebagai bagian
+    // dari pembagian wewenang antar-koordinator yang TIDAK BOLEH TUMPANG TINDIH
+    // (lihat blok "WEWENANG KOORDINATOR" di bawah matriks ini):
+    //
+    //   - Keanggotaan  → Koordinator Pengembangan (di sini).
+    //   - Inventaris & piket → Koordinator Operasional.
+    //   - Logbook riset → Koordinator Riset.
+    //
+    // Karena itu hak tulis Koordinator Operasional atas keanggotaan DICABUT:
+    // sebelumnya ia ikut menulis di sini, dan itu bertabrakan dengan Koordinator
+    // Pengembangan. Kini ia hanya membaca.
+    //
+    // Batas Pengembangan: ia menetapkan peran HANYA sampai Ketua Squad
+    // (lihat `bolehMemberiPeran`). Menetapkan Koordinator atau Kepala
+    // Laboratorium tetap hak Kepala Laboratorium lewat modul `peran_hak_akses`.
+    // Menghapus anggota pun tetap tertutup — hanya Kepala Laboratorium.
     KEPALA_LAB: tulisHapus,
-    KOORD_OPERASIONAL: tulisSemua,
+    KOORD_OPERASIONAL: bacaSemua,
     KOORD_RISET: bacaSemua,
-    KOORD_PENGEMBANGAN: bacaSemua,
+    KOORD_PENGEMBANGAN: tulisSemua,
     KETUA_SQUAD: bacaSendiri,
     ANGGOTA: bacaSendiri,
     PENGAWAS: bacaSemua,
@@ -152,7 +171,14 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
     PENGAWAS: bacaSemua,
   },
   piket: {
-    KEPALA_LAB: bacaSemua,
+    // MENYIMPANG DARI SPEC 4.2, yang memberi Kepala Lab "B" (baca saja).
+    // Diubah atas permintaan Kepala Laboratorium, dengan alasan yang sama
+    // seperti pada peminjaman: dialah yang paling sering berada di ruangan
+    // pada jam-jam terakhir. Piket yang tidak dapat dicatat orang yang sedang
+    // berdiri di sana akan dicatat besok pagi oleh orang lain berdasarkan
+    // ingatan — dan catatan piket yang diisi dari ingatan sama saja dengan
+    // tidak ada catatan.
+    KEPALA_LAB: tulisSemua,
     KOORD_OPERASIONAL: tulisSemua,
     KOORD_RISET: bacaSemua,
     KOORD_PENGEMBANGAN: bacaSemua,
@@ -160,8 +186,31 @@ export const MATRIKS_AKSES: Record<Modul, Record<Role, Izin>> = {
     ANGGOTA: bacaSendiri,
     PENGAWAS: bacaSemua,
   },
+  jadwal_piket: {
+    // Ranah tersendiri, TERPISAH dari `piket`. Mencatat checklist piket harian
+    // adalah `piket` (Koordinator Operasional); MENGATUR siapa piket dan pada
+    // hari apa adalah `jadwal_piket` — diminta Kepala Laboratorium diberikan
+    // kepada Koordinator Pengembangan, sejalan dengan ranah keanggotaan/
+    // kaderisasinya. Karena modulnya berbeda, tidak ada tumpang tindih dengan
+    // Operasional. Semua orang boleh MELIHAT jadwalnya.
+    KEPALA_LAB: tulisSemua,
+    KOORD_OPERASIONAL: bacaSemua,
+    KOORD_RISET: bacaSemua,
+    KOORD_PENGEMBANGAN: tulisSemua,
+    KETUA_SQUAD: bacaSemua,
+    ANGGOTA: bacaSemua,
+    PENGAWAS: bacaSemua,
+  },
   logbook: {
-    KEPALA_LAB: bacaSemua,
+    // MENYIMPANG DARI SPEC 4.2, yang memberi Kepala Lab "B" (baca saja).
+    // Diubah atas permintaan Kepala Laboratorium. Perlu dicatat bahwa ini
+    // menyimpang lebih jauh daripada dua penyimpangan lain: logbook adalah
+    // catatan SQUAD tentang pekerjaannya sendiri, dan yang menulisnya
+    // sebaiknya tetap squad itu. Hak ini dipakai untuk membantu squad yang
+    // ketuanya berhalangan, bukan untuk menuliskan pekerjaan orang lain.
+    // Setiap entri selalu menyimpan siapa penulisnya di `dibuatOlehId` dan
+    // tercatat di audit log, jadi penggunaannya tidak pernah tersamar.
+    KEPALA_LAB: tulisSemua,
     KOORD_OPERASIONAL: bacaSemua,
     KOORD_RISET: tulisSemua,
     KOORD_PENGEMBANGAN: bacaSemua,
@@ -252,4 +301,89 @@ export function peranHanyaBaca(peran: Role): boolean {
 /** Hanya Kepala Lab yang boleh menerbitkan Surat Keterangan Kontribusi. */
 export function bolehMenerbitkanSkk(peran: Role): boolean {
   return peran === "KEPALA_LAB";
+}
+
+// -----------------------------------------------------------------------------
+// WEWENANG KOORDINATOR — dibagi tegas, tidak boleh tumpang tindih.
+//
+// Atas permintaan Kepala Laboratorium, tiap koordinator memegang satu ranah
+// pengelolaan yang berbeda, dan tidak ada dua koordinator yang menulis modul
+// yang sama:
+//
+//   - Koordinator Operasional  → inventaris, peminjaman, piket (logistik &
+//     operasi lab), ditambah absensi manual darurat, koreksi rekap absensi,
+//     tindak lanjut insiden, dan ekspor. Tidak menyentuh keanggotaan maupun
+//     logbook riset.
+//   - Koordinator Riset        → logbook riset. Tidak menyentuh inventaris,
+//     piket, maupun keanggotaan.
+//   - Koordinator Pengembangan → keanggotaan (master_anggota), dengan batas
+//     penetapan peran sampai Ketua Squad saja (lihat `bolehMemberiPeran`).
+//     Tidak menyentuh inventaris, piket, maupun logbook.
+//
+// Yang tetap menjadi hak Kepala Laboratorium seorang: menetapkan koordinator
+// (peran_hak_akses), periode & target skor, penerbitan SKK, penghapusan aset
+// dan anggota, dan pembacaan audit log secara penuh.
+// -----------------------------------------------------------------------------
+
+const SEMUA_PERAN: Role[] = [
+  "KEPALA_LAB",
+  "KOORD_OPERASIONAL",
+  "KOORD_RISET",
+  "KOORD_PENGEMBANGAN",
+  "KETUA_SQUAD",
+  "ANGGOTA",
+  "PENGAWAS",
+];
+
+/**
+ * Peran yang boleh DIBERIKAN oleh pengelola keanggotaan yang BUKAN Kepala
+ * Laboratorium (mis. Koordinator Pengembangan): hanya sampai Ketua Squad.
+ *
+ * Menetapkan Koordinator, Kepala Laboratorium, atau Pengawas tetap hak Kepala
+ * Laboratorium — perannya menyangkut wewenang, bukan sekadar data keanggotaan.
+ */
+export const PERAN_DIKELOLA: Role[] = ["ANGGOTA", "KETUA_SQUAD"];
+
+/** Daftar peran yang boleh diberikan seorang pengelola, untuk mengisi menu. */
+export function peranDapatDiberi(pengelola: Role): Role[] {
+  if (bolehTulis(pengelola, "peran_hak_akses")) return [...SEMUA_PERAN];
+  if (bolehTulis(pengelola, "master_anggota")) return [...PERAN_DIKELOLA];
+  return [];
+}
+
+/**
+ * Bolehkah `pengelola` menetapkan peran sebuah akun dari `peranLama`
+ * (null saat membuat akun baru) menjadi `peranBaru`?
+ *
+ * Kepala Laboratorium: peran apa pun. Pengelola keanggotaan lain: sah hanya
+ * bila BAIK peran lama MAUPUN peran baru berada dalam jangkauannya — sehingga
+ * akun yang sudah menjadi koordinator (atau lebih tinggi) tidak dapat disentuh
+ * perannya, dan tidak seorang pun dapat dinaikkan menjadi koordinator lewat
+ * pintu keanggotaan ini.
+ */
+export function bolehMemberiPeran(
+  pengelola: Role,
+  peranLama: Role | null,
+  peranBaru: Role,
+): boolean {
+  if (bolehTulis(pengelola, "peran_hak_akses")) return true;
+  if (!bolehTulis(pengelola, "master_anggota")) return false;
+  if (!PERAN_DIKELOLA.includes(peranBaru)) return false;
+  if (peranLama !== null && !PERAN_DIKELOLA.includes(peranLama)) return false;
+  return true;
+}
+
+/**
+ * Bolehkah `pengelola` menyentuh akun seseorang yang berperan `peranTarget`
+ * (menyunting datanya, menyetel ulang sandinya, mengubah perannya)?
+ *
+ * Akun Kepala Laboratorium hanya dapat disentuh Kepala Laboratorium sendiri.
+ * Tidak ada anggota, ketua squad, maupun koordinator — sekalipun ia pengelola
+ * keanggotaan — yang boleh mengubah data Kepala Laboratorium. Ini penjagaan
+ * tersendiri di atas hak modul: seorang Koordinator Pengembangan berwenang atas
+ * keanggotaan pada umumnya, tetapi tidak atas akun yang menjadi puncak wewenang.
+ */
+export function bolehKelolaAkun(pengelola: Role, peranTarget: Role): boolean {
+  if (peranTarget === "KEPALA_LAB") return pengelola === "KEPALA_LAB";
+  return true;
 }

@@ -83,3 +83,28 @@ export function akhirHariWib(tanggal: string): Date | null {
   waktu.setUTCHours(waktu.getUTCHours() - OFFSET_WIB_JAM);
   return waktu;
 }
+
+/**
+ * Nomor hari dalam pekan menurut WIB: 0 Minggu, 1 Senin, sampai 6 Sabtu.
+ *
+ * Dihitung dari tanggal KALENDER WIB, bukan dari hari UTC. Piket Senin yang
+ * dicatat pukul 06.00 WIB masih berada di hari Minggu menurut UTC; tanpa
+ * penyesuaian ini jadwal piket meleset satu hari setiap pagi.
+ */
+export function nomorHariWib(waktu: Date = new Date()): number {
+  return tanggalKalenderWib(waktu).getUTCDay();
+}
+
+/**
+ * Senin pada pekan yang memuat tanggal itu, menurut WIB.
+ *
+ * Pekan dimulai Senin karena begitulah pekan kerja laboratorium dibaca orang.
+ * Dipakai menomori pekan logbook, sehingga "pekan ini" berarti hal yang sama
+ * bagi semua squad, tidak bergantung pada hari apa periodenya kebetulan mulai.
+ */
+export function awalPekanWib(waktu: Date = new Date()): Date {
+  const tanggal = tanggalKalenderWib(waktu);
+  // Minggu (0) termasuk pekan yang Seninnya enam hari sebelumnya.
+  const mundur = (tanggal.getUTCDay() + 6) % 7;
+  return new Date(tanggal.getTime() - mundur * 86_400_000);
+}

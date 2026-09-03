@@ -8,6 +8,29 @@
 // -----------------------------------------------------------------------------
 
 /**
+ * Peringatan yang dapat ditampilkan SEBELUM tombol pindai ditekan.
+ *
+ * Konteks tidak aman adalah satu-satunya sebab yang sudah pasti gagal dan sudah
+ * dapat diketahui lebih dulu — tidak perlu menunggu kamera dicoba untuk tahu
+ * bahwa peramban akan menolaknya. Menahannya sampai sesudah tombol ditekan
+ * membuat kegagalannya tampak seperti kerusakan aplikasi atau gangguan
+ * jaringan, dan orang mencarinya di tempat yang salah.
+ *
+ * Mengembalikan null di peladen, karena `isSecureContext` hanya ada di
+ * peramban. Pemanggilnya wajib menjalankan ini sesudah komponen terpasang,
+ * bukan saat render pertama, supaya hasil peladen dan peramban tidak berbeda.
+ */
+export function peringatanKameraTidakAman(): string | null {
+  if (typeof window === "undefined" || window.isSecureContext) return null;
+  return (
+    "Halaman ini dibuka lewat koneksi http, jadi peramban tidak akan " +
+    "mengizinkan kamera dan pemindai QR tidak dapat terbuka. Buka lewat " +
+    "alamat https laboratorium. (Saat mengembangkan di laptop, http://localhost " +
+    "juga dianggap aman.)"
+  );
+}
+
+/**
  * Menerjemahkan kegagalan membuka kamera menjadi sebab yang sebenarnya.
  *
  * Sebab yang paling sering justru halaman dibuka lewat http, dan peramban

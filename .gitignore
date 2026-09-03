@@ -5,6 +5,9 @@ build/
 .env
 .env.local
 .env*.local
+# Salinan pengaman yang dibuat scripts/siapkan-env.mjs. Isinya sama rahasianya
+# dengan .env sendiri, jadi ia tidak boleh ikut masuk riwayat.
+.env.bak
 *.log
 npm-debug.log*
 .DS_Store

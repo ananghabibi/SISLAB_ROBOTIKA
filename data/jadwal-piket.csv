@@ -1,0 +1,19 @@
+# Jadwal piket harian per squad — NILAI AWAL saja.
+#
+# Berkas ini hanya dipakai seeder untuk mengisi jadwal pertama kali. Yang
+# BERLAKU sehari-hari adalah tabel `jadwal_piket` di basis data, yang dapat
+# diubah dari antarmuka (menu Jadwal Piket) oleh Kepala Laboratorium dan
+# Koordinator Pengembangan.
+#
+# Piket berjalan Senin sampai Sabtu. Minggu sengaja tidak dijadwalkan. Hari
+# yang kode_squad-nya dikosongkan berarti belum ditetapkan siapa yang piket —
+# itu bukan pelanggaran, hanya menunggu diatur.
+#
+# Kode hari mengikuti nomor hari JavaScript: 1 Senin sampai 6 Sabtu.
+hari,nomor_hari,kode_squad
+Senin,1,VTOL
+Selasa,2,KKI
+Rabu,3,GROUND
+Kamis,4,ILMIAH
+Jumat,5,PRODUK
+Sabtu,6,

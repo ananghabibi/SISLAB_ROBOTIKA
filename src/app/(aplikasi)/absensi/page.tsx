@@ -1,6 +1,8 @@
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/field";
+import { PanelSaringan } from "@/components/ui/panel-saringan";
 import { absensiHariIni, durasiJam, riwayatAbsensi } from "@/lib/absensi";
 import { wajibIzin } from "@/lib/penjaga";
 import { jamWib, tanggalPanjangWib, tanggalPendekWib } from "@/lib/waktu";
@@ -17,13 +19,29 @@ function tampilkanDurasi(jam: number): string {
   return j > 0 ? `${j} jam ${m} menit` : `${m} menit`;
 }
 
-export default async function HalamanAbsensi() {
+export default async function HalamanAbsensi({
+  searchParams,
+}: {
+  searchParams: Promise<{ cari?: string }>;
+}) {
   const { pengguna } = await wajibIzin("absensi_sendiri", "baca");
+  const cari = (await searchParams).cari?.trim() ?? "";
 
-  const [hariIni, riwayat] = await Promise.all([
+  const [hariIni, riwayatSemua] = await Promise.all([
     absensiHariIni(pengguna.id),
     riwayatAbsensi(pengguna.id),
   ]);
+
+  // Riwayat pribadi berjumlah puluhan, jadi disaring di memori — tidak perlu
+  // kueri tambahan.
+  const kunci = cari.toLowerCase();
+  const riwayat = kunci
+    ? riwayatSemua.filter((a) =>
+        [a.jenisKegiatan, a.uraian, a.rencana, a.kendala, tanggalPendekWib(a.tanggal)]
+          .filter(Boolean)
+          .some((teks) => String(teks).toLowerCase().includes(kunci)),
+      )
+    : riwayatSemua;
 
   const belumMasuk = !hariIni;
   const sedangDiLab = Boolean(hariIni && !hariIni.jamKeluar && !hariIni.dibatalkan);
@@ -68,9 +86,21 @@ export default async function HalamanAbsensi() {
             pembatalan yang tetap merujuk catatan aslinya.
           </CardDescription>
         </CardHeader>
+        <CardContent className="pb-0">
+          <PanelSaringan jalur="/absensi" jumlahAktif={cari ? 1 : 0}>
+            <Input
+              name="cari"
+              placeholder="Cari tanggal, kegiatan, atau catatan"
+              defaultValue={cari}
+              aria-label="Cari riwayat kehadiran"
+            />
+          </PanelSaringan>
+        </CardContent>
         {riwayat.length === 0 ? (
           <CardContent>
-            <p className="text-sm text-teks-redup">Belum ada riwayat kehadiran.</p>
+            <p className="text-sm text-teks-redup">
+              {cari ? "Tidak ada riwayat yang cocok dengan saringan." : "Belum ada riwayat kehadiran."}
+            </p>
           </CardContent>
         ) : (
           <div className="overflow-x-auto">
@@ -129,6 +159,13 @@ export default async function HalamanAbsensi() {
             </table>
           </div>
         )}
+
+        <p className="border-t border-garis px-4 py-3 text-xs text-teks-redup">
+          Sesi yang <strong>tidak diakhiri</strong> dengan pindai pulang tetap dihitung{" "}
+          <strong>hadir</strong> — harinya tetap masuk rekap dan skor kontribusi. Yang menjadi nol
+          hanya durasinya, dan skor tidak memakai durasi sama sekali. Jam pulang tidak pernah
+          dikarang sistem; yang tidak tercatat tetap kosong.
+        </p>
       </Card>
     </>
   );

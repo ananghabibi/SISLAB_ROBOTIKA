@@ -25,10 +25,11 @@ export const MENU: ButirMenu[] = [
   { label: "Absensi Saya", href: "/absensi", kelompok: "Harian", milestone: 2, selesai: true },
   { label: "Rekap Absensi", href: "/absensi/rekap", kelompok: "Harian", milestone: 3, selesai: true },
   { label: "Absensi Manual", href: "/absensi/manual", kelompok: "Harian", milestone: 2, selesai: true },
-  { label: "Logbook Riset", href: "/logbook", kelompok: "Harian", milestone: 5, selesai: false },
-  { label: "Piket", href: "/piket", kelompok: "Harian", milestone: 5, selesai: false },
-  { label: "Laporan Insiden", href: "/insiden", kelompok: "Harian", milestone: 5, selesai: false },
-  { label: "Buku Tamu", href: "/tamu", kelompok: "Harian", milestone: 5, selesai: false },
+  { label: "Logbook Riset", href: "/logbook", kelompok: "Harian", milestone: 5, selesai: true },
+  { label: "Piket", href: "/piket", kelompok: "Harian", milestone: 5, selesai: true },
+  { label: "Jadwal Piket", href: "/piket/jadwal", kelompok: "Pengelolaan", milestone: 5, selesai: true },
+  { label: "Laporan Insiden", href: "/insiden", kelompok: "Harian", milestone: 5, selesai: true },
+  { label: "Buku Tamu", href: "/tamu", kelompok: "Harian", milestone: 5, selesai: true },
 
   { label: "Anggota", href: "/anggota", kelompok: "Pengelolaan", milestone: 1, selesai: true },
   { label: "Peran & Hak Akses", href: "/peran", kelompok: "Pengelolaan", milestone: 1, selesai: true },
@@ -36,8 +37,8 @@ export const MENU: ButirMenu[] = [
   { label: "Peminjaman", href: "/peminjaman", kelompok: "Pengelolaan", milestone: 4, selesai: true },
   { label: "Periode & Target", href: "/periode", kelompok: "Pengelolaan", milestone: 3, selesai: true },
 
-  { label: "Surat Kontribusi", href: "/skk", kelompok: "Pengawasan", milestone: 6, selesai: false },
-  { label: "Audit Log", href: "/audit", kelompok: "Pengawasan", milestone: 6, selesai: false },
+  { label: "Surat Kontribusi", href: "/skk", kelompok: "Pengawasan", milestone: 6, selesai: true },
+  { label: "Audit Log", href: "/audit", kelompok: "Pengawasan", milestone: 6, selesai: true },
   { label: "Ekspor Data", href: "/ekspor", kelompok: "Pengawasan", milestone: 3, selesai: true },
 ];
 

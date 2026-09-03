@@ -57,6 +57,32 @@ describe("penutupan rute per peran", () => {
     expect(peranBolehMembuka("PENGAWAS", "/absensi/rekap")).toBe(true);
   });
 
+  it("menuntut hak tulis inventaris untuk /inventaris/baru, bukan sekadar baca", () => {
+    // Seluruh laboratorium boleh MELIHAT inventaris; menambah alat tidak.
+    expect(peranBolehMembuka("ANGGOTA", "/inventaris")).toBe(true);
+    expect(peranBolehMembuka("ANGGOTA", "/inventaris/baru")).toBe(false);
+    expect(peranBolehMembuka("PENGAWAS", "/inventaris/baru")).toBe(false);
+    expect(peranBolehMembuka("KOORD_OPERASIONAL", "/inventaris/baru")).toBe(true);
+    expect(peranBolehMembuka("KEPALA_LAB", "/inventaris/baru")).toBe(true);
+  });
+
+  it("mengatur jadwal piket hanya untuk Kepala Lab dan Koordinator Pengembangan", () => {
+    expect(peranBolehMembuka("KEPALA_LAB", "/piket/jadwal")).toBe(true);
+    expect(peranBolehMembuka("KOORD_PENGEMBANGAN", "/piket/jadwal")).toBe(true);
+    expect(peranBolehMembuka("KOORD_OPERASIONAL", "/piket/jadwal")).toBe(false);
+    expect(peranBolehMembuka("KETUA_SQUAD", "/piket/jadwal")).toBe(false);
+    // Semua tetap boleh membuka /piket (mencatat/membaca).
+    expect(peranBolehMembuka("KOORD_OPERASIONAL", "/piket")).toBe(true);
+  });
+
+  it("membuka /anggota/baru hanya untuk pengelola keanggotaan", () => {
+    // Keanggotaan kini milik Koordinator Pengembangan; Operasional tidak lagi.
+    expect(peranBolehMembuka("KOORD_PENGEMBANGAN", "/anggota/baru")).toBe(true);
+    expect(peranBolehMembuka("KOORD_OPERASIONAL", "/anggota/baru")).toBe(false);
+    expect(peranBolehMembuka("KOORD_RISET", "/anggota/baru")).toBe(false);
+    expect(peranBolehMembuka("KETUA_SQUAD", "/anggota/baru")).toBe(false);
+  });
+
   it("menutup /audit untuk anggota dan ketua squad", () => {
     expect(peranBolehMembuka("ANGGOTA", "/audit")).toBe(false);
     expect(peranBolehMembuka("KETUA_SQUAD", "/audit")).toBe(false);

@@ -5,6 +5,8 @@ import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { PesanFormulir, useKosongkanSetelahBerhasil } from "@/components/ui/umpan-balik";
+import { PANJANG_SANDI_MINIMAL } from "@/lib/sandi";
 import { ubahKataSandi, type KeadaanSandi } from "./aksi";
 
 function TombolSimpan() {
@@ -18,34 +20,47 @@ function TombolSimpan() {
 
 export function FormulirSandi() {
   const [keadaan, aksi] = useActionState<KeadaanSandi, FormData>(ubahKataSandi, {});
+  const ref = useKosongkanSetelahBerhasil(keadaan.berhasil);
 
   return (
-    <form action={aksi} className="max-w-sm space-y-3">
-      <Field label="Kata sandi lama" htmlFor="sandiLama">
-        <Input id="sandiLama" name="sandiLama" type="password" autoComplete="current-password" required />
+    <form ref={ref} action={aksi} className="max-w-sm space-y-3">
+      <Field label="Kata sandi lama" htmlFor="sandiLama" wajib>
+        <Input
+          id="sandiLama"
+          name="sandiLama"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
       </Field>
       <Field
         label="Kata sandi baru"
         htmlFor="sandiBaru"
-        petunjuk="Minimal 10 karakter. Gunakan frasa yang mudah Anda ingat."
+        wajib
+        petunjuk={`Minimal ${PANJANG_SANDI_MINIMAL} karakter. Gunakan frasa yang mudah Anda ingat, dan jangan pakai kata sandi bawaan.`}
       >
-        <Input id="sandiBaru" name="sandiBaru" type="password" autoComplete="new-password" required />
+        <Input
+          id="sandiBaru"
+          name="sandiBaru"
+          type="password"
+          autoComplete="new-password"
+          minLength={PANJANG_SANDI_MINIMAL}
+          required
+        />
       </Field>
-      <Field label="Ulangi kata sandi baru" htmlFor="ulangi">
-        <Input id="ulangi" name="ulangi" type="password" autoComplete="new-password" required />
+      <Field label="Ulangi kata sandi baru" htmlFor="ulangi" wajib>
+        <Input
+          id="ulangi"
+          name="ulangi"
+          type="password"
+          autoComplete="new-password"
+          minLength={PANJANG_SANDI_MINIMAL}
+          required
+        />
       </Field>
       <TombolSimpan />
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
     </form>
   );
 }

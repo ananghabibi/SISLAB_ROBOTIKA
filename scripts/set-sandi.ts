@@ -16,9 +16,9 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+import { alasanSandiDitolak } from "../src/lib/sandi";
 
-const PANJANG_MINIMAL = 10;
+const prisma = new PrismaClient();
 
 async function main() {
   const [surel, sandi] = process.argv.slice(2);
@@ -30,8 +30,10 @@ async function main() {
     return;
   }
 
-  if (sandi.length < PANJANG_MINIMAL) {
-    console.error(`Kata sandi minimal ${PANJANG_MINIMAL} karakter.`);
+  // Aturan yang sama persis dengan formulir ganti sandi di web.
+  const ditolak = alasanSandiDitolak(sandi);
+  if (ditolak) {
+    console.error(ditolak);
     process.exitCode = 1;
     return;
   }
@@ -50,7 +52,9 @@ async function main() {
 
   await prisma.user.update({
     where: { id: anggota.id },
-    data: { passwordHash: await bcrypt.hash(sandi, 12) },
+    // Kata sandi ini dipilih, bukan bawaan, jadi benderanya ikut turun dan
+    // seluruh modul terbuka kembali untuk pemiliknya.
+    data: { passwordHash: await bcrypt.hash(sandi, 12), wajibGantiSandi: false },
   });
 
   // Isi kata sandi tidak pernah masuk audit log; hanya faktanya yang dicatat.

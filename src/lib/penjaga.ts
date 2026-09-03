@@ -11,6 +11,7 @@ import { forbidden, redirect } from "next/navigation";
 import type { Session } from "next-auth";
 
 import { auth } from "@/auth";
+import { prisma } from "./prisma";
 import { bolehBaca, bolehHapus, bolehTulis, izinUntuk, type Modul } from "./rbac";
 
 // Kebijakan pelingkupan tinggal di modul tersendiri yang tidak menyentuh
@@ -18,8 +19,12 @@ import { bolehBaca, bolehHapus, bolehTulis, izinUntuk, type Modul } from "./rbac
 // agar halaman cukup mengimpor satu modul penjagaan.
 export {
   bolehLihatDataOrang,
+  saringanAuditLog,
   saringanDaftarAnggota,
+  saringanInsiden,
+  saringanLogbook,
   saringanPeminjaman,
+  saringanPiket,
   saringanRekapKontribusi,
   type PenggunaLingkup,
 } from "./lingkup";
@@ -48,6 +53,7 @@ export async function wajibMasuk(): Promise<Pengguna> {
  */
 export async function wajibIzin(modul: Modul, aksi: "baca" | "tulis" | "hapus" = "baca") {
   const pengguna = await wajibMasuk();
+  await wajibSandiSendiri(pengguna.id);
   const izin = izinUntuk(pengguna.role, modul);
 
   const berhak =
@@ -59,6 +65,32 @@ export async function wajibIzin(modul: Modul, aksi: "baca" | "tulis" | "hapus" =
 
   if (!berhak) tolakAkses();
   return { pengguna, izin };
+}
+
+/**
+ * Menutup seluruh modul untuk akun yang masih memakai kata sandi bawaan.
+ *
+ * Kata sandi bawaan sama untuk semua orang. Selama ia masih terpasang, tidak
+ * ada cara membedakan pemilik akun dari siapa pun yang membaca panduan
+ * instalasi — jadi akun itu belum boleh dipakai untuk mencatat apa pun,
+ * terutama absensi.
+ *
+ * Sengaja dipasang di `wajibIzin`, bukan di `wajibMasuk`: Dasbor dan Profil
+ * memakai `wajibMasuk` dan karenanya tetap terbuka. Orangnya masih dapat
+ * masuk, membaca peringatan di dasbor, lalu mengganti sandinya. Yang tertutup
+ * hanyalah semua yang menulis atau membaca data laboratorium.
+ *
+ * Pemeriksaannya membaca basis data, bukan token sesi. Token disegarkan
+ * berkala; kalau benderanya ikut menumpang di sana, orang yang baru saja
+ * mengganti sandi masih tertahan sampai penyegaran berikutnya, dan dari
+ * kursinya itu tampak seperti aplikasi yang rusak.
+ */
+async function wajibSandiSendiri(idPengguna: string): Promise<void> {
+  const akun = await prisma.user.findUnique({
+    where: { id: idPengguna },
+    select: { wajibGantiSandi: true },
+  });
+  if (akun?.wajibGantiSandi) redirect("/profil");
 }
 
 /** Menjaga rute yang hanya boleh dibuka satu peran tertentu. */

@@ -37,11 +37,14 @@ export function Layar({
   detikPutaran,
   pesanGangguan,
   orangAwal,
+  alamatPonsel,
 }: {
   kodeHarian: string | null;
   detikPutaran: number;
   pesanGangguan: string | null;
   orangAwal: Orang[];
+  /** Alamat yang harus diketik di ponsel; null bila tidak dapat ditentukan. */
+  alamatPonsel: string | null;
 }) {
   const [sekarang, setSekarang] = useState<Date | null>(null);
   const [putaran, setPutaran] = useState(0);
@@ -164,6 +167,19 @@ export function Layar({
               </div>
               <p className="mt-1 text-sm text-slate-400">berganti dalam {sisa} detik</p>
             </>
+          ) : null}
+
+          {/* Alamat peladen ditampilkan di sini, bukan hanya di terminal
+              pengurus. Alamat WiFi berubah sendiri setiap kali laptop
+              menyambung ulang, dan yang berdiri di pintu dengan ponsel di
+              tangan tidak punya cara lain mengetahui alamat yang berlaku. */}
+          {alamatPonsel ? (
+            <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-800/60 px-6 py-4 text-center">
+              <p className="text-base text-slate-400">Buka di ponsel</p>
+              <p className="mt-1 font-mono text-2xl font-bold break-all text-sky-300 lg:text-3xl">
+                {alamatPonsel}
+              </p>
+            </div>
           ) : null}
         </section>
       </div>

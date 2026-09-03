@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { Fragment, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { PesanFormulir } from "@/components/ui/umpan-balik";
 import { simpanPeriode, type KeadaanPeriode } from "./aksi";
 
 export interface NilaiPeriode {
@@ -33,8 +34,13 @@ export function FormulirPeriode({ nilai }: { nilai: NilaiPeriode }) {
   const aksi = simpanPeriode.bind(null, nilai.id);
   const [keadaan, jalankan] = useActionState<KeadaanPeriode, FormData>(aksi, {});
 
+  // Lihat FormulirAset: kunci ini memasang ulang medan setelah props menyegar,
+  // supaya suntingan tersimpan tidak tampak kembali ke nilai lama.
+  const kunciMedan = JSON.stringify(nilai);
+
   return (
     <form action={jalankan} className="space-y-4">
+      <Fragment key={kunciMedan}>
       <Field label="Nama periode" htmlFor={`nama-${nilai.id ?? "baru"}`}>
         <Input
           id={`nama-${nilai.id ?? "baru"}`}
@@ -136,18 +142,11 @@ export function FormulirPeriode({ nilai }: { nilai: NilaiPeriode }) {
         bukan dihitung nol.
       </p>
 
+      </Fragment>
+
       <TombolSimpan label={nilai.id ? "Simpan perubahan" : "Buat periode"} />
 
-      {keadaan.galat ? (
-        <p role="alert" className="rounded-lg bg-bahaya-lembut px-3 py-2 text-sm text-bahaya">
-          {keadaan.galat}
-        </p>
-      ) : null}
-      {keadaan.berhasil ? (
-        <p role="status" className="rounded-lg bg-berhasil-lembut px-3 py-2 text-sm text-berhasil">
-          {keadaan.berhasil}
-        </p>
-      ) : null}
+      <PesanFormulir galat={keadaan.galat} berhasil={keadaan.berhasil} />
     </form>
   );
 }

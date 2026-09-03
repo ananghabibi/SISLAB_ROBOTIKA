@@ -266,31 +266,579 @@ lembar label QR, dan tidak melihat tombol catat peminjaman.
 
 ---
 
-## ⬜ Milestone 5 — Piket, Logbook, dan Insiden
+## 🔵 Milestone 5 — Piket, Logbook, dan Insiden
 
-1. Jadwal piket per squad; checklist delapan butir dengan foto sebelum-sesudah.
-2. Logbook riset mingguan per squad; penanda squad yang belum mengisi pekan ini.
-3. Pelaporan insiden dan nyaris celaka, dapat diisi semua peran.
-4. Buku tamu.
+**Sudah dibangun, menunggu pengujian di peramban.** Uji otomatis bersih
+(`npm run typecheck`, `npm test` — 194 uji, `npm run build`), tetapi kriteria
+diterima di bawah belum diverifikasi ke basis data sungguhan. Milestone ini
+belum boleh ditandai ✅ sebelum itu dikerjakan.
+
+1. ✅ Jadwal piket per squad (`data/jadwal-piket.csv`); checklist delapan butir
+   (`data/checklist-piket.csv`) dengan foto sebelum-sesudah (`/piket`).
+2. ✅ Logbook riset mingguan per squad; penanda squad yang belum mengisi pekan
+   berjalan, di halaman `/logbook` dan di dasbor koordinator.
+3. ✅ Pelaporan insiden dan nyaris celaka, dapat diisi semua peran (`/insiden`).
+4. ✅ Buku tamu dengan pendamping wajib (`/tamu`).
 
 **Kriteria diterima:** squad yang belum mengisi logbook pekan ini tampil
 menonjol di dasbor koordinator; laporan insiden langsung memberi notifikasi ke
 Kepala Lab.
 
+### Yang perlu diuji sebelum milestone ini ditutup
+
+| Kriteria | Cara mengujinya |
+|---|---|
+| Squad yang belum mengisi logbook pekan ini menonjol di dasbor koordinator | Masuk sebagai KOORD_RISET dengan periode aktif terbuka. Dasbor harus memuat kartu "N squad belum mengisi logbook pekan X" di atas. Isi satu logbook, muat ulang: squad itu hilang dari daftar |
+| Laporan insiden langsung memberi notifikasi ke Kepala Lab | Masuk sebagai ANGGOTA, kirim satu laporan. Masuk sebagai KEPALA_LAB: kartu laporan menunggu harus berada di **paling atas** dasbor, dan cedera/kebakaran bertanda "mendesak" |
+| Satu logbook per squad per pekan | Kirim dua kali untuk squad dan pekan yang sama — yang kedua ditolak dengan kalimat, bukan halaman galat |
+| Logbook pekan yang belum tiba ditolak | Ubah `mingguKe` pada formulir lewat peralatan peramban menjadi pekan depan; peladen harus menolak |
+| Lingkup tulis SENDIRI benar-benar terbatas | Sebagai KETUA_SQUAD, ubah `squadId` pada formulir logbook atau piket menjadi squad lain; peladen harus menolak |
+| Satu catatan piket per squad per hari | Simpan dua kali pada hari yang sama; yang kedua ditolak |
+| `alatBelumKembali` terisi sendiri | Pinjam satu alat, lalu catat piket. Kartu piket harus menyebutkan "1 alat masih tercatat dipinjam" |
+| PENGAWAS tidak pernah bisa menulis | Sebagai PENGAWAS, keempat halaman terbuka tanpa satu pun formulir |
+| Tamu tidak masuk ke rekap absensi | Catat satu tamu, lalu buka Rekap Kontribusi — angkanya tidak berubah |
+
+Migrasi `20260828040000_logbook_periode` harus dijalankan sebelum menguji:
+`npm run db:migrate` (pengembangan) atau `npx prisma migrate deploy`
+(laboratorium). **Urutannya penting** — `git pull` dulu, baru migrasi. Migrasi
+yang dijalankan sebelum kodenya ditarik akan menjawab "Already in sync" dengan
+benar (berkas migrasinya memang belum ada), lalu halaman Logbook dan Dasbor
+gagal dengan `Unknown argument periodId` karena klien Prisma masih dibuat dari
+skema yang lama.
+
+### Catatan keputusan
+
+- **Logbook memperoleh `periodId`, dan kekangan uniknya menjadi
+  (squad, periode, pekan).** Kekangan lama, (squad, pekan), memperlakukan nomor
+  pekan sebagai angka yang tidak pernah berulang — padahal pekan dihitung
+  terhadap awal periode dan kembali ke 1 setiap semester. Tanpa perubahan ini,
+  logbook pekan 1 semester depan ditolak karena bertabrakan dengan pekan 1
+  semester ini, dengan pesan yang tidak berarti apa-apa bagi yang mengisinya.
+  SPEC bagian 5 tidak menyebut medan ini; skema memang sudah pernah melampaui
+  daftar itu ketika `fotoIdentitasUrl` ditambahkan pada Milestone 4.
+- **Pekan dihitung mulai Senin, bukan mulai hari periode dibuka.** Kalau periode
+  dibuka hari Rabu dan pekan ikut Rabu–Selasa, penanda "belum mengisi pekan ini"
+  menuduh squad yang sebenarnya sudah mengisi. Perhitungannya di
+  `awalPekanWib()` dan `mingguKeDari()`, keduanya diuji termasuk untuk periode
+  yang dibuka di tengah pekan.
+- **Checklist piket boleh disimpan belum lengkap.** Memaksa 8 dari 8 tidak
+  membuat laboratorium lebih bersih; ia hanya memastikan seluruh catatan piket
+  berbunyi 8 dari 8, termasuk pada hari yang soldernya memang lupa dicabut.
+  Catatan yang selalu sempurna tidak dapat dipakai memperbaiki apa pun.
+- **`alatBelumKembali` dihitung, tidak diketik.** Angka yang diminta dari
+  petugas pada akhir hari yang melelahkan selalu menjadi nol, dan nol yang salah
+  lebih buruk daripada tidak ada angka — ia ikut menghitung skor kontribusi.
+- **Laporan insiden tidak dapat dihapus siapa pun.** Yang bisa dihapus akan
+  dihapus persis pada saat ia paling perlu dibaca. Yang berubah hanya status
+  tindak lanjutnya.
+- **Foto insiden tidak diwajibkan, foto piket diwajibkan.** Insiden yang perlu
+  dilaporkan sering justru yang sudah dibereskan lebih dulu; memaksa foto
+  berarti memaksa orang membiarkan keadaan berbahaya demi mengambil gambar.
+  Piket sebaliknya: sebelum-sesudah adalah seluruh isi buktinya.
+- **"Notifikasi ke Kepala Lab" diwujudkan di dalam sistem, bukan lewat pesan
+  keluar.** WhatsApp dan bot ada di daftar yang tidak dibangun (SPEC bagian 10),
+  jadi laporan yang menunggu ditaruh di kartu paling atas dasbor.
+- **Buku tamu memakai baris hak akses `insiden`.** SPEC 4.2 tidak memberinya
+  baris tersendiri, dan pola aksesnya sama persis: boleh diisi siapa pun yang
+  sedang berada di ruangan, dibaca seluruhnya oleh Kepala Lab dan Koordinator.
+- **Kepala Lab diberi hak tulis pada piket dan logbook, menyimpang dari
+  SPEC 4.2 yang memberinya "B".** Diminta langsung oleh Kepala Laboratorium,
+  dengan alasan yang sama seperti penyimpangan peminjaman di Milestone 4:
+  dialah yang paling sering berada di ruangan pada jam-jam terakhir, dan piket
+  yang tidak dapat dicatat oleh orang yang sedang berdiri di sana akan dicatat
+  besok pagi berdasarkan ingatan. Hak hapus tetap tertutup, dan PENGAWAS tidak
+  ikut tersentuh — keduanya dikunci uji di `tests/rbac.test.ts`. Untuk logbook,
+  penyimpangan ini terasa lebih jauh: logbook adalah catatan squad tentang
+  pekerjaannya sendiri. Setiap entri menyimpan `dibuatOlehId` dan masuk audit
+  log, jadi pemakaiannya tidak pernah tersamar.
+- **Daftar centang anggota pada formulir logbook mengikuti squad yang sedang
+  dipilih.** Semula ia mengikuti squad bawaan, sehingga siapa pun yang boleh
+  mengisi untuk lebih dari satu squad — Koordinator Riset, dan kini Kepala Lab
+  yang tidak punya squad sendiri — akan mengirim daftar anggota milik squad
+  lain, dan peladen menolaknya dengan pesan yang membingungkan.
+- **Butir checklist dan jadwal piket tinggal di `data/*.csv`.** Keduanya berubah
+  karena keputusan pengurus, bukan karena perubahan perangkat lunak. Kode butir
+  dipakai sebagai kunci di basis data, sehingga butir yang dihapus tidak
+  merusak catatan lama dan butir baru terbaca sebagai belum dicentang.
+
 ---
 
-## ⬜ Milestone 6 — Surat Keterangan Kontribusi dan Audit
+## 🔵 Milestone 6 — Surat Keterangan Kontribusi dan Audit
 
-1. Daftar kandidat SKK beserta alasan kelayakan atau ketidaklayakannya (SPEC 6.2).
-2. Penerbitan oleh Kepala Lab → PDF bernomor berkop, format FRM-LR-07.
-3. `snapshotJson` membekukan angka saat terbit.
-4. Halaman audit log dengan penyaringan.
-5. Impor data awal dari CSV hasil ekspor Google Sheets.
+**Sudah dibangun, menunggu pengujian di peramban.** Uji otomatis bersih
+(`npm run typecheck`, `npm test` — 240 uji, `npm run build`).
+
+1. ✅ Daftar kandidat SKK beserta alasan kelayakan **dan** ketidaklayakannya,
+   berikut angkanya masing-masing (`/skk`, SPEC 6.2).
+2. ✅ Penerbitan oleh Kepala Lab → PDF bernomor berkop, format FRM-LR-07
+   (`/api/skk/<id>/pdf`).
+3. ✅ `snapshotJson` membekukan angka saat terbit; lembar suratnya dirender
+   dari snapshot itu saja, tidak pernah dari perhitungan ulang.
+4. ✅ Halaman audit log dengan penyaringan aksi, entitas, dan pencarian nama
+   pelaku atau id entitas (`/audit`).
+5. ✅ Impor data awal dari CSV hasil ekspor Google Sheets
+   (`npm run impor:absensi -- <berkas.csv> [--tulis]`).
 
 **Kriteria diterima:** SKK terbit tidak berubah walau data absensi dikoreksi;
 nomor surat tidak pernah bentrok; setiap penerbitan tercatat di audit log.
 
+### Yang perlu diuji sebelum milestone ini ditutup
+
+| Kriteria | Cara mengujinya |
+|---|---|
+| SKK terbit tidak berubah walau data absensi dikoreksi | Terbitkan surat untuk seorang anggota, unduh PDF-nya, catat angkanya. Batalkan salah satu catatan absensinya lewat Absensi Manual, lalu unduh PDF yang sama sekali lagi — seluruh angkanya wajib sama persis |
+| Nomor surat tidak pernah bentrok | Terbitkan beberapa surat berturut-turut; nomornya berurutan tanpa terulang. Kekangan `nomor` unik di basis data yang menjaganya, dan penerbitan yang kalah mengambil nomor berikutnya |
+| Setiap penerbitan tercatat di audit log | Sesudah menerbitkan, buka `/audit` dan saring aksi `TERBIT_SKK` |
+| Hanya Kepala Lab yang menerbitkan | Sebagai KOORD_OPERASIONAL, halaman `/skk` terbuka tanpa satu pun formulir penerbitan |
+| Anggota tidak dapat mengunduh surat orang lain | Sebagai ANGGOTA, buka `/api/skk/<id surat orang lain>/pdf` — wajib 403 |
+| Penerbitan meski syarat kurang tetap jujur | Terbitkan untuk anggota yang syaratnya belum lengkap; PDF-nya wajib memuat catatan bahwa surat diterbitkan atas pertimbangan Kepala Lab beserta syarat yang kurang |
+| Impor CSV menolak sebelum menulis | Jalankan `npm run impor:absensi -- berkas.csv` tanpa `--tulis`; ia hanya melaporkan. Baris yang tanggalnya salah ditolak dengan menyebut nomor barisnya |
+| Impor tidak menimpa catatan yang sudah ada | Jalankan impor dua kali dengan `--tulis`; yang kedua melaporkan seluruhnya "dilewati" |
+
+### Catatan keputusan
+
+- **Surat dirender dari `snapshotJson`, bukan dari perhitungan ulang.** Inilah
+  seluruh isi kriteria diterima yang pertama. Snapshot menyimpan pula nama,
+  NPM, dan nama squad pemiliknya — bukan sekadar id yang nanti dibaca ulang —
+  supaya surat lama tetap terbaca sebagaimana ia ditulis dulu walau anggotanya
+  sudah lulus dan pindah squad.
+- **Nomor surat diuji lewat kekangan unik, bukan diandalkan dari hitungan.**
+  Nomor dihitung dari banyaknya surat pada tahun berjalan, lalu penulisannya
+  dicoba; bentrok `P2002` berarti ada penerbitan lain yang menyelip, dan yang
+  kalah mengambil nomor berikutnya sampai sepuluh percobaan. Menghitung tanpa
+  penjagaan ini berarti nomor surat resmi bergantung pada nasib.
+- **Urutan nomor dihitung per TAHUN kalender, bukan per periode.** Satu tahun
+  memuat dua semester; penomoran yang mengulang dari 1 di tengah tahun akan
+  bertabrakan pada kekangan unik sekaligus membingungkan pengarsipan.
+- **Syarat "serah terima dokumentasi" dinyatakan manusia, bukan disimpulkan
+  sistem.** Tidak ada satu pun kejadian di sistem yang dapat membuktikannya.
+  Ia ditanyakan pada formulir penerbitan dan ikut dibekukan di snapshot.
+- **Kepala Lab boleh menerbitkan walau ada syarat yang kurang** — SPEC 6.2
+  menegaskan sistem hanya mengusulkan. Tetapi ia harus mencentang pernyataan
+  tegas, dan syarat yang kurang itu **ikut tercetak di suratnya**. Kelonggaran
+  yang tidak meninggalkan jejak akan menjadi kebiasaan dalam satu semester.
+- **Tidak ada aksi membatalkan atau menghapus surat.** Surat yang sudah keluar
+  mungkin sudah dicetak, ditandatangani, dan dikirim ke Program Studi.
+- **Impor CSV memeriksa dulu, menulis belakangan.** Tanpa `--tulis` ia hanya
+  melaporkan. Barisnya masuk sebagai catatan MANUAL dengan alasan yang menyebut
+  berkas asalnya, sehingga rekap dan audit menampilkannya apa adanya sebagai
+  data yang bukan berasal dari pemindaian QR di pintu.
+- **Tanggal bergaris miring dibaca HARI/BULAN/TAHUN.** Menebak antara urutan
+  Indonesia dan Amerika berarti 4 Maret dan 3 April tertukar tanpa ada yang
+  menyadarinya. Bentuk yang tidak dikenali ditolak dengan menyebut nomor
+  barisnya, tidak ditebak.
+- **`/api/skk/[id]/pdf` didaftarkan pada `outputFileTracingIncludes`.** Perender
+  PDF memuat berkas hurufnya lewat require dinamis; tanpa pendaftaran ini surat
+  terbit sebagai halaman kosong — dan hanya di produksi, tidak pernah saat
+  `npm run dev`.
+
 ---
+
+## Pengerasan keamanan sesudah Milestone 6
+
+Dikerjakan setelah keenam milestone dibangun, atas permintaan Kepala
+Laboratorium: memastikan tidak ada seorang pun dapat berbuat curang lewat
+peramban, dan semua orang memikul hak serta kewajiban yang sama.
+
+Hasil auditnya: pelingkupan per peran sudah benar di seluruh Server Action —
+setiap kolom tersembunyi (`squadId`, `mingguKe`, `userId`, `role`) memang sudah
+dibandingkan ulang dengan sesi di peladen. Yang ditemukan kurang ada tiga.
+
+1. **Halaman masuk menerima percobaan kata sandi tanpa batas.** Ini lubang
+   terbesar di seluruh sistem, dan pada pintu yang paling berharga: menebak
+   kata sandi akun dosen berarti memperoleh hak menerbitkan surat, mengubah
+   peran siapa pun, dan mengatur target periode. Kini dibatasi dua arah — per
+   akun dan per alamat — dan diperiksa SEBELUM pencocokan bcrypt, supaya
+   pembatasnya benar-benar menghentikan beban, bukan sekadar menolak dengan
+   sopan sesudah pekerjaannya terlanjur dilakukan.
+2. **Penggantian kata sandi juga tanpa batas.** Formulirnya menuntut kata sandi
+   lama, jadi ia menjadi tempat menebak kata sandi seseorang yang lupa keluar
+   dari sesinya di komputer bersama — tanpa menyentuh halaman masuk sama sekali.
+3. **Kepala tanggapan keamanan hanya ada di `Caddyfile`.** Ia hilang begitu
+   seseorang menjalankan `npm start` langsung, dan pemasangan darurat di
+   laboratorium justru sering begitu. Kini juga dipasang di `next.config.ts`,
+   ditambah Content-Security-Policy yang sebelumnya tidak ada sama sekali:
+   `frame-ancestors 'none'` menutup pembingkaian halaman absensi di situs lain,
+   dan `form-action 'self'` memastikan formulir apa pun — termasuk yang
+   disuntikkan lewat peralatan pengembang — hanya dapat mengirim ke peladen ini.
+   Kamera tetap diizinkan karena pemindai QR memerlukannya.
+
+Ditambah satu uji struktural, `tests/penjagaan-aksi.test.ts`, yang membaca
+seluruh berkas sumber dan menggagalkan pengujian bila:
+
+- ada Server Action atau Route Handler tanpa penjagaan hak akses;
+- ada pengecualian penjagaan yang tidak menyebutkan alasannya;
+- kode harian dipilih dari basis data di dalam rute API mana pun;
+- ada jalur kode yang menghapus catatan absensi, jejak audit, atau surat terbit.
+
+Uji itu sudah dibuktikan dapat gagal: berkas percobaan yang memanggil
+`attendance.deleteMany()` dan `auditLog.delete()` membuatnya merah, dan hijau
+kembali setelah berkas itu dihapus. Uji yang tidak pernah bisa gagal tidak
+menjaga apa pun.
+
+**Yang tidak dijanjikan** — dan ini ditulis supaya tidak ada yang salah
+mengira: sistem ini tidak menghentikan orang yang memang berada di dalam
+laboratorium lalu mengabsenkan dirinya sambil tidak mengerjakan apa pun. Itu
+urusan pengawasan manusia.
+
+---
+
+## Akun dengan kata sandi bawaan, dan perapian antarmuka
+
+Diminta Kepala Laboratorium sesudah pengerasan keamanan di atas.
+
+### Hak akses
+
+`KOORD_PENGEMBANGAN` kini boleh mendaftarkan anggota baru (`master_anggota`,
+tulis). Menyimpang dari SPEC 4.2 yang memberinya "B"; alasannya ditulis di
+`src/lib/rbac.ts` dan dikunci dua uji. Batasnya tetap: memberi peran selain
+ANGGOTA masih milik Kepala Laboratorium seorang, dan hapus tidak ikut terbuka.
+
+### Akun langsung terbentuk dengan kata sandi
+
+Sebelumnya `buatAnggota` tidak memasang kata sandi sama sekali, sehingga
+menambah dosen lewat web selalu berakhir buntu: akunnya ada, tetapi masuknya
+mustahil tanpa `npm run sandi` di mesin peladen. Sekarang setiap akun — lewat
+formulir maupun lewat seeder — lahir dengan kata sandi dari
+`SANDI_BAWAAN_ANGGOTA`.
+
+Kata sandi bawaan itu sama untuk semua orang, dan justru karena itu ia dibuat
+**hanya cukup untuk menggantinya**. Akunnya ditandai `wajibGantiSandi`, dan
+selama tandanya menyala `wajibIzin()` memantulkan orangnya ke `/profil`. Dasbor
+dan Profil tetap terbuka supaya penolakannya dapat dibaca, bukan tampak seperti
+aplikasi rusak.
+
+Alasannya bukan kerapian: satu kata sandi bawaan yang berlaku penuh berarti
+siapa pun yang membaca panduan instalasi dapat masuk sebagai anggota mana pun
+dan menekan tombol hadir atas namanya — persis lubang yang tiga lapis anti titip
+absen dibangun untuk menutupnya.
+
+Pemulihan kata sandi yang lupa tidak lagi menuntut akses shell: **Anggota →
+Akses masuk → Setel ulang ke kata sandi bawaan**, tercatat di audit log.
+
+Migrasi `20260901120000_wajib_ganti_sandi` menambah kolomnya dengan bawaan
+`false`, sehingga akun yang sudah ada tidak ikut terkunci saat diterapkan.
+
+### Perapian antarmuka
+
+Keluhannya satu kalimat — "letak tambah aset di bawah membuat bingung" — tetapi
+penyakitnya ada di beberapa halaman sekaligus:
+
+- **Aksi utama selalu di kepala halaman.** Formulir "Tambah aset" dan "Buat
+  periode baru" yang dulu duduk di kaki halaman, di bawah seluruh daftar,
+  dipindahkan ke halaman tersendiri (`/inventaris/baru`, `/periode/baru`) yang
+  dibuka tombol di kepala. Halaman berisi daftar tidak punya kaki yang dapat
+  diramalkan panjangnya.
+- **Satu panel saringan bersama** (`PanelSaringan`) untuk Inventaris, Anggota,
+  dan Audit: tertutup selama tidak ada saringan menyala, terbuka sendiri bila
+  ada, jumlahnya tertulis di kepalanya, dan selalu ada tombol "Bersihkan".
+  Sebelumnya panel yang selalu terbuka memakan setengah layar pertama ponsel,
+  dan saringan hanya dapat dibatalkan kolom demi kolom.
+- **Daftar kosong selalu punya jalan keluar** (`DaftarKosong`).
+- **Umpan balik formulir seragam.** Tiga formulir terakhir yang masih menulis
+  kotak pesannya sendiri — absensi manual, anggota, periode — dipindahkan ke
+  `PesanFormulir` yang menggulir ke pandangan dan memindahkan fokus.
+- **Tautan kembali seragam** lewat `KepalaHalaman kembali=`.
+- **Di ponsel, daftar anggota kini menyebut peran dan squad** pada baris
+  keterangan; sebelumnya ketiga kolom itu disembunyikan dan yang tersisa hanya
+  nama dan status.
+
+Jalur darurat absensi manual sengaja **tidak** ikut dipernyaman: pernyataan
+berkotak centang dan alasan minimal 25 karakternya dibiarkan apa adanya.
+
+### `npm run dev` menolak menyala di atas basis data yang ketinggalan
+
+Galat yang sama muncul tiga kali berturut-turut sesudah menarik migrasi baru —
+`periodId`, lalu `wajibGantiSandi` dua kali:
+
+```
+PrismaClientValidationError
+Invalid `prisma.user.findUnique()` invocation
+```
+
+Galat itu tidak menyebutkan sebabnya sama sekali. Ia muncul jauh dari akarnya,
+di tengah halaman yang sedang dibuka, dengan jejak tumpukan yang menunjuk berkas
+yang tidak salah apa-apa — sehingga terbaca seperti kerusakan kode. Artinya
+selalu satu hal: kode sudah baru, Prisma Client atau basis datanya masih lama.
+
+Menuliskan aturannya di dokumentasi ternyata tidak cukup; aturan yang hanya
+tertulis akan terlewat persis pada saat ia paling dibutuhkan. Karena itu
+`scripts/periksa-migrasi.mjs` berjalan sendiri lewat `predev`:
+
+1. Membandingkan `prisma/schema.prisma` dengan salinan yang disimpan Prisma di
+   dalam folder kliennya. Berbeda berarti klien ketinggalan, dan klien dibuat
+   ulang di tempat — aman karena peladen belum menyala. Ditunda sampai peladen
+   jalan, Windows menolaknya dengan EPERM.
+2. Menjalankan `prisma migrate status`. Ada migrasi tertunda berarti peladen
+   **tidak** dinyalakan, dan perintah yang harus dijalankan dicetak apa adanya.
+
+Basis data yang belum menyala atau `.env` yang belum dibuat hanya diperingatkan,
+tidak menggagalkan: peladen yang menolak jalan karena basis datanya belum sempat
+dihidupkan justru menghalangi urutan kerja yang wajar.
+
+Perbandingan skemanya menyamakan spasi lebih dulu. Prisma merapikan sendiri
+skema yang disalinnya — kolomnya diluruskan ulang — sehingga perbandingan mentah
+selalu menyatakan berbeda dan klien dibuat ulang tiap kali `npm run dev`.
+
+Ketiga cabangnya diuji sungguhan, bukan diasumsikan: klien yang sengaja dibuat
+ketinggalan memang memicu pembuatan ulang, migrasi yang ditahan memang
+menggagalkan `predev` dengan kode keluar 1 dan menyebutkan namanya, dan
+sesudah `migrate deploy` pemeriksaannya lolos diam-diam.
+
+### Verifikasi kata sandi bawaan di atas basis data sungguhan
+
+Dijalankan pada PostgreSQL 16 sementara, bukan disimpulkan dari kode:
+
+- migrasi `20260901120000_wajib_ganti_sandi` diterapkan bersih;
+- seluruh 39 akun hasil seeder punya `passwordHash` dan `wajibGantiSandi` menyala;
+- kata sandi bawaannya benar-benar cocok dengan `SANDI_BAWAAN_ANGGOTA`;
+- `npm run sandi` menolak memasang kembali kata sandi bawaan;
+- kata sandi pilihan sendiri menurunkan benderanya;
+- seeder yang dijalankan ulang **tidak** menimpa kata sandi yang sudah dipilih,
+  dan benderanya tetap turun.
+
+### Pemeriksaan itu sendiri tidak boleh menjadi penghalang
+
+`predev` berdiri di depan `npm run dev`, dan itu menempatkannya pada posisi
+berbahaya: kalau ia sendiri yang rusak, peladen tidak akan pernah menyala dan
+pemasangan berhenti total. Versi pertamanya keluar dengan kode 1 setiap kali
+`prisma generate` gagal — termasuk saat `npx` tidak dapat dijalankan sama
+sekali.
+
+Sekarang ia hanya menahan peladen untuk satu keadaan yang memang dikenalinya
+dan ada jalan keluarnya: migrasi tertunda. Basis data yang belum menyala,
+`.env` yang belum dibuat, kata sandi basis data yang ditolak (P1000), `npx`
+yang tidak dapat dijalankan, dan galat apa pun yang belum terpikirkan —
+semuanya diperingatkan lalu dibiarkan lewat. Pintu darurat
+`LEWATI_PERIKSA_MIGRASI=1` disebutkan pada setiap pesan yang menahan.
+
+Alat bantu yang menghalangi pekerjaan lebih buruk daripada tidak ada alat bantu
+sama sekali.
+
+Diuji: migrasi tertunda menahan dengan kode 1, pintu daruratnya melewati
+tahanan itu, `npx` yang hilang tidak menahan, dan keadaan bersih lolos diam.
+
+### `.env` yang sudah ada ikut menerima baris baru
+
+Ditemukan saat pemasangan di mini PC laboratorium. `siapkan-env.mjs` dulu
+membaca `.env` yang sudah ada sebagai satu-satunya sumber, sehingga baris BARU
+yang muncul di `.env.example` tidak pernah sampai ke pemasangan yang sudah
+berjalan.
+
+Diamnya berbahaya. `SANDI_BAWAAN_ANGGOTA` yang tidak ikut tertulis membuat
+aplikasi jatuh ke nilai cadangan di dalam `src/lib/sandi.ts` — nilai yang sama
+untuk setiap laboratorium dan tertulis di dalam kode yang dapat dibaca siapa
+pun — padahal pengelolanya sudah menjalankan penyiapan dan mengira selesai.
+
+Sekarang berkasnya digabungkan: nilai yang sudah diisi tidak pernah disentuh,
+kunci yang belum ada ditambahkan beserta komentar penjelasnya, dan kunci buatan
+sendiri yang tidak dikenal `.env.example` dipertahankan di bagian bawah. Salinan
+berkas lama disimpan sebagai `.env.bak` sebelum apa pun ditulis — dan `.env.bak`
+ikut masuk `.gitignore`, karena isinya sama rahasianya dengan `.env` sendiri.
+
+Diuji: nilai lama utuh, kunci asing selamat, kunci baru terisi, jalan kedua kali
+tidak mengubah apa-apa, dan pemasangan dari nol tetap seperti semula.
+
+### siapkan-env menguji kata sandi basis data sebelum ditinggalkan
+
+Lanjutan dari jebakan KATASANDIANDA di bawah, dan kali ini kesalahannya berulang
+dengan teks contoh saya sendiri: "SandiYangTadiDiterimaPsql" pun disalin apa
+adanya. Pola yang sama akan terus terjadi selama kata sandi yang salah baru
+ketahuan dua perintah kemudian, sebagai P1000 yang jauh dari tempat ia diketik.
+
+Sekarang `siapkan-env.mjs --sandi-db` menjalankan `prisma migrate status` sekali
+tepat setelah menulis `.env`, selagi orangnya masih menatap layar. Bila kata
+sandinya ditolak, ia berhenti dengan kode 1 dan pesan yang menyebutkan sebab
+paling sering lebih dulu — teks contoh yang tersalin — serta cara mengujinya
+lewat psql. Dilewati diam-diam bila Prisma belum terpasang, supaya skripnya
+tetap dapat berjalan tepat setelah `git clone`.
+
+Diuji di atas PostgreSQL berkata sandi: kata sandi salah memperingatkan dengan
+kode 1, kata sandi benar lolos diam.
+
+### `--sandi-db KATASANDIANDA` disalin apa adanya
+
+`KATASANDIANDA` di README adalah tempat kosong, tetapi ia terbaca seperti
+perintah yang siap disalin — dan memang disalin, sehingga `.env` berisi kata
+sandi `KATASANDIANDA` dan `prisma migrate deploy` gagal dengan
+`P1000: Authentication failed`.
+
+Peringatannya kini berupa blok kutipan tersendiri di README dan kotak catatan di
+panduan Word, bukan satu kalimat di tengah paragraf; tabel galat keduanya
+bertambah baris P1000 beserta cara memperbaikinya. Termasuk cara menguji kata
+sandi `postgres` yang benar lewat `psql`, karena yang lupa kata sandinya tidak
+punya tempat bertanya.
+
+---
+
+### Perubahan peran tampak tidak tersimpan padahal tersimpan
+
+Temuan Kepala Laboratorium: mengubah peran seseorang di halaman anggota, menekan
+Simpan, dan dropdown-nya kembali ke peran semula.
+
+Direproduksi di atas PostgreSQL sungguhan dengan Playwright, dan hasilnya
+mengejutkan: basis datanya BENAR berubah — muat ulang halaman menunjukkan peran
+baru. Yang keliru hanyalah tampilannya. React 19 mengosongkan ulang medan
+formulir tak terkendali begitu aksi formulir selesai, memulihkannya ke
+defaultValue, yaitu nilai LAMA saat formulir pertama dipasang. Bukan cuma peran:
+setiap medan yang diubah ikut tampak kembali seperti semula sesaat setelah
+disimpan.
+
+`simpanAnggota` sekarang mengembalikan nilai yang benar-benar tersimpan beserta
+sebuah token, dan formulir memakainya sebagai defaultValue yang baru sambil
+memasang ulang medannya tiap kali menyimpan. Pesan "Perubahan tersimpan." tetap
+tampil karena berada di luar bagian yang dipasang ulang.
+
+Diverifikasi ujung ke ujung: sebelum perbaikan, dropdown kembali ke peran lama
+setelah simpan; sesudahnya, ia menampilkan peran baru, pesannya tetap muncul,
+dan simpan kedua kali pun ikut benar.
+
+### Menyisir bug tampilan yang sama di seluruh menu
+
+Setelah temuan peran, seluruh formulir yang memakai aksi React 19 disisir. Yang
+rentan hanya SATU pola: formulir SUNTINGAN yang isinya diisi dari sebuah catatan
+dan TETAP terpasang setelah menyimpan. Formulir penambahan (piket, logbook,
+insiden, buku tamu, peminjaman, absensi manual) tidak terkena — pengosongan
+setelah berhasil memang yang diinginkan di sana, dan halaman /anggota/baru serta
+/peminjaman/baru mengalihkan halaman setelah berhasil.
+
+Tiga formulir suntingan yang tersisa diperbaiki dengan pola pemasangan-ulang
+berkunci: medannya dibungkus Fragment yang berkunci pada nilai dari peladen,
+sehingga begitu props menyegar (revalidatePath) setelah simpan, medannya
+dipasang ulang membaca nilai baru. Pesan keberhasilan berada di luar Fragment
+sehingga tetap tampil, dan mode penambahan tidak terpengaruh karena nilai
+awalnya tetap.
+
+- `inventaris/formulir.tsx` — kartu "Ubah aset" pada tiap baris.
+- `periode/formulir.tsx` — penyuntingan periode pada daftar.
+- `insiden/status.tsx` — pengubah status tindak lanjut.
+
+Diverifikasi ujung ke ujung dengan Playwright terhadap build produksi: lokasi
+aset yang disunting kini menampilkan nilai baru setelah simpan (bukan kembali ke
+lama), nama periode pun demikian, dan mode penambahan aset tetap mengosong
+seperti semula.
+
+### Pencarian di setiap menu berisi daftar
+
+Diminta Kepala Laboratorium. Tiga menu sudah punya saringan (Anggota,
+Inventaris, Audit); pencarian ditambahkan ke sisa menu yang menampilkan daftar,
+memakai komponen `PanelSaringan` yang sama supaya seragam dan dapat ditautkan
+lewat URL (`?cari=`).
+
+- Absensi Saya — riwayat pribadi, disaring di memori.
+- Rekap Kontribusi — nama atau kode squad, disaring di memori.
+- Logbook — squad, penulis, atau isi catatan.
+- Piket — squad atau petugas.
+- Laporan Insiden — lokasi, kronologi, tindakan, saran, pelapor, plus saringan
+  status tindak lanjut.
+- Buku Tamu — nama, instansi, keperluan, atau pendamping (pada riwayat).
+- Peminjaman — alat, kode, peminjam, atau keperluan.
+- Surat Kontribusi — nama, NPM, atau squad, plus saringan kelayakan
+  (memenuhi/belum/sudah terbit).
+
+Menu yang bukan daftar sengaja tidak diberi pencarian: Dasbor, Peran & Hak Akses
+(matriks), Periode & Target (penyunting, sedikit baris), dan Ekspor Data.
+
+Pencarian dijalankan di dalam kueri basis data tempat datanya memang dibaca dari
+sana (insiden, tamu, piket, logbook, peminjaman), dan di memori tempat datanya
+memang dihitung di memori (rekap, SKK, riwayat absensi pribadi). Keduanya tetap
+menghormati lingkup hak akses: seorang anggota hanya mencari di dalam data yang
+memang boleh dilihatnya.
+
+Diverifikasi dengan Playwright terhadap build produksi: pencarian teks insiden
+menyisakan hanya yang cocok, saringan status bekerja, dan seluruh menu daftar
+memuat dengan kotak pencariannya.
+
+### Wewenang koordinator dibagi tegas, tidak tumpang tindih
+
+Diminta Kepala Laboratorium: tiap koordinator memegang satu ranah pengelolaan
+yang berbeda, dan tidak ada dua koordinator yang berwenang atas hal yang sama.
+
+- **Koordinator Operasional** — inventaris, peminjaman, piket (logistik & operasi
+  lab), ditambah absensi manual darurat, koreksi rekap absensi, tindak lanjut
+  insiden, dan ekspor. Hak tulisnya atas keanggotaan DICABUT (dulu ia ikut
+  mengelola anggota, dan itu bertabrakan dengan Pengembangan) — kini ia hanya
+  membaca daftar anggota.
+- **Koordinator Riset** — logbook riset. Tidak menyentuh inventaris, piket, atau
+  keanggotaan. (Catatan: "jadwal uji" dan "timeline squad" sebagai modul
+  tersendiri belum ada; wewenang riset saat ini adalah logbook. Bila ingin modul
+  penjadwalan khusus, itu pengembangan baru.)
+- **Koordinator Pengembangan** — keanggotaan (master_anggota), dengan batas
+  penetapan peran HANYA sampai Ketua Squad.
+
+Batas penetapan peran ditegakkan `bolehMemberiPeran()` di `src/lib/rbac.ts`, dan
+dipakai bersama oleh aksi peladen dan formulir anggota:
+
+- Koordinator Pengembangan dapat menetapkan seseorang menjadi **Anggota** atau
+  **Ketua Squad**, dan hanya untuk akun yang perannya masih di jangkauan itu.
+- Ia TIDAK dapat mengangkat siapa pun menjadi Koordinator, Kepala Laboratorium,
+  atau Pengawas; dan tidak dapat menyentuh peran akun yang SUDAH koordinator ke
+  atas, bahkan untuk menurunkannya. Itu tetap hak Kepala Laboratorium lewat
+  modul `peran_hak_akses` (halaman Peran & Hak Akses).
+- Menghapus anggota tetap hanya Kepala Laboratorium.
+
+Yang tetap milik Kepala Laboratorium seorang: menetapkan koordinator, periode &
+target skor, penerbitan SKK, penghapusan aset dan anggota, dan pembacaan audit
+log penuh.
+
+Dikunci uji: satu uji memindai seluruh matriks dan menggagalkan bila ada satu
+modul pun yang dikelola (tulis "SEMUA") oleh dua koordinator sekaligus; uji lain
+menegakkan batas `bolehMemberiPeran`. Diverifikasi pula di peramban terhadap
+build produksi: pilihan peran Pengembangan hanya Anggota/Ketua Squad, peran
+seorang koordinator tak dapat disentuhnya, /anggota/baru tertutup bagi
+Operasional (403) tetapi /inventaris/baru terbuka (200).
+
+### Data Kepala Laboratorium hanya boleh diubah Kepala Laboratorium
+
+Diminta Kepala Laboratorium. Sebelumnya Koordinator Pengembangan — yang
+berwenang atas keanggotaan — dapat menyunting data atau menyetel ulang sandi
+akun SIAPA PUN, termasuk akun Kepala Laboratorium. Itu lubang: puncak wewenang
+tidak boleh dapat disentuh dari bawah.
+
+`bolehKelolaAkun(pengelola, peranTarget)` di `src/lib/rbac.ts` menutupnya: akun
+Kepala Laboratorium hanya dapat disentuh Kepala Laboratorium sendiri.
+Ditegakkan di dua aksi peladen — `simpanAnggota` (seluruh medan, bukan hanya
+peran) dan `setelUlangSandi` — dan di antarmuka halaman anggota menjadi tampilan
+baca saja tanpa kartu "Akses masuk" bagi pengelola lain. Menghapus akun Kepala
+Lab pun tetap tertutup (hapus hanya Kepala Lab, dan penjaga sisa-Kepala-Lab).
+
+Dikunci uji (tidak seorang pun selain Kepala Lab boleh mengelola akun Kepala
+Lab) dan diverifikasi di peramban: Koordinator Pengembangan membuka akun Kepala
+Lab tanpa satu pun medan yang dapat disunting, sementara akun anggota biasa
+tetap dapat disuntingnya.
+
+### Jadwal piket dapat disunting, Senin–Sabtu
+
+Diminta Kepala Laboratorium: siapa piket pada hari apa harus dapat diatur dari
+antarmuka oleh Kepala Laboratorium dan Koordinator Pengembangan, dan piket
+berjalan Senin sampai Sabtu (sebelumnya Senin–Jumat, dan jadwalnya berupa CSV
+statis).
+
+Piket kini punya dua ranah yang TERPISAH, sehingga tidak bertabrakan:
+
+- **`piket`** — mencatat checklist piket harian. Tetap Koordinator Operasional.
+- **`jadwal_piket`** — mengatur roster (siapa, hari apa). Kepala Laboratorium
+  dan Koordinator Pengembangan (sejalan ranah keanggotaan/kaderisasinya). Semua
+  orang boleh melihat jadwalnya.
+
+Karena modulnya berbeda, uji "tidak ada dua koordinator yang mengelola modul
+yang sama" tetap hijau.
+
+Rosternya pindah dari CSV statis ke tabel `jadwal_piket` (migrasi
+`20260902010000_jadwal_piket`): satu baris per hari 1–6, `squadId` boleh null
+(belum ditetapkan). `data/jadwal-piket.csv` kini hanya nilai AWAL seeder, dan
+diperluas ke Sabtu (kosong). Seeder tidak menimpa jadwal yang sudah diubah.
+`piketHariIni()` membaca dari tabel ini, bukan lagi dari CSV.
+
+Penyunting: menu **Jadwal Piket** → `/piket/jadwal`, enam baris Senin–Sabtu,
+tiap baris memilih squad atau "belum ditetapkan". Halaman `/piket` menampilkan
+roster mingguan dan tombol "Atur jadwal" bagi yang berhak. Setiap perubahan
+tercatat di audit log (`UBAH_JADWAL_PIKET`).
+
+Diverifikasi di peramban terhadap build produksi: Koordinator Pengembangan
+membuka penyunting (enam hari), menetapkan Sabtu, tersimpan dan tampil di
+`/piket`; Koordinator Operasional ditolak dari `/piket/jadwal` (403) tetapi
+tetap membuka `/piket` (200) dan tidak melihat tombol "Atur jadwal".
 
 ## Aturan yang berlaku di seluruh milestone
 

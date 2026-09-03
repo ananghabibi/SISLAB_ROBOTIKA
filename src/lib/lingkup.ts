@@ -76,6 +76,59 @@ export function saringanPeminjaman(pengguna: PenggunaLingkup) {
 }
 
 /**
+ * Penyaring daftar laporan insiden (modul `insiden`).
+ *
+ * Yang disaring adalah `pelaporId`. Lingkup "SENDIRI" di sini berarti benar-
+ * benar laporannya sendiri, bahkan bagi ketua squad: laporan insiden kerap
+ * memuat nama orang yang terluka dan urutan kejadian yang belum tentu enak
+ * dibaca satu ruangan. Yang perlu membaca semuanya — Kepala Lab dan para
+ * Koordinator — memang sudah diberi lingkup SEMUA oleh matriks.
+ */
+export function saringanInsiden(pengguna: PenggunaLingkup) {
+  const izin = izinUntuk(pengguna.role, "insiden");
+  if (izin.baca === "SEMUA") return {};
+  if (izin.baca === "TIDAK") return { pelaporId: "__tidak-ada__" };
+  return { pelaporId: pengguna.id };
+}
+
+/**
+ * Penyaring logbook riset (modul `logbook`).
+ *
+ * Disaring pada `squadId`, bukan pada penulisnya: logbook adalah catatan
+ * SQUAD, dan seluruh anggota squad memang perlu membaca apa yang ditulis
+ * atas nama squadnya. Anggota tanpa squad tidak melihat satu pun.
+ */
+export function saringanLogbook(pengguna: PenggunaLingkup) {
+  const izin = izinUntuk(pengguna.role, "logbook");
+  if (izin.baca === "SEMUA") return {};
+  if (izin.baca === "TIDAK") return { squadId: "__tidak-ada__" };
+  return { squadId: pengguna.squadId ?? "__tidak-ada__" };
+}
+
+/**
+ * Penyaring audit log (modul `audit_log`).
+ *
+ * Lingkup "SENDIRI" di sini berarti jejak yang ditinggalkan orang itu sendiri.
+ * Koordinator Operasional memegangnya supaya dapat memeriksa ulang tindakannya
+ * sendiri — mis. absensi manual yang ia catat — tanpa ikut membaca jejak
+ * seluruh laboratorium, yang memang hanya hak Kepala Lab.
+ */
+export function saringanAuditLog(pengguna: PenggunaLingkup) {
+  const izin = izinUntuk(pengguna.role, "audit_log");
+  if (izin.baca === "SEMUA") return {};
+  if (izin.baca === "TIDAK") return { userId: "__tidak-ada__" };
+  return { userId: pengguna.id };
+}
+
+/** Penyaring catatan piket (modul `piket`), juga pada squadnya. */
+export function saringanPiket(pengguna: PenggunaLingkup) {
+  const izin = izinUntuk(pengguna.role, "piket");
+  if (izin.baca === "SEMUA") return {};
+  if (izin.baca === "TIDAK") return { squadId: "__tidak-ada__" };
+  return { squadId: pengguna.squadId ?? "__tidak-ada__" };
+}
+
+/**
  * Apakah `pengguna` boleh melihat data milik `pemilik` pada sebuah modul.
  *
  * Dipakai untuk penjagaan per baris, misalnya saat seseorang menebak id anggota

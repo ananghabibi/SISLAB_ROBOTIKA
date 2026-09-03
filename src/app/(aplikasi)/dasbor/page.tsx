@@ -5,7 +5,15 @@ import { KartuSkor } from "@/components/kartu-skor";
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LABEL_JENIS_INSIDEN, mendesak } from "@/lib/insiden";
 import { periodeAktif, rekapKontribusi } from "@/lib/kontribusi";
+import {
+  absensiDiLuarPeriode,
+  insidenMenunggu,
+  piketHariIni,
+  squadPadaPekan,
+} from "@/lib/pemantauan";
+import { keadaanPeriode, penjelasanPeriode } from "@/lib/periode";
 import { menuUntukPeran } from "@/lib/menu";
 import { saringanRekapKontribusi, wajibMasuk } from "@/lib/penjaga";
 import { prisma } from "@/lib/prisma";
@@ -19,7 +27,11 @@ export default async function Dasbor() {
   const pengguna = await wajibMasuk();
   const lihatSemuaAnggota = bolehBacaSemua(pengguna.role, "master_anggota");
 
-  const [periode, jumlahAnggota, jumlahSquad, temanSquad] = await Promise.all([
+  const [akun, periode, jumlahAnggota, jumlahSquad, temanSquad] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: pengguna.id },
+      select: { wajibGantiSandi: true },
+    }),
     periodeAktif(),
     lihatSemuaAnggota ? prisma.user.count({ where: { status: "AKTIF" } }) : Promise.resolve(null),
     lihatSemuaAnggota ? prisma.squad.count() : Promise.resolve(null),
@@ -41,12 +53,140 @@ export default async function Dasbor() {
 
   const menu = menuUntukPeran(pengguna.role);
 
+  // Penanda pemantauan hanya dihitung untuk yang memang mengurusnya. Anggota
+  // biasa tidak perlu melihat daftar squad yang tertinggal — itu urusan
+  // koordinator, dan menampilkannya kepada semua orang mengubah pengingat
+  // menjadi papan aib.
+  const lihatPemantauanLogbook = bolehBacaSemua(pengguna.role, "logbook");
+  const lihatPemantauanPiket = bolehBacaSemua(pengguna.role, "piket");
+  const lihatInsiden = bolehBacaSemua(pengguna.role, "insiden");
+
+  const [pekanLogbook, piket, insiden, insidenTerbaru] = await Promise.all([
+    lihatPemantauanLogbook && periode ? squadPadaPekan(periode) : Promise.resolve(null),
+    lihatPemantauanPiket ? piketHariIni() : Promise.resolve(null),
+    lihatInsiden ? insidenMenunggu() : Promise.resolve(null),
+    lihatInsiden
+      ? prisma.incident.findMany({
+          where: { statusTindakLanjut: { not: "SELESAI" } },
+          include: { pelapor: { select: { nama: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const squadBelumLogbook = pekanLogbook?.squad.filter((s) => !s.sudahMengisi) ?? [];
+
+  // Absensi yang berhasil tetapi tidak muncul di rekap hampir selalu berarti
+  // tanggalnya di luar rentang periode aktif. Disebut di sini juga, karena
+  // dasbor adalah halaman yang pertama dibuka orang saat merasa ada yang
+  // tidak beres.
+  const keadaan = periode ? keadaanPeriode(periode) : null;
+  const penjelasanPeriodeIni =
+    periode && keadaan
+      ? penjelasanPeriode(keadaan, keadaan === "BERJALAN" ? 0 : await absensiDiLuarPeriode(periode))
+      : null;
+
   return (
     <>
       <KepalaHalaman
         judul={`Selamat datang, ${pengguna.nama.split(" ")[0]}`}
         keterangan={`${LABEL_PERAN[pengguna.role]}${pengguna.squadNama ? ` · ${pengguna.squadNama}` : ""}`}
       />
+
+      {/* Ditaruh paling atas dan mendahului penanda apa pun: selama benderanya
+          menyala, seluruh menu di sebelah kiri akan memantulkan orangnya
+          kembali ke halaman profil, dan tanpa keterangan ini pantulan itu
+          terbaca sebagai aplikasi yang rusak. */}
+      {akun?.wajibGantiSandi ? (
+        <Card className="mb-4 border-peringatan/50 bg-peringatan-lembut/40">
+          <CardHeader className="border-peringatan/30">
+            <CardTitle className="text-peringatan">
+              Akun Anda masih memakai kata sandi bawaan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-peringatan">
+            <p>
+              Kata sandi bawaan sama untuk setiap akun baru, sehingga belum dapat membuktikan bahwa
+              yang menekan tombol hadir memang Anda. Menu lain terkunci sampai Anda memilih kata
+              sandi sendiri — termasuk absensi.
+            </p>
+            <p>
+              <Link href="/profil" className="font-semibold underline underline-offset-4">
+                Ganti kata sandi sekarang
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {insiden && insiden.jumlah > 0 ? (
+        <Card className="mb-4 border-bahaya/50">
+          <CardHeader className="flex flex-wrap items-center gap-2">
+            <CardTitle className="mr-auto">
+              {insiden.jumlah} laporan insiden menunggu tindak lanjut
+            </CardTitle>
+            {insiden.mendesak > 0 ? (
+              <Badge variant="bahaya">{insiden.mendesak} mendesak</Badge>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {insidenTerbaru.map((laporan) => (
+              <p key={laporan.id} className={mendesak(laporan.jenis) ? "text-bahaya" : ""}>
+                <span className="font-semibold">{LABEL_JENIS_INSIDEN[laporan.jenis]}</span> ·{" "}
+                {laporan.lokasi} · dilaporkan {laporan.pelapor.nama}
+              </p>
+            ))}
+            <p>
+              <Link href="/insiden" className="text-utama underline underline-offset-4">
+                Buka Laporan Insiden
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {pekanLogbook && squadBelumLogbook.length > 0 ? (
+        <Card className="mb-4 border-peringatan/50">
+          <CardHeader>
+            <CardTitle>
+              {squadBelumLogbook.length} squad belum mengisi logbook pekan {pekanLogbook.mingguKe}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <ul className="flex flex-wrap gap-2">
+              {squadBelumLogbook.map((s) => (
+                <li key={s.id}>
+                  <Badge variant="peringatan">{s.nama}</Badge>
+                </li>
+              ))}
+            </ul>
+            <p>
+              <Link href="/logbook" className="text-utama underline underline-offset-4">
+                Buka Logbook Riset
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {piket && piket.kodeSquad !== null && !piket.sudahDiisi ? (
+        <Card className="mb-4 border-peringatan/50">
+          <CardHeader>
+            <CardTitle>Piket hari ini belum dicatat</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>
+              Giliran <span className="font-semibold">{piket.namaSquad ?? piket.kodeSquad}</span>.
+            </p>
+            <p>
+              <Link href="/piket" className="text-utama underline underline-offset-4">
+                Buka Piket
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
@@ -57,8 +197,14 @@ export default async function Dasbor() {
             {periode ? (
               <>
                 <p className="font-semibold">{periode.nama}</p>
+                {penjelasanPeriodeIni ? (
+                  <p className="mt-2 rounded-lg bg-peringatan-lembut px-3 py-2 text-sm text-peringatan">
+                    {penjelasanPeriodeIni}
+                  </p>
+                ) : null}
                 <p className="mt-1 text-sm text-teks-redup">
-                  {tanggalPendekWib(periode.tanggalMulai)} – {tanggalPendekWib(periode.tanggalSelesai)}
+                  {tanggalPendekWib(periode.tanggalMulai)} –{" "}
+                  {tanggalPendekWib(periode.tanggalSelesai)}
                 </p>
                 <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
                   <div>

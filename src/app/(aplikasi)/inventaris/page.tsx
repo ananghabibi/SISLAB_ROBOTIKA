@@ -3,9 +3,10 @@ import Link from "next/link";
 
 import { KepalaHalaman } from "@/components/kepala-halaman";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button, gayaTombol, TautanTombol } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
+import { DaftarKosong, PanelSaringan } from "@/components/ui/panel-saringan";
 import { AWALAN_ASET_CONTOH, kondisiAsetSah } from "@/lib/aset";
 import { daftarAset, sudahLewatTenggat } from "@/lib/inventaris";
 import { wajibIzin } from "@/lib/penjaga";
@@ -80,17 +81,21 @@ export default async function HalamanInventaris({
     <>
       <KepalaHalaman
         judul="Inventaris"
-        keterangan={`${aset.length} aset tercatat.`}
+        keterangan={
+          kueriLabel.size
+            ? `${aset.length} aset cocok dengan saringan.`
+            : `${aset.length} aset tercatat.`
+        }
         aksi={
           bolehSunting ? (
-            <a
-              href={tautanLabel}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center rounded-lg border border-garis bg-permukaan px-4 text-sm font-semibold hover:bg-utama-lembut"
-            >
-              Cetak label QR{kueriLabel.size ? ` (${aset.length})` : ""}
-            </a>
+            <>
+              <TautanTombol href={tautanLabel} target="_blank" rel="noreferrer" variant="garis">
+                Cetak label QR{kueriLabel.size ? ` (${aset.length})` : ""}
+              </TautanTombol>
+              <Link href="/inventaris/baru" className={gayaTombol()}>
+                + Tambah aset
+              </Link>
+            </>
           ) : null
         }
       />
@@ -109,39 +114,41 @@ export default async function HalamanInventaris({
         </Card>
       ) : null}
 
-      <Card className="mb-4">
-        <CardContent>
-          <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Input name="cari" placeholder="Cari nama, kode, atau merk" defaultValue={filter.cari} />
-            <Select name="kategori" defaultValue={filter.kategori ?? ""}>
-              <option value="">Semua kategori</option>
-              {kategori.map((k) => (
-                <option key={k.kategori} value={k.kategori}>
-                  {k.kategori}
-                </option>
-              ))}
-            </Select>
-            <Select name="kondisi" defaultValue={filter.kondisi ?? ""}>
-              <option value="">Semua kondisi</option>
-              {Object.keys(WARNA_KONDISI).map((k) => (
-                <option key={k} value={k}>
-                  {k.replace(/_/g, " ")}
-                </option>
-              ))}
-            </Select>
-            <Button type="submit" variant="garis">
-              Saring
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <PanelSaringan jalur="/inventaris" jumlahAktif={kueriLabel.size}>
+        <Input
+          name="cari"
+          placeholder="Cari nama, kode, atau merk"
+          defaultValue={filter.cari}
+          aria-label="Cari aset"
+        />
+        <Select name="kategori" defaultValue={filter.kategori ?? ""} aria-label="Kategori">
+          <option value="">Semua kategori</option>
+          {kategori.map((k) => (
+            <option key={k.kategori} value={k.kategori}>
+              {k.kategori}
+            </option>
+          ))}
+        </Select>
+        <Select name="kondisi" defaultValue={filter.kondisi ?? ""} aria-label="Kondisi">
+          <option value="">Semua kondisi</option>
+          {Object.keys(WARNA_KONDISI).map((k) => (
+            <option key={k} value={k}>
+              {k.replace(/_/g, " ")}
+            </option>
+          ))}
+        </Select>
+      </PanelSaringan>
 
       {aset.length === 0 ? (
-        <Card>
-          <CardContent>
-            <p className="text-sm text-teks-redup">Tidak ada aset yang cocok dengan saringan.</p>
-          </CardContent>
-        </Card>
+        <DaftarKosong
+          jalur="/inventaris"
+          adaSaringan={kueriLabel.size > 0}
+          pesan={
+            kueriLabel.size
+              ? "Tidak ada aset yang cocok dengan saringan."
+              : "Belum ada aset tercatat."
+          }
+        />
       ) : (
         <div className="space-y-3">
           {aset.map((a) => {
@@ -240,37 +247,6 @@ export default async function HalamanInventaris({
         </div>
       )}
 
-      {bolehSunting ? (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle>Tambah aset</CardTitle>
-            <CardDescription>
-              Untuk satu-dua alat baru. Pemuatan daftar sekaligus lebih baik lewat{" "}
-              <code>data/aset-data.csv</code>.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormulirAset
-              anggota={anggota}
-              nilai={{
-                id: null,
-                kodeAset: "",
-                nama: "",
-                kategori: "",
-                merk: "",
-                jumlah: 1,
-                satuan: "unit",
-                kondisi: "BAIK",
-                lokasi: "",
-                tahunPerolehan: "",
-                penanggungJawabId: "",
-                bolehDipinjam: true,
-                keterangan: "",
-              }}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
     </>
   );
 }

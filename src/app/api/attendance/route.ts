@@ -25,6 +25,7 @@ import { periksaJaringan } from "@/lib/jaringan";
 import { kodeHarianCocok, PANJANG_KODE } from "@/lib/kode-harian";
 import { bersihkanNonceLama, klaimNonce } from "@/lib/nonce";
 import { periksaLaju } from "@/lib/pembatas-laju";
+import { prisma } from "@/lib/prisma";
 import { periksaToken } from "@/lib/token-qr";
 
 /** Batas percobaan absensi. Longgar untuk yang salah ketik, ketat untuk penebak. */
@@ -60,6 +61,23 @@ export async function POST(permintaan: Request) {
 
   if (pengguna.status !== "AKTIF" && pengguna.status !== "CUTI") {
     return tolak("Status keanggotaan Anda tidak memungkinkan mencatat kehadiran.", 403);
+  }
+
+  // Akun yang masih memakai kata sandi bawaan belum membuktikan siapa
+  // pemegangnya: kata sandi itu sama untuk setiap akun baru. Halaman /absensi
+  // memang sudah ditutup penjagaan modul, tetapi rute ini tidak melewatinya —
+  // ia dijaga lapis jaringan, kode harian, dan token QR. Tanpa pemeriksaan di
+  // sini, seseorang yang tahu kata sandi bawaan tetap dapat mengirim
+  // permintaan langsung dan mengabsenkan orang lain dari dalam laboratorium.
+  const akun = await prisma.user.findUnique({
+    where: { id: pengguna.id },
+    select: { wajibGantiSandi: true },
+  });
+  if (akun?.wajibGantiSandi) {
+    return tolak(
+      "Akun Anda masih memakai kata sandi bawaan. Ganti kata sandi di halaman Profil lebih dulu, baru kehadiran dapat dicatat.",
+      403,
+    );
   }
 
   // ---- Lapis 1: jaringan laboratorium -------------------------------------

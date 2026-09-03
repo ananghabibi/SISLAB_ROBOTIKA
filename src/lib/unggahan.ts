@@ -24,3 +24,12 @@ export const KELOMPOK_PEMINJAMAN = "peminjaman";
  * pada halaman mana yang kebetulan menautkannya.
  */
 export const KELOMPOK_IDENTITAS = "identitas";
+
+/** Subfolder foto laporan insiden. */
+export const KELOMPOK_INSIDEN = "insiden";
+
+/** Subfolder foto ruangan sebelum dan sesudah piket. */
+export const KELOMPOK_PIKET = "piket";
+
+/** Subfolder bukti kegiatan pada logbook riset mingguan. */
+export const KELOMPOK_LOGBOOK = "logbook";
